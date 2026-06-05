@@ -15,6 +15,7 @@ node_modules/
 !/manifest.webmanifest
 !/sw.js
 !/icon.svg
+!/og-card.png
 !/js
 !/css
 !/data
