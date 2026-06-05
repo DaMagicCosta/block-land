@@ -22,6 +22,12 @@ function sprich(text) {
   } catch (e) { /* keine Sprachausgabe verfügbar — egal */ }
 }
 
+let letzteAufgabeKey = null;
+function aufgabeKey(a) { return `${a.aufgabentyp}:${a.a}:${a.b}`; }
+function istKleinkind(profile) {
+  return profile.alter === 'kindergarten' || profile.alter === 'klasse-1';
+}
+
 export async function oeffneAufgabe(reward) {
   const profile = getCurrentProfile();
   if (!profile) return;
@@ -39,10 +45,17 @@ export async function oeffneAufgabe(reward) {
   const stufenConfig = pool[typ].stufen.find(s => s.nr === stufe_nr) ?? pool[typ].stufen[0];
   const maxStufe = pool[typ].stufen.length;
 
-  let aufgabe;
-  if (typ === 'mal') aufgabe = generiereMalAufgabe(stufenConfig, pool.mal.distraktoren);
-  else if (typ === 'mengen') aufgabe = generiereMengenAufgabe(stufenConfig, pool.mengen.distraktoren);
-  else aufgabe = generierePlusAufgabe(stufenConfig, pool.plus.distraktoren);
+  function generiere() {
+    if (typ === 'mal') return generiereMalAufgabe(stufenConfig, pool.mal.distraktoren);
+    if (typ === 'mengen') return generiereMengenAufgabe(stufenConfig, pool.mengen.distraktoren);
+    return generierePlusAufgabe(stufenConfig, pool.plus.distraktoren);
+  }
+  let aufgabe = generiere();
+  // Nicht zweimal hintereinander dieselbe Aufgabe (wirkt sonst monoton).
+  for (let v = 0; v < 6 && aufgabeKey(aufgabe) === letzteAufgabeKey; v++) {
+    aufgabe = generiere();
+  }
+  letzteAufgabeKey = aufgabeKey(aufgabe);
 
   // Mengen & große Zahlen immer als A-Mechanik (kein riesiges Punkte-/Legebild).
   const grosseZahl = aufgabe.a > 20 || aufgabe.b > 20;
@@ -62,7 +75,7 @@ function waehleAufgabentyp(profile) {
 
 function zeigeAufgabenModal(aufgabe, mechanik, reward, profile, maxStufe) {
   // Kindergarten + 1. Klasse: App trägt vor, kein Gelesen-Knopf (lernen erst lesen).
-  const istKlein = profile.alter === 'kindergarten' || profile.alter === 'klasse-1';
+  const istKlein = istKleinkind(profile);
   const modal = oeffneModal({
     klassen: 'modal-backdrop--aufgabe',
     inhaltHtml: `
@@ -169,17 +182,18 @@ function starteAufgabe(aufgabe, mechanik, reward, profile, modal, inhalt, maxStu
       const zeit_ms = performance.now() - startZeit;
       rapportiereErgebnis(profile.id, aufgabe.aufgabentyp, true, zeit_ms);
       const gegeben = verteileBelohnung(aufgabe.stufe, maxStufe, reward.item);
-      zeigeErfolg(modal, gegeben);
+      zeigeErfolg(modal, gegeben, istKleinkind(profile));
       return;
     }
     fehlversuche++;
     if (fehlversuche >= MAX_FEHLVERSUCHE) {
       const zeit_ms = performance.now() - startZeit;
       rapportiereErgebnis(profile.id, aufgabe.aufgabentyp, false, zeit_ms);
-      zeigeLoesung(aufgabe, modal);
+      zeigeLoesung(aufgabe, modal, istKleinkind(profile));
       return;
     }
     feedbackZeigen('Versuch es nochmal!', 'fehler');
+    if (istKleinkind(profile)) sprich('Versuch es nochmal!');
     inhalt.classList.add('aufgabe--puls-fehler');
     setTimeout(() => inhalt.classList.remove('aufgabe--puls-fehler'), 600);
   }
@@ -216,7 +230,7 @@ const ITEM_INFO = {
   diamant: { e: '💎', l: 'Diamant' },
 };
 
-function zeigeErfolg(modal, gegeben = []) {
+function zeigeErfolg(modal, gegeben = [], istKlein = false) {
   let inner;
   if (!gegeben.length) {
     // Nichts gefallen -> gefeierte Gratulation (mit Animation).
@@ -243,10 +257,15 @@ function zeigeErfolg(modal, gegeben = []) {
     `;
   }
   modal.inhalt.innerHTML = inner;
-  modal.inhalt.querySelector('.modal__close').addEventListener('click', () => modal.schliessen());
+  const weiter = modal.inhalt.querySelector('.modal__close');
+  if (istKlein) {
+    sprich('Richtig! Super gemacht!');
+    weiter.classList.add('modal__close--puls');
+  }
+  weiter.addEventListener('click', () => modal.schliessen());
 }
 
-function zeigeLoesung(aufgabe, modal) {
+function zeigeLoesung(aufgabe, modal, istKlein = false) {
   modal.inhalt.querySelector('.aufgabe__inhalt').innerHTML = `
     <div class="aufgabe__loesung">
       <div class="aufgabe__text">${aufgabe.text}</div>
@@ -255,5 +274,10 @@ function zeigeLoesung(aufgabe, modal) {
       <button class="modal__close">Weiter</button>
     </div>
   `;
-  modal.inhalt.querySelector('.modal__close').addEventListener('click', () => modal.schliessen());
+  const weiter = modal.inhalt.querySelector('.modal__close');
+  if (istKlein) {
+    sprich(`Die Lösung ist ${aufgabe.ergebnis}. Tippe auf Weiter.`);
+    weiter.classList.add('modal__close--puls');
+  }
+  weiter.addEventListener('click', () => modal.schliessen());
 }
