@@ -133,15 +133,17 @@
 @media (max-width: 480px) {
   .welt           { padding: var(--space-sm); gap: var(--space-sm); }
   .welt__karte    {
+    /* Große quadratische Kacheln, die die Höhe füllen; seitlich scrollbar. */
+    --track: 10.5vh;                 /* Kachelgröße (von js/welt.js für Spalten genutzt) */
     padding: var(--space-xs);
-    gap: 1px;
-    flex: 1 1 auto;       /* füllt die restliche Höhe des Bildschirms */
-    max-width: none;      /* volle Breite */
-    margin-block: 0;      /* nicht mehr vertikal zentrieren */
-    grid-auto-rows: 1fr;  /* Reihen teilen sich die verfügbare Höhe */
+    gap: 2px;
+    max-width: none;
+    width: 100%;
+    overflow-x: auto;                /* Karte ist breiter als der Screen -> scrollen */
+    grid-auto-rows: var(--track);    /* Reihen genauso hoch wie breit = quadratisch */
   }
-  .welt__tile     { font-size: clamp(18px, 6vw, 28px); aspect-ratio: auto; }
-  .welt__spielfigur { font-size: clamp(22px, 7vw, 34px); aspect-ratio: auto; }
+  .welt__tile     { font-size: clamp(26px, 7vh, 42px); aspect-ratio: auto; }
+  .welt__spielfigur { font-size: clamp(30px, 8vh, 48px); aspect-ratio: auto; }
   .modal          { padding: var(--space-lg); }
   .modal__titel   { font-size: 16px; }
 }

@@ -72,7 +72,7 @@ export async function renderWelt(container) {
         <button class="welt__eltern" id="welt-eltern" title="Eltern-Bereich">⚙️</button>
         <button class="welt__back" id="welt-back">Profil wechseln</button>
       </div>
-      <div class="welt__karte" style="grid-template-columns:repeat(${biom.spalten}, 1fr)">
+      <div class="welt__karte" style="grid-template-columns:repeat(${biom.spalten}, var(--track, 1fr))">
         ${tilesHtml}
       </div>
     </div>
@@ -115,4 +115,10 @@ export async function renderWelt(container) {
       oeffneAufgabe(typ.reward);
     });
   });
+
+  // Spielfigur ins Sichtfeld scrollen (am Handy ist die Karte breiter als der Screen)
+  const figur = container.querySelector('.welt__spielfigur');
+  if (figur && figur.scrollIntoView) {
+    figur.scrollIntoView({ inline: 'center', block: 'nearest' });
+  }
 }
