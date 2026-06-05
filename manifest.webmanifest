@@ -1,0 +1,20 @@
+{
+  "name": "Das große 1×1",
+  "short_name": "1×1",
+  "description": "Einmaleins üben im Block-Land-Stil",
+  "lang": "de",
+  "start_url": "Einmaleins.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#2b1d54",
+  "theme_color": "#2b1d54",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

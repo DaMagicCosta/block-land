@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>Das große 1×1 — Block-Land</title>
+<link rel="manifest" href="manifest.webmanifest" />
+<meta name="theme-color" content="#2b1d54" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="1×1" />
+<link rel="icon" href="icon.svg" type="image/svg+xml" />
+<link rel="apple-touch-icon" href="icon.svg" />
+<style>
+  :root {
+    --bg1: #2b1d54;
+    --bg2: #4a2f8f;
+    --card: #ffffff;
+    --ink: #2a2347;
+    --ink-soft: #6b6390;
+    --gut: #16a34a;      /* richtig / grün */
+    --gut-d: #15803d;
+    --schlecht: #ef4444; /* falsch / rot  */
+    --gold: #fbbf24;
+    --radius: 22px;
+    --schatten: 0 8px 0 rgba(0,0,0,.18);
+    font-family: "Trebuchet MS", "Segoe UI", Verdana, sans-serif;
+  }
+
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: radial-gradient(circle at 50% -10%, var(--bg2), var(--bg1) 70%);
+    color: var(--ink);
+    display: flex;
+    justify-content: center;
+    padding: 18px 14px 40px;
+  }
+
+  #app { width: 100%; max-width: 560px; }
+
+  .screen { animation: rein .25s ease; }
+  @keyframes rein { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+
+  /* ---------- Kopf ---------- */
+  .kopf {
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 16px; color: #fff;
+  }
+  .kopf h1 { font-size: 26px; margin: 0; letter-spacing: .5px; }
+  .zurueck {
+    background: rgba(255,255,255,.16); color: #fff; border: 0;
+    width: 44px; height: 44px; border-radius: 14px; font-size: 22px;
+    cursor: pointer; flex: 0 0 auto;
+  }
+  .zurueck:active { transform: scale(.92); }
+  .sterne-leiste {
+    margin-left: auto; background: rgba(0,0,0,.25); color: var(--gold);
+    padding: 8px 14px; border-radius: 14px; font-weight: bold; font-size: 18px;
+  }
+
+  /* ---------- Buttons / Kacheln ---------- */
+  .karte {
+    background: var(--card); border-radius: var(--radius);
+    padding: 18px; box-shadow: var(--schatten); margin-bottom: 16px;
+  }
+
+  /* ---------- Profilauswahl ---------- */
+  .profil-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  .profil-kachel {
+    border: 0; border-radius: 18px; cursor: pointer; padding: 18px 10px;
+    background: linear-gradient(135deg, #6d5dd3, #4a2f8f); color: #fff;
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+    box-shadow: 0 5px 0 rgba(0,0,0,.22); transition: transform .08s;
+  }
+  .profil-kachel:active { transform: translateY(3px); box-shadow: 0 2px 0 rgba(0,0,0,.22); }
+  .profil-avatar { font-size: 46px; line-height: 1; }
+  .profil-name { font-size: 19px; font-weight: bold; }
+  .profil-min { font-size: 13px; color: var(--gold); font-weight: bold; }
+  .profil-neu { background: rgba(255,255,255,.14); border: 2px dashed rgba(255,255,255,.45); }
+  .profil-neu .profil-avatar { font-weight: bold; }
+  .profil-neu .profil-min { color: rgba(255,255,255,.7); }
+
+  /* ---------- Anlege-Formular ---------- */
+  .feld-label { font-weight: bold; color: var(--ink); margin: 14px 0 8px; font-size: 16px; }
+  .feld-label:first-child { margin-top: 0; }
+  .text-feld {
+    width: 100%; border: 3px solid #d6d0ee; border-radius: 14px; padding: 14px;
+    font-size: 20px; font-family: inherit; color: var(--ink); font-weight: bold;
+  }
+  .text-feld:focus { outline: none; border-color: var(--bg2); }
+  .avatar-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  .avatar-knopf {
+    aspect-ratio: 1/1; border: 3px solid transparent; border-radius: 14px;
+    background: #f3f1fb; font-size: 28px; cursor: pointer;
+  }
+  .avatar-knopf.aktiv { border-color: var(--bg2); background: #e6e1f7; }
+  .stufe-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  .stufe-knopf {
+    border: 3px solid transparent; border-radius: 14px; background: #f3f1fb;
+    padding: 14px; font-size: 15px; font-weight: bold; color: var(--ink); cursor: pointer;
+  }
+  .stufe-knopf.aktiv { border-color: var(--bg2); background: #e6e1f7; }
+
+  .reihen-grid {
+    display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px;
+  }
+  .reihe-kachel {
+    aspect-ratio: 1 / 1; border: 0; border-radius: 18px; cursor: pointer;
+    color: #fff; font-size: 22px; font-weight: bold;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    box-shadow: 0 5px 0 rgba(0,0,0,.22); transition: transform .08s;
+  }
+  .reihe-kachel small { font-size: 12px; font-weight: normal; opacity: .9; margin-top: 2px; }
+  .reihe-kachel:active { transform: translateY(3px); box-shadow: 0 2px 0 rgba(0,0,0,.22); }
+
+  .gross-knopf {
+    width: 100%; border: 0; border-radius: 18px; cursor: pointer;
+    color: #fff; font-size: 20px; font-weight: bold; padding: 18px;
+    box-shadow: 0 5px 0 rgba(0,0,0,.22); transition: transform .08s;
+  }
+  .gross-knopf:active { transform: translateY(3px); box-shadow: 0 2px 0 rgba(0,0,0,.22); }
+  .gemischt { background: linear-gradient(135deg, #f97316, #db2777); margin-top: 14px; }
+  .weiter   { background: linear-gradient(135deg, #22c55e, #16a34a); margin-top: 8px; }
+
+  .hinweis { color: var(--ink-soft); font-size: 14px; text-align: center; margin: 4px 0 0; }
+  .titel-zeile { color: #fff; font-size: 20px; font-weight: bold; margin: 0 0 12px; }
+
+  /* ---------- Lern-Stufe: Umschalter ---------- */
+  .umschalter {
+    display: flex; background: rgba(0,0,0,.22); border-radius: 16px; padding: 5px; margin-bottom: 16px;
+  }
+  .umschalter button {
+    flex: 1; border: 0; background: transparent; color: rgba(255,255,255,.75);
+    padding: 12px; border-radius: 12px; font-size: 16px; font-weight: bold; cursor: pointer;
+  }
+  .umschalter button.aktiv { background: #fff; color: var(--ink); }
+
+  .reihe-liste { display: flex; flex-direction: column; gap: 9px; }
+  .rechnung {
+    display: flex; align-items: center; gap: 8px;
+    background: #f3f1fb; border-radius: 14px; padding: 14px 16px;
+    font-size: 22px; font-weight: bold; color: var(--ink);
+    min-width: 0;
+  }
+  .rechnung .frage { white-space: nowrap; }
+  .rechnung .erg { color: var(--bg2); }
+  .rechnung.vorlesbar { cursor: pointer; }
+  .rechnung.vorlesbar:active { background: #e6e1f7; }
+  .rechnung .laut { margin-left: auto; font-size: 20px; opacity: .55; }
+  .rechnung.spricht { background: #fef3c7; }
+
+  .rechnung input {
+    width: 78px; border: 3px solid #d6d0ee; border-radius: 12px;
+    font-size: 22px; font-weight: bold; text-align: center; padding: 6px;
+    color: var(--ink); font-family: inherit; margin-left: auto;
+    background: #fff; -moz-appearance: textfield;
+  }
+  .rechnung input::-webkit-outer-spin-button,
+  .rechnung input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+  .rechnung input:focus { outline: none; border-color: var(--bg2); }
+  .rechnung.korrekt { background: #dcfce7; }
+  .rechnung.korrekt input { border-color: var(--gut); color: var(--gut-d); background: #dcfce7; }
+
+  /* ---------- Quiz ---------- */
+  .quiz-fortschritt { color: #fff; text-align: center; font-size: 15px; margin-bottom: 10px; opacity: .85; }
+  .aufgabe-gross {
+    text-align: center; font-size: 52px; font-weight: bold; color: var(--ink);
+    padding: 26px 10px; letter-spacing: 1px;
+  }
+  .antworten { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .antwort {
+    border: 0; border-radius: 18px; cursor: pointer;
+    background: #ede9fb; color: var(--ink); font-size: 30px; font-weight: bold;
+    padding: 22px; box-shadow: 0 5px 0 rgba(0,0,0,.12); transition: transform .08s;
+  }
+  .antwort:active { transform: translateY(3px); box-shadow: 0 2px 0 rgba(0,0,0,.12); }
+  .antwort.richtig { background: var(--gut); color: #fff; }
+  .antwort.falsch  { background: var(--schlecht); color: #fff; animation: wackel .4s; }
+  .antwort:disabled { cursor: default; }
+  @keyframes wackel {
+    0%,100% { transform: translateX(0); }
+    20% { transform: translateX(-8px); } 40% { transform: translateX(8px); }
+    60% { transform: translateX(-6px); } 80% { transform: translateX(6px); }
+  }
+  .loesung-tipp {
+    text-align: center; color: #fff; font-size: 18px; font-weight: bold;
+    margin-top: 16px; background: rgba(0,0,0,.25); padding: 12px; border-radius: 14px;
+  }
+
+  /* Gut-Zeit-Belohnungskarte */
+  .gutzeit-karte { text-align: center; background: linear-gradient(135deg, #fef9c3, #fcd34d); }
+  .gz-zahl { font-size: 36px; font-weight: bold; color: #b45309; }
+  .gz-text { color: #92400e; font-size: 15px; margin-top: 4px; }
+  .gz-eltern { display: flex; gap: 8px; margin-top: 14px; }
+  .gz-btn {
+    flex: 1; background: rgba(0,0,0,.08); border: 0; color: #78350f;
+    padding: 11px 8px; border-radius: 12px; font-size: 13px; font-weight: bold; cursor: pointer;
+  }
+  .gz-btn:active { background: rgba(0,0,0,.16); }
+
+  /* fliegender +1-Hinweis */
+  .flieger {
+    position: fixed; font-size: 34px; font-weight: bold; color: var(--gold);
+    white-space: nowrap; pointer-events: none; z-index: 50; text-shadow: 0 2px 4px rgba(0,0,0,.3);
+    animation: flieg 1s ease forwards;
+  }
+  @keyframes flieg {
+    0% { transform: translateY(0) scale(.5); opacity: 1; }
+    100% { transform: translateY(-130px) scale(1.4); opacity: 0; }
+  }
+
+  /* ---------- Feier ---------- */
+  .feier { text-align: center; color: #fff; padding-top: 30px; }
+  .feier .emoji { font-size: 90px; animation: hops 1s ease infinite; display: inline-block; }
+  @keyframes hops { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-16px); } }
+  .feier h2 { font-size: 30px; margin: 14px 0 6px; }
+  .feier p { font-size: 20px; margin: 0 0 22px; opacity: .9; }
+
+  /* Samsung S23/S24 Ultra & ähnliche (logische Breite ~360–430px) */
+  @media (max-width: 480px) {
+    body { padding: 14px 12px 36px; }
+    .kopf h1 { font-size: 21px; }
+    .sterne-leiste { font-size: 16px; padding: 8px 12px; }
+    .reihe-kachel { font-size: 19px; }
+    .reihe-kachel small { font-size: 11px; }
+    .gross-knopf { padding: 20px; font-size: 19px; }   /* große Daumen-Ziele */
+    .aufgabe-gross { font-size: 44px; padding: 20px 6px; }
+    .antwort { font-size: 28px; padding: 22px; }
+    .rechnung { font-size: 20px; padding: 14px; }
+    .rechnung input { width: 70px; }
+    .gz-zahl { font-size: 32px; }
+  }
+</style>
+</head>
+<body>
+  <div id="app"></div>
+
+<script>
+(() => {
+  "use strict";
+
+  const app = document.getElementById("app");
+
+  // ---------- Zustand ----------
+  let profilId = null;     // aktuelles Kind (aus Block-Land-Profilen)
+  let profilName = "";
+  let reihe = null;        // 1..10 oder "gemischt"
+  let sterne = 0;          // Sterne der aktuellen Runde (flüchtig)
+  let quiz = null;         // { fragen:[], index, fehler }
+  let gutzeit = 0;         // verdiente Minuten des aktuellen Kindes
+
+  // ----- Block-Land-Profile (geteilter Speicher, gleiche Auswahl wie die Haupt-App) -----
+  const BL_KEY = "block-land-state-v1";
+  const AVATARE = {
+    krieger: "🗡️", bergmann: "⛏️", magier: "🧙", ninja: "🥷",
+    ritter: "🛡️", schurke: "🦹", tier: "🐺", drache: "🐉"
+  };
+
+  function ladeProfile() {
+    try {
+      const s = JSON.parse(localStorage.getItem(BL_KEY) || "{}");
+      return Object.values(s.profiles || {});
+    } catch (e) { return []; }
+  }
+  function erstelleProfil(name, avatar, alter) {
+    let s;
+    try { s = JSON.parse(localStorage.getItem(BL_KEY) || "{}"); } catch (e) { s = {}; }
+    if (!s.profiles) s.profiles = {};
+    const id = "p_" + Date.now() + "_" + Math.random().toString(36).slice(2, 7);
+    s.profiles[id] = {
+      id, name, weltName: name + "s Welt", avatar, alter,
+      createdAt: new Date().toISOString(),
+      inventar: {}, schwierigkeit: { plus: 2 },
+      statistik: { plus: { gesamt: 0, richtig: 0 } }
+    };
+    try { localStorage.setItem(BL_KEY, JSON.stringify(s)); } catch (e) {}
+    return id;
+  }
+
+  // ----- Belohnung "Gut-Zeit": verdiente Minuten PRO Kind, dauerhaft gespeichert -----
+  const GZ_KEY = "blockland_1x1_gutzeit_byprofile";
+  function ladeGutzeitMap() {
+    try { return JSON.parse(localStorage.getItem(GZ_KEY) || "{}"); } catch (e) { return {}; }
+  }
+  function gutzeitVon(id) { return ladeGutzeitMap()[id] || 0; }
+  function setzeGutzeit(id, wert) {
+    const m = ladeGutzeitMap();
+    m[id] = wert;
+    try { localStorage.setItem(GZ_KEY, JSON.stringify(m)); } catch (e) {}
+  }
+  function aktualisiereGutzeitAnzeige() {
+    document.querySelectorAll(".gutzeit-wert").forEach(n => n.textContent = "⏱️ " + gutzeit + " Min");
+  }
+  function einloesen() {
+    if (gutzeit <= 0) { alert("Noch keine Gut-Zeit verdient."); return; }
+    if (confirm(profilName + ": " + gutzeit + " Minuten Spielzeit einlösen und auf 0 zurücksetzen?")) {
+      gutzeit = 0;
+      setzeGutzeit(profilId, 0);
+      aktualisiereGutzeitAnzeige();
+    }
+  }
+  function passeGutzeitAn() {
+    const eingabe = prompt(
+      "Gut-Zeit von " + profilName + " auf wie viele Minuten setzen?\n" +
+      "(0 = eingelöst · oder wieder einen Wert eintragen, um zurückzusetzen)",
+      String(gutzeit)
+    );
+    if (eingabe === null) return;
+    const wert = parseInt(eingabe, 10);
+    if (isNaN(wert) || wert < 0) { alert("Bitte eine ganze Zahl ab 0 eingeben."); return; }
+    gutzeit = wert;
+    setzeGutzeit(profilId, wert);
+    aktualisiereGutzeitAnzeige();
+  }
+
+  const FARBEN = [
+    "#ef4444","#f97316","#f59e0b","#84cc16","#22c55e",
+    "#06b6d4","#3b82f6","#8b5cf6","#ec4899","#14b8a6"
+  ];
+
+  // ---------- Hilfen ----------
+  function el(html) {
+    const t = document.createElement("template");
+    t.innerHTML = html.trim();
+    return t.content.firstElementChild;
+  }
+  function mische(arr) {
+    const a = arr.slice();
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+  function sprich(text) {
+    try {
+      if (!window.speechSynthesis) return;
+      window.speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = "de-DE";
+      u.rate = 0.9;
+      window.speechSynthesis.speak(u);
+    } catch (e) { /* Sprachausgabe nicht verfügbar — egal */ }
+  }
+  function fliegenderStern(x, y, zeichen) {
+    const f = el(`<div class="flieger">${zeichen}</div>`);
+    f.style.left = (x - 20) + "px";
+    f.style.top = (y - 30) + "px";
+    document.body.appendChild(f);
+    setTimeout(() => f.remove(), 1000);
+  }
+
+  // ---------- Screen 0: Profilauswahl (geteilt mit Block-Land) ----------
+  function zeigeProfile() {
+    const profile = ladeProfile();
+    const s = el(`<div class="screen"></div>`);
+    s.appendChild(el(`<div class="kopf"><h1>✖️ Das große 1×1</h1></div>`));
+    s.appendChild(el(`<p class="titel-zeile" style="text-align:center">Wer übt heute?</p>`));
+
+    const karte = el(`<div class="karte"></div>`);
+    const grid = el(`<div class="profil-grid"></div>`);
+
+    profile.forEach(p => {
+      const min = gutzeitVon(p.id);
+      const k = el(`
+        <button class="profil-kachel">
+          <div class="profil-avatar">${AVATARE[p.avatar] || "❔"}</div>
+          <div class="profil-name"></div>
+          <div class="profil-min">⏱️ ${min} Min</div>
+        </button>
+      `);
+      k.querySelector(".profil-name").textContent = p.name; // textContent = sicher vor HTML
+      k.addEventListener("click", () => waehleProfil(p.id, p.name));
+      grid.appendChild(k);
+    });
+
+    const neu = el(`
+      <button class="profil-kachel profil-neu">
+        <div class="profil-avatar">＋</div>
+        <div class="profil-name">Neues Kind</div>
+        <div class="profil-min">anlegen</div>
+      </button>
+    `);
+    neu.addEventListener("click", zeigeNeuesProfil);
+    grid.appendChild(neu);
+
+    karte.appendChild(grid);
+    if (profile.length === 0) {
+      karte.appendChild(el(`<p class="hinweis" style="margin-top:14px">Noch keine Profile gefunden. Lege hier eins an — es erscheint auch in Block-Land.</p>`));
+    }
+    s.appendChild(karte);
+    render(s);
+  }
+
+  function waehleProfil(id, name) {
+    profilId = id;
+    profilName = name;
+    gutzeit = gutzeitVon(id);
+    zeigeStart();
+  }
+
+  // ---------- Minimales Profil-Anlegen (schreibt in den Block-Land-Speicher) ----------
+  function zeigeNeuesProfil() {
+    let gewaehlterAvatar = "krieger";
+    let gewaehltesAlter = "klasse-2";
+
+    const s = el(`<div class="screen"></div>`);
+    const kopf = el(`<div class="kopf"></div>`);
+    const zur = el(`<button class="zurueck">←</button>`);
+    zur.addEventListener("click", zeigeProfile);
+    kopf.appendChild(zur);
+    kopf.appendChild(el(`<h1>Neues Kind</h1>`));
+    s.appendChild(kopf);
+
+    const karte = el(`<div class="karte"></div>`);
+    karte.appendChild(el(`<p class="feld-label">Wie heißt Du?</p>`));
+    const nameInput = el(`<input class="text-feld" type="text" maxlength="16" placeholder="Name" />`);
+    karte.appendChild(nameInput);
+
+    karte.appendChild(el(`<p class="feld-label">Wähle Deine Figur</p>`));
+    const avaGrid = el(`<div class="avatar-grid"></div>`);
+    Object.entries(AVATARE).forEach(([key, emoji], i) => {
+      const b = el(`<button class="avatar-knopf${i === 0 ? " aktiv" : ""}" data-k="${key}">${emoji}</button>`);
+      b.addEventListener("click", () => {
+        gewaehlterAvatar = key;
+        avaGrid.querySelectorAll(".avatar-knopf").forEach(x => x.classList.toggle("aktiv", x === b));
+      });
+      avaGrid.appendChild(b);
+    });
+    karte.appendChild(avaGrid);
+
+    karte.appendChild(el(`<p class="feld-label">Wie alt / welche Stufe?</p>`));
+    const stufen = [
+      ["kindergarten", "Kindergarten"], ["klasse-1", "1. Klasse"],
+      ["klasse-2", "2. Klasse"], ["klasse-3", "3. Klasse"]
+    ];
+    const stufeGrid = el(`<div class="stufe-grid"></div>`);
+    stufen.forEach(([key, label]) => {
+      const b = el(`<button class="stufe-knopf${key === "klasse-2" ? " aktiv" : ""}" data-k="${key}">${label}</button>`);
+      b.addEventListener("click", () => {
+        gewaehltesAlter = key;
+        stufeGrid.querySelectorAll(".stufe-knopf").forEach(x => x.classList.toggle("aktiv", x === b));
+      });
+      stufeGrid.appendChild(b);
+    });
+    karte.appendChild(stufeGrid);
+    s.appendChild(karte);
+
+    const ok = el(`<button class="gross-knopf weiter" style="margin-top:0">✓ Anlegen & loslegen</button>`);
+    ok.addEventListener("click", () => {
+      const name = nameInput.value.trim();
+      if (!name) { nameInput.focus(); nameInput.style.borderColor = "var(--schlecht)"; return; }
+      const id = erstelleProfil(name, gewaehlterAvatar, gewaehltesAlter);
+      waehleProfil(id, name);
+    });
+    s.appendChild(ok);
+    render(s);
+  }
+
+  // ---------- Screen 1: Reihen-Auswahl ----------
+  function zeigeStart() {
+    sterne = 0;
+    const s = el(`<div class="screen"></div>`);
+    const kopf = el(`<div class="kopf"></div>`);
+    const zur = el(`<button class="zurueck">←</button>`);
+    zur.addEventListener("click", zeigeProfile);
+    kopf.appendChild(zur);
+    kopf.appendChild(el(`<h1>✖️ 1×1</h1>`));
+    const namePill = el(`<div class="sterne-leiste" style="color:#fff"></div>`);
+    namePill.textContent = (AVATARE[ (ladeProfile().find(p => p.id === profilId) || {}).avatar ] || "🙂") + " " + profilName;
+    kopf.appendChild(namePill);
+    s.appendChild(kopf);
+
+    const gz = el(`
+      <div class="karte gutzeit-karte">
+        <div class="gz-zahl gutzeit-wert">⏱️ ${gutzeit} Min</div>
+        <div class="gz-text">verdiente Spielzeit 🎮 📺</div>
+        <div class="gz-eltern">
+          <button class="gz-btn gz-einloesen">✅ Eingelöst (auf 0)</button>
+          <button class="gz-btn gz-anpassen">✏️ Anpassen</button>
+        </div>
+      </div>
+    `);
+    gz.querySelector(".gz-einloesen").addEventListener("click", einloesen);
+    gz.querySelector(".gz-anpassen").addEventListener("click", passeGutzeitAn);
+    s.appendChild(gz);
+
+    const karte = el(`<div class="karte"></div>`);
+    karte.appendChild(el(`<p class="hinweis" style="margin-bottom:14px;color:var(--ink-soft)">Welche Reihe willst du üben?</p>`));
+
+    const grid = el(`<div class="reihen-grid"></div>`);
+    for (let n = 1; n <= 10; n++) {
+      const k = el(`<button class="reihe-kachel">${n}<small>er Reihe</small></button>`);
+      k.style.background = FARBEN[n - 1];
+      k.addEventListener("click", () => { reihe = n; zeigeLernen(); });
+      grid.appendChild(k);
+    }
+    karte.appendChild(grid);
+
+    const gem = el(`<button class="gross-knopf gemischt">🎲 Alles gemischt</button>`);
+    gem.addEventListener("click", () => { reihe = "gemischt"; starteQuiz(); });
+    karte.appendChild(gem);
+
+    s.appendChild(karte);
+    render(s);
+  }
+
+  // ---------- Screen 2: Lern-Stufe (Vorlesen / Eintragen) ----------
+  function zeigeLernen() {
+    let modus = "vorlesen"; // oder "eintragen"
+
+    const s = el(`<div class="screen"></div>`);
+    const kopf = el(`<div class="kopf"></div>`);
+    const zur = el(`<button class="zurueck">←</button>`);
+    zur.addEventListener("click", zeigeStart);
+    kopf.appendChild(zur);
+    kopf.appendChild(el(`<h1>Die ${reihe}er-Reihe</h1>`));
+    s.appendChild(kopf);
+
+    const karte = el(`<div class="karte"></div>`);
+
+    const um = el(`
+      <div class="umschalter">
+        <button data-m="vorlesen" class="aktiv">🔊 Vorlesen</button>
+        <button data-m="eintragen">✏️ Eintragen</button>
+      </div>
+    `);
+    karte.appendChild(um);
+
+    const liste = el(`<div class="reihe-liste"></div>`);
+    karte.appendChild(liste);
+    s.appendChild(karte);
+
+    const weiter = el(`<button class="gross-knopf weiter">Jetzt abfragen →</button>`);
+    weiter.addEventListener("click", starteQuiz);
+    s.appendChild(weiter);
+
+    function baueListe() {
+      liste.innerHTML = "";
+      for (let i = 1; i <= 10; i++) {
+        const erg = i * reihe;
+        if (modus === "vorlesen") {
+          const z = el(`
+            <div class="rechnung vorlesbar">
+              <span class="frage">${i} × ${reihe} =</span>
+              <span class="erg">${erg}</span>
+              <span class="laut">🔊</span>
+            </div>
+          `);
+          z.addEventListener("click", () => {
+            liste.querySelectorAll(".rechnung").forEach(r => r.classList.remove("spricht"));
+            z.classList.add("spricht");
+            sprich(`${i} mal ${reihe} gleich ${erg}`);
+            setTimeout(() => z.classList.remove("spricht"), 1200);
+          });
+          liste.appendChild(z);
+        } else {
+          const z = el(`
+            <div class="rechnung">
+              <span class="frage">${i} × ${reihe} =</span>
+              <input type="number" inputmode="numeric" aria-label="Ergebnis ${i} mal ${reihe}" />
+            </div>
+          `);
+          const inp = z.querySelector("input");
+          inp.addEventListener("input", () => {
+            if (parseInt(inp.value, 10) === erg) {
+              z.classList.add("korrekt");
+              inp.readOnly = true;
+              inp.blur();
+            } else {
+              z.classList.remove("korrekt");
+            }
+          });
+          liste.appendChild(z);
+        }
+      }
+    }
+
+    um.querySelectorAll("button").forEach(b => {
+      b.addEventListener("click", () => {
+        modus = b.dataset.m;
+        um.querySelectorAll("button").forEach(x => x.classList.toggle("aktiv", x === b));
+        baueListe();
+      });
+    });
+
+    baueListe();
+    render(s);
+  }
+
+  // ---------- Quiz-Aufbau ----------
+  function distraktoren(a, b) {
+    const richtig = a * b;
+    const kandidaten = new Set([
+      richtig + b, richtig - b,
+      richtig + a, richtig - a,
+      (a + 1) * b, (a - 1) * b,
+      richtig + 1, richtig - 1, richtig + 2
+    ]);
+    const liste = [...kandidaten].filter(x => x > 0 && x !== richtig);
+    const aus = mische(liste).slice(0, 3);
+    // notfalls auffüllen
+    let extra = 1;
+    while (aus.length < 3) {
+      const v = richtig + extra;
+      if (v > 0 && v !== richtig && !aus.includes(v)) aus.push(v);
+      extra++;
+    }
+    return aus;
+  }
+
+  function baueFragen() {
+    const fragen = [];
+    if (reihe === "gemischt") {
+      const alle = [];
+      for (let a = 2; a <= 10; a++) for (let b = 2; b <= 10; b++) alle.push([a, b]);
+      mische(alle).slice(0, 10).forEach(([a, b]) => fragen.push({ a, b }));
+    } else {
+      mische([1,2,3,4,5,6,7,8,9,10]).forEach(a => fragen.push({ a, b: reihe }));
+    }
+    return fragen.map(f => ({
+      ...f,
+      antworten: mische([f.a * f.b, ...distraktoren(f.a, f.b)])
+    }));
+  }
+
+  function starteQuiz() {
+    quiz = { fragen: baueFragen(), index: 0, fehler: 0 };
+    zeigeQuiz();
+  }
+
+  // ---------- Screen 3: Quiz ----------
+  function zeigeQuiz() {
+    const f = quiz.fragen[quiz.index];
+    const richtig = f.a * f.b;
+    quiz.fehler = 0;
+
+    const s = el(`<div class="screen"></div>`);
+    const kopf = el(`<div class="kopf"></div>`);
+    const zur = el(`<button class="zurueck">←</button>`);
+    zur.addEventListener("click", zeigeStart);
+    kopf.appendChild(zur);
+    kopf.appendChild(el(`<h1>${reihe === "gemischt" ? "Gemischt" : reihe + "er-Reihe"}</h1>`));
+    kopf.appendChild(el(`<div class="sterne-leiste gutzeit-wert">⏱️ ${gutzeit} Min</div>`));
+    s.appendChild(kopf);
+
+    s.appendChild(el(`<div class="quiz-fortschritt">Frage ${quiz.index + 1} von ${quiz.fragen.length} · ⭐ ${sterne}</div>`));
+
+    const karte = el(`<div class="karte"></div>`);
+    karte.appendChild(el(`<div class="aufgabe-gross">${f.a} × ${f.b} = ?</div>`));
+    s.appendChild(karte);
+
+    const grid = el(`<div class="antworten"></div>`);
+    const knoepfe = [];
+    f.antworten.forEach(wert => {
+      const b = el(`<button class="antwort">${wert}</button>`);
+      b.addEventListener("click", (ev) => pruefe(b, wert, richtig, knoepfe, s, ev));
+      knoepfe.push(b);
+      grid.appendChild(b);
+    });
+    s.appendChild(grid);
+
+    render(s);
+  }
+
+  function pruefe(btn, wert, richtig, knoepfe, s, ev) {
+    if (wert === richtig) {
+      btn.classList.add("richtig");
+      knoepfe.forEach(k => k.disabled = true);
+      sterne++;
+      gutzeit++;                 // +1 Minute Spielzeit verdient
+      setzeGutzeit(profilId, gutzeit);
+      aktualisiereGutzeitAnzeige();
+      fliegenderStern(ev.clientX || 200, ev.clientY || 200, "+1 ⏱️");
+      setTimeout(naechsteFrage, 750);
+    } else {
+      btn.classList.add("falsch");
+      btn.disabled = true;
+      quiz.fehler++;
+      if (quiz.fehler >= 2) {
+        // Lösung verraten — kein Frust-Loop
+        knoepfe.forEach(k => {
+          k.disabled = true;
+          if (parseInt(k.textContent, 10) === richtig) k.classList.add("richtig");
+        });
+        const tipp = el(`<div class="loesung-tipp">Die Lösung ist ${richtig} 👍 Weiter geht's!</div>`);
+        s.appendChild(tipp);
+        setTimeout(naechsteFrage, 1800);
+      }
+    }
+  }
+
+  function naechsteFrage() {
+    quiz.index++;
+    if (quiz.index >= quiz.fragen.length) zeigeFeier();
+    else zeigeQuiz();
+  }
+
+  // ---------- Feier ----------
+  function zeigeFeier() {
+    const max = quiz.fragen.length;
+    const s = el(`<div class="screen feier"></div>`);
+    s.appendChild(el(`<div class="emoji">🎉</div>`));
+    s.appendChild(el(`<h2>Super gemacht!</h2>`));
+    s.appendChild(el(`<p>⭐ ${sterne} von ${max} richtig — du hast jetzt ⏱️ ${gutzeit} Minuten Spielzeit!</p>`));
+
+    const karte = el(`<div class="karte"></div>`);
+    const nochmal = el(`<button class="gross-knopf weiter" style="margin-top:0">🔁 Nochmal üben</button>`);
+    nochmal.addEventListener("click", starteQuiz);
+    karte.appendChild(nochmal);
+    const zur = el(`<button class="gross-knopf gemischt">🏠 Andere Reihe wählen</button>`);
+    zur.addEventListener("click", zeigeStart);
+    karte.appendChild(zur);
+    s.appendChild(karte);
+
+    render(s);
+  }
+
+  // ---------- Render ----------
+  function render(node) {
+    try { window.speechSynthesis && window.speechSynthesis.cancel(); } catch (e) {}
+    app.innerHTML = "";
+    app.appendChild(node);
+    window.scrollTo(0, 0);
+  }
+
+  zeigeProfile();
+})();
+</script>
+<script>
+  // Service Worker registrieren (macht die Seite installierbar + offline-fähig)
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("sw.js").catch(() => {});
+    });
+  }
+</script>
+</body>
+</html>

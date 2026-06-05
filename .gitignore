@@ -1,0 +1,17 @@
+.DS_Store
+Thumbs.db
+*.log
+.vscode/
+.idea/
+node_modules/
+
+# --- GitHub-Pages-Deploy: NUR die eigenständige 1×1-App veröffentlichen ---
+# Der restliche Block-Land-Ordner (js/, css/, data/, docs/, BlockLand.html …)
+# bleibt lokal und wird bewusst nicht gepusht.
+/*
+!/.gitignore
+!/index.html
+!/Einmaleins.html
+!/manifest.webmanifest
+!/sw.js
+!/icon.svg
