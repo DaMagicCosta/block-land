@@ -5,13 +5,16 @@ Thumbs.db
 .idea/
 node_modules/
 
-# --- GitHub-Pages-Deploy: NUR die eigenständige 1×1-App veröffentlichen ---
-# Der restliche Block-Land-Ordner (js/, css/, data/, docs/, BlockLand.html …)
-# bleibt lokal und wird bewusst nicht gepusht.
+# --- GitHub-Pages-Deploy: die volle Block-Land-App veröffentlichen (PWA) ---
+# Standalone Einmaleins.html ist abgelöst und wird NICHT mehr gepusht.
+# Lokal-only bleibt: docs/, Daten/, tmp/, Trainingsplaner-Backups etc.
 /*
 !/.gitignore
 !/index.html
-!/Einmaleins.html
+!/BlockLand.html
 !/manifest.webmanifest
 !/sw.js
 !/icon.svg
+!/js
+!/css
+!/data

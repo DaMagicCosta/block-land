@@ -1,0 +1,136 @@
+/* Werkstatt / Rezeptbuch — Block-Land-Tokens (dunkles Theme). */
+.modal--werkstatt { max-width: 560px; text-align: left; gap: var(--space-md); }
+
+.werkstatt__kopf {
+  font-family: var(--font-mono);
+  color: var(--color-success);
+  font-size: 18px;
+  letter-spacing: 1px;
+  text-align: center;
+}
+
+.werkstatt__vorrat {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  justify-content: center;
+  background: var(--color-surface-2);
+  padding: var(--space-sm);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+}
+.werkstatt__roh { color: var(--color-text); }
+.werkstatt__leer { color: var(--color-text-dim); font-size: var(--font-size-sm); }
+
+.werkstatt__tabs { display: flex; gap: var(--space-xs); }
+.werkstatt__tabs button {
+  flex: 1;
+  border: 0;
+  background: var(--color-surface-2);
+  color: var(--color-text-dim);
+  padding: var(--space-sm);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-sm);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+.werkstatt__tabs button.aktiv { background: var(--color-surface); color: var(--color-text); }
+
+.werkstatt__inhalt {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  max-height: 50vh;
+  overflow-y: auto;
+}
+
+.werkstatt__kategorie {
+  font-family: var(--font-mono);
+  color: var(--color-action);
+  font-size: var(--font-size-sm);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin-top: var(--space-sm);
+}
+
+.werkstatt__rezepte { display: flex; flex-direction: column; gap: var(--space-xs); }
+.werkstatt__rezept {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  background: var(--color-surface-2);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+}
+.werkstatt__rezept-name { color: var(--color-text); flex: 1; min-width: 0; }
+.werkstatt__rezept-kosten { color: var(--color-text-dim); font-size: var(--font-size-sm); white-space: nowrap; }
+.werkstatt__rezept--gesperrt { opacity: 0.55; }
+
+.werkstatt__bauen {
+  background: var(--color-success);
+  color: var(--color-bg);
+  border: 0;
+  padding: var(--space-xs) var(--space-md);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-weight: bold;
+  cursor: pointer;
+}
+.werkstatt__bauen:disabled { background: var(--color-border); color: var(--color-text-faint); cursor: default; }
+
+.werkstatt__gebaut {
+  background: rgba(127,201,127,0.18);
+  color: var(--color-success);
+  font-family: var(--font-mono);
+  padding: var(--space-sm);
+  border-radius: var(--radius-sm);
+  text-align: center;
+}
+
+.werkstatt__gutscheine { display: flex; flex-direction: column; gap: var(--space-xs); }
+.werkstatt__gutschein {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--color-surface-2);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  color: var(--color-text);
+}
+.werkstatt__gutschein-status { color: var(--color-action); font-size: var(--font-size-sm); }
+.werkstatt__gutschein--weg { opacity: 0.5; }
+.werkstatt__gutschein--weg .werkstatt__gutschein-status { color: var(--color-text-dim); }
+
+.werkstatt__schliessen {
+  background: transparent;
+  color: var(--color-text-dim);
+  border: 2px solid var(--color-border);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-weight: bold;
+  cursor: pointer;
+  align-self: center;
+}
+
+/* Bonus-Zeile im Erfolgs-Modal (aus aufgabe-ui.js) */
+.modal__bonus { color: var(--color-action); font-family: var(--font-mono); font-weight: bold; }
+
+/* 📖-Button im Welt-Header */
+.welt__rezeptbuch {
+  background: transparent;
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: 20px;
+  line-height: 1;
+  padding: var(--space-xs) var(--space-sm);
+  cursor: pointer;
+}
+.welt__rezeptbuch:hover { border-color: var(--color-action); }
+
+@media (max-width: 480px) {
+  .werkstatt__rezept { flex-wrap: wrap; }
+  .werkstatt__inhalt { max-height: 56vh; }
+}

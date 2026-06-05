@@ -1,0 +1,197 @@
+/* Eltern-Bereich — Block-Land-Tokens (dunkles Theme). */
+.modal--eltern { max-width: 600px; text-align: left; gap: var(--space-md); }
+
+.eltern__kopf {
+  font-family: var(--font-mono);
+  color: var(--color-success);
+  font-size: 18px;
+  letter-spacing: 1px;
+  text-align: center;
+}
+.eltern__hinweis { color: var(--color-text-dim); font-size: var(--font-size-sm); text-align: center; }
+
+.eltern__tabs { display: flex; gap: var(--space-xs); flex-wrap: wrap; }
+.eltern__tabs button {
+  flex: 1;
+  border: 0;
+  background: var(--color-surface-2);
+  color: var(--color-text-dim);
+  padding: var(--space-sm);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-sm);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+.eltern__tabs button.aktiv { background: var(--color-surface); color: var(--color-text); }
+
+.eltern__inhalt {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  max-height: 56vh;
+  overflow-y: auto;
+  padding-right: var(--space-md);  /* Platz, damit Werte (z.B. %) nicht am Scrollbalken kleben */
+}
+
+.eltern__abschnitt-titel {
+  font-family: var(--font-mono);
+  color: var(--color-action);
+  font-size: var(--font-size-sm);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin-top: var(--space-sm);
+}
+.eltern__alter { color: var(--color-text-dim); text-transform: none; letter-spacing: 0; }
+.eltern__leer { color: var(--color-text-dim); font-size: var(--font-size-sm); }
+.eltern__stat { color: var(--color-text-dim); font-family: var(--font-mono); font-size: var(--font-size-sm); }
+
+.eltern__feld {
+  width: 100%;
+  background: var(--color-surface-2);
+  border: 2px solid var(--color-border);
+  color: var(--color-text);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-base);
+  padding: var(--space-sm);
+  border-radius: var(--radius-sm);
+}
+.eltern__feld:focus { outline: none; border-color: var(--color-action); }
+.eltern__feld--emoji { width: 80px; text-align: center; }
+.eltern__neu-zeile { display: flex; gap: var(--space-sm); }
+.eltern__neu-zeile .eltern__feld { width: auto; flex: 1; }
+
+.eltern__fehler { color: var(--color-danger); font-family: var(--font-mono); font-size: var(--font-size-sm); }
+.eltern__erfolg { color: var(--color-success); font-family: var(--font-mono); font-size: var(--font-size-sm); }
+
+.eltern__primary {
+  background: var(--color-success);
+  color: var(--color-bg);
+  border: 0;
+  padding: var(--space-md);
+  font-family: var(--font-mono);
+  font-weight: bold;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+.eltern__sekundaer {
+  background: transparent;
+  color: var(--color-text-dim);
+  border: 2px solid var(--color-border);
+  padding: var(--space-sm) var(--space-md);
+  font-family: var(--font-mono);
+  font-weight: bold;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  align-self: center;
+}
+.eltern__mini {
+  background: var(--color-surface);
+  color: var(--color-text);
+  border: 2px solid var(--color-border);
+  padding: var(--space-xs) var(--space-sm);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-sm);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+.eltern__mini:hover { border-color: var(--color-action); }
+.eltern__mini--rot { color: var(--color-danger); }
+
+.eltern__seltenheit { display: flex; gap: var(--space-xs); }
+.eltern__seltenheit-btn {
+  flex: 1;
+  background: var(--color-surface-2);
+  color: var(--color-text-dim);
+  border: 2px solid var(--color-border);
+  padding: var(--space-sm);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-sm);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+.eltern__seltenheit-btn.aktiv { background: var(--color-surface); color: var(--color-text); border-color: var(--color-action); }
+
+.eltern__rezepte { display: flex; flex-direction: column; gap: var(--space-xs); }
+.eltern__rezept {
+  background: var(--color-surface-2);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+.eltern__rezept-kopf { display: flex; justify-content: space-between; align-items: center; gap: var(--space-sm); color: var(--color-text); }
+.eltern__rezept-zeile { display: flex; align-items: center; gap: var(--space-sm); }
+.eltern__rezept-kosten { color: var(--color-text-dim); font-size: var(--font-size-sm); flex: 1; }
+.eltern__aktiv { color: var(--color-text-dim); font-size: var(--font-size-sm); display: flex; align-items: center; gap: 4px; white-space: nowrap; cursor: pointer; }
+
+.eltern__preis-form, .eltern__neu-form { display: flex; flex-direction: column; gap: var(--space-sm); }
+.eltern__kosten-grid { display: flex; flex-wrap: wrap; gap: var(--space-sm); }
+.eltern__kosten-feld { display: flex; align-items: center; gap: 4px; color: var(--color-text); font-family: var(--font-mono); }
+.eltern__kosten-feld input {
+  width: 56px;
+  background: var(--color-surface);
+  border: 2px solid var(--color-border);
+  color: var(--color-text);
+  font-family: var(--font-mono);
+  text-align: center;
+  padding: var(--space-xs);
+  border-radius: var(--radius-sm);
+}
+.eltern__kosten-feld input:focus { outline: none; border-color: var(--color-action); }
+
+.eltern__gutschein {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  background: var(--color-surface-2);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  color: var(--color-text);
+}
+.eltern__gutschein span:first-child { flex: 1; }
+
+.welt__eltern {
+  background: transparent;
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: 20px;
+  line-height: 1;
+  padding: var(--space-xs) var(--space-sm);
+  cursor: pointer;
+}
+.welt__eltern:hover { border-color: var(--color-action); }
+
+@media (max-width: 480px) {
+  .eltern__tabs button { font-size: var(--font-size-xs); }
+}
+
+.eltern__avatar-grid { display: flex; flex-wrap: wrap; gap: var(--space-xs); }
+.eltern__avatar-btn {
+  width: 48px;
+  height: 48px;
+  background: var(--color-surface-2);
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: 24px;
+  cursor: pointer;
+}
+.eltern__avatar-btn.aktiv { border-color: var(--color-action); background: var(--color-surface); }
+.eltern__kind-neu-form { display: flex; flex-direction: column; gap: var(--space-sm); }
+.eltern__kind-verwalt { display: flex; flex-wrap: wrap; gap: var(--space-xs); align-items: center; margin-top: var(--space-xs); }
+.eltern__kinder { display: flex; flex-direction: column; gap: var(--space-xs); }
+
+.eltern__regler { display: flex; flex-direction: column; gap: var(--space-xs); }
+.eltern__regler-zeile {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-family: var(--font-mono);
+  color: var(--color-text);
+  font-size: var(--font-size-sm);
+}
+.eltern__regler-label { flex: 1; min-width: 0; }
+.eltern__regler-zeile input[type="range"] { flex: 1; accent-color: var(--color-success); cursor: pointer; }
+.eltern__regler-wert { width: 44px; text-align: right; color: var(--color-text-dim); }

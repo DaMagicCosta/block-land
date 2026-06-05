@@ -1,14 +1,14 @@
 {
-  "name": "Das große 1×1",
-  "short_name": "1×1",
-  "description": "Einmaleins üben im Block-Land-Stil",
+  "name": "Block-Land",
+  "short_name": "Block-Land",
+  "description": "Lern-Abenteuer im Minecraft-Stil — Rechnen üben",
   "lang": "de",
-  "start_url": "Einmaleins.html",
+  "start_url": "BlockLand.html",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#2b1d54",
-  "theme_color": "#2b1d54",
+  "background_color": "#1a1a1a",
+  "theme_color": "#1a1a1a",
   "icons": [
     {
       "src": "icon.svg",

@@ -1,0 +1,188 @@
+.modal--aufgabe { max-width: 540px; }
+
+.aufgabe__vorlesen {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  background: var(--color-surface-2);
+  padding: var(--space-md);
+  border-radius: var(--radius-sm);
+  flex-wrap: wrap;
+}
+
+.aufgabe__mikro {
+  font-size: 32px;
+  animation: aufgabe-mikro-puls 1.4s ease-in-out infinite;
+}
+
+@keyframes aufgabe-mikro-puls {
+  0%, 100% { transform: scale(1); opacity: 0.85; }
+  50%      { transform: scale(1.15); opacity: 1; }
+}
+
+.aufgabe__vorlesen-text { flex: 1; min-width: 0; color: var(--color-text); font-size: var(--font-size-base); }
+.aufgabe__vorlesen-label {
+  color: var(--color-text-dim);
+  font-size: var(--font-size-xs);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin-bottom: var(--space-xs);
+}
+.aufgabe__vorlesen-aufgabe {
+  font-family: var(--font-mono);
+  font-size: 22px;
+  color: var(--color-text);
+  letter-spacing: 1px;
+  word-break: break-word;
+}
+
+.aufgabe__gelesen {
+  background: var(--color-success);
+  color: var(--color-bg);
+  border: 0;
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.aufgabe__inhalt { display: flex; flex-direction: column; gap: var(--space-md); }
+
+.aufgabe__text {
+  font-family: var(--font-mono);
+  font-size: 32px;
+  text-align: center;
+  color: var(--color-text);
+  letter-spacing: 2px;
+}
+
+.aufgabe__visualisierung {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-md);
+  flex-wrap: wrap;
+}
+
+.aufgabe__plus {
+  font-family: var(--font-mono);
+  font-size: 24px;
+  color: var(--color-text-dim);
+}
+
+/* Würfelhaus */
+.wuerfelhaus { display: flex; flex-direction: column; align-items: center; gap: var(--space-xs); }
+.wuerfelhaus__zahl {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-dim);
+}
+.wuerfelhaus__haeuser { display: flex; gap: var(--space-xs); }
+.wuerfelhaus__haus {
+  display: grid;
+  grid-template-columns: repeat(5, 14px);
+  grid-auto-rows: 14px;
+  gap: 2px;
+  background: var(--color-surface-2);
+  padding: 4px;
+  border-radius: var(--radius-sm);
+}
+.wuerfelhaus__punkt {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+}
+
+.wuerfelhaus--lege .wuerfelhaus__punkt { cursor: pointer; }
+.wuerfelhaus--lege .wuerfelhaus__punkt:hover { outline: 2px solid var(--color-action); }
+
+/* Antwort-Optionen */
+.aufgabe__optionen {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: var(--space-sm);
+}
+
+.aufgabe__option {
+  background: var(--color-surface-2);
+  color: var(--color-text);
+  border: 2px solid var(--color-border);
+  padding: var(--space-md);
+  font-family: var(--font-mono);
+  font-size: 22px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+.aufgabe__option:hover { border-color: var(--color-action); }
+
+.aufgabe__legebereich { display: flex; justify-content: center; }
+
+/* Feedback */
+.aufgabe__feedback {
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: var(--font-size-base);
+  padding: var(--space-sm);
+  border-radius: var(--radius-sm);
+}
+.aufgabe__feedback--fehler { background: rgba(229,115,115,0.15); color: var(--color-danger); }
+
+@keyframes aufgabe-puls-fehler {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-6px); }
+  40%, 80% { transform: translateX(6px); }
+}
+.aufgabe--puls-fehler { animation: aufgabe-puls-fehler 0.5s ease-in-out; }
+
+/* Lösung */
+.aufgabe__loesung { display: flex; flex-direction: column; align-items: center; gap: var(--space-md); }
+.aufgabe__loesung-text { font-size: 22px; color: var(--color-success); font-family: var(--font-mono); }
+.aufgabe__loesung-hinweis { color: var(--color-text-dim); text-align: center; }
+
+/* Erfolgs-Modal: bestehender .modal nutzen, hier nur Akzent */
+.modal--erfolg .modal__titel { color: var(--color-success); }
+
+@media (max-width: 480px) {
+  .aufgabe__vorlesen { gap: var(--space-sm); padding: var(--space-sm); }
+  .aufgabe__mikro { font-size: 26px; }
+  .aufgabe__vorlesen-aufgabe { font-size: 18px; }
+  .aufgabe__gelesen { padding: var(--space-xs) var(--space-sm); font-size: var(--font-size-sm); }
+  .aufgabe__text { font-size: 24px; }
+  .aufgabe__option { font-size: 18px; padding: var(--space-sm); }
+  .aufgabe__optionen { grid-template-columns: repeat(5, 1fr); gap: var(--space-xs); }
+  .wuerfelhaus__haus { grid-template-columns: repeat(5, 11px); grid-auto-rows: 11px; }
+  .wuerfelhaus__punkt { width: 11px; height: 11px; }
+  .aufgabe__plus { font-size: 18px; }
+  .modal-backdrop { padding: var(--space-sm); }
+}
+
+/* Belohnungs-Feier (Erfolgs-Modal) */
+@keyframes feier-huepf {
+  0%, 100% { transform: translateY(0) scale(1); }
+  30%      { transform: translateY(-14px) scale(1.12); }
+}
+.feier__huepf { display: inline-block; animation: feier-huepf 0.7s ease-in-out infinite; }
+.feier__konfetti { font-size: 22px; letter-spacing: 6px; animation: feier-huepf 0.9s ease-in-out infinite; }
+
+@keyframes feier-pop {
+  0%   { transform: scale(0); }
+  60%  { transform: scale(1.3); }
+  100% { transform: scale(1); }
+}
+.feier__item { display: inline-block; animation: feier-pop 0.45s ease; }
+.feier__item + .feier__item { margin-left: 6px; }
+
+/* "Nochmal hören"-Knopf (Kindergarten, App trägt vor) */
+.aufgabe__hoeren {
+  align-self: center;
+  background: var(--color-surface-2);
+  color: var(--color-text);
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-xs) var(--space-md);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+}
+.aufgabe__hoeren:hover { border-color: var(--color-action); }

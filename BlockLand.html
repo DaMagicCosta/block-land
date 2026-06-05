@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Block-Land</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#1a1a1a">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Block-Land">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icon.svg">
+  <link rel="stylesheet" href="css/reset.css">
+  <link rel="stylesheet" href="css/tokens.css">
+  <link rel="stylesheet" href="css/auswahl.css">
+  <link rel="stylesheet" href="css/wizard.css">
+  <link rel="stylesheet" href="css/welt.css">
+  <link rel="stylesheet" href="css/aufgabe.css">
+  <link rel="stylesheet" href="css/trainer.css">
+  <link rel="stylesheet" href="css/werkstatt.css">
+  <link rel="stylesheet" href="css/eltern.css">
+</head>
+<body>
+  <div id="app">
+    <p style="color:var(--color-text-dim);text-align:center;margin-top:40vh">Lade Block-Land …</p>
+  </div>
+  <script type="module" src="js/app.js"></script>
+  <script>
+    // Service Worker registrieren (macht Block-Land installierbar + offline-fähig)
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("sw.js").catch(() => {});
+      });
+    }
+  </script>
+</body>
+</html>

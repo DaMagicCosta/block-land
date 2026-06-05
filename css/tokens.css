@@ -1,0 +1,35 @@
+:root {
+  /* Farben (Pixel-Look, dunkles UI) */
+  --color-bg:        #1a1a1a;
+  --color-surface:   #2a2f3a;
+  --color-surface-2: #1f1f1f;
+  --color-text:      #e8e8e8;
+  --color-text-dim:  #888;
+  --color-text-faint:#666;
+  --color-border:    #444;
+
+  /* Akzente */
+  --color-success:   #7fc97f;   /* grün, Arthur, Erfolg */
+  --color-action:    #f0a830;   /* orange, Aufmerksamkeit */
+  --color-danger:    #e57373;   /* rot, Boss/Grusel */
+  --color-arthur:    #7fc97f;
+  --color-ilian:     #6cb4ff;
+
+  /* Spacings */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 14px;
+  --space-lg: 22px;
+  --space-xl: 36px;
+
+  /* Radien */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+
+  /* Schriften */
+  --font-body: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  --font-mono: 'Courier New', 'Consolas', monospace;
+  --font-size-base: 16px;
+  --font-size-sm: 13px;
+  --font-size-xs: 11px;
+}

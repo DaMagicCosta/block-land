@@ -1,0 +1,10 @@
+[
+  { "id": "krieger",   "label": "Krieger",   "emoji": "🗡️" },
+  { "id": "bergmann",  "label": "Bergmann",  "emoji": "⛏️" },
+  { "id": "magier",    "label": "Magier",    "emoji": "🧙" },
+  { "id": "ninja",     "label": "Ninja",     "emoji": "🥷" },
+  { "id": "ritter",    "label": "Ritter",    "emoji": "🛡️" },
+  { "id": "schurke",   "label": "Schurke",   "emoji": "🦹" },
+  { "id": "tier",      "label": "Tierfreund","emoji": "🐺" },
+  { "id": "drache",    "label": "Drachenreiter", "emoji": "🐉" }
+]

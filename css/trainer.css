@@ -1,0 +1,162 @@
+/* Reihen-Trainer-Modal — nutzt die Block-Land-Tokens (dunkles Theme). */
+.modal--trainer {
+  max-width: 560px;
+  text-align: left;
+  gap: var(--space-md);
+}
+
+.trainer__kopf {
+  font-family: var(--font-mono);
+  color: var(--color-success);
+  font-size: 18px;
+  letter-spacing: 1px;
+  text-align: center;
+}
+
+/* Reihen-Auswahl */
+.trainer__reihen {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: var(--space-sm);
+}
+.trainer__reihe {
+  aspect-ratio: 1;
+  border: 2px solid var(--color-border);
+  background: var(--color-surface-2);
+  color: var(--color-text);
+  font-family: var(--font-mono);
+  font-size: 22px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+.trainer__reihe:hover { border-color: var(--color-action); }
+.trainer__gemischt {
+  background: var(--color-action);
+  color: var(--color-bg);
+  border: 0;
+  padding: var(--space-md);
+  font-family: var(--font-mono);
+  font-weight: bold;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+/* Lern-Stufe */
+.trainer__umschalter {
+  display: flex;
+  gap: var(--space-xs);
+  background: var(--color-surface-2);
+  padding: var(--space-xs);
+  border-radius: var(--radius-sm);
+}
+.trainer__umschalter button {
+  flex: 1;
+  border: 0;
+  background: transparent;
+  color: var(--color-text-dim);
+  padding: var(--space-sm);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-sm);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+.trainer__umschalter button.aktiv { background: var(--color-surface); color: var(--color-text); }
+
+.trainer__liste { display: flex; flex-direction: column; gap: var(--space-xs); }
+.trainer__zeile {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  background: var(--color-surface-2);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 20px;
+  color: var(--color-text);
+  min-width: 0;
+}
+.trainer__erg { color: var(--color-success); }
+.trainer__laut { margin-left: auto; opacity: 0.6; }
+.trainer__zeile--vorlesbar { cursor: pointer; }
+.trainer__zeile--vorlesbar:hover { outline: 2px solid var(--color-action); }
+.trainer__zeile input {
+  margin-left: auto;
+  width: 70px;
+  background: var(--color-surface);
+  border: 2px solid var(--color-border);
+  color: var(--color-text);
+  font-family: var(--font-mono);
+  font-size: 20px;
+  text-align: center;
+  padding: var(--space-xs);
+  border-radius: var(--radius-sm);
+}
+.trainer__zeile input:focus { outline: none; border-color: var(--color-action); }
+.trainer__zeile--korrekt { background: rgba(127,201,127,0.18); }
+.trainer__zeile--korrekt input { border-color: var(--color-success); color: var(--color-success); }
+
+/* Buttons (Weiter / Nochmal / Fertig) */
+.trainer__weiter,
+.trainer__nochmal,
+.trainer__fertig {
+  background: var(--color-success);
+  color: var(--color-bg);
+  border: 0;
+  padding: var(--space-md);
+  font-family: var(--font-mono);
+  font-weight: bold;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+.trainer__fertig {
+  background: transparent;
+  color: var(--color-text-dim);
+  border: 2px solid var(--color-border);
+}
+
+/* Quiz */
+.trainer__fortschritt {
+  text-align: center;
+  color: var(--color-text-dim);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-sm);
+}
+.trainer__aufgabe {
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 40px;
+  color: var(--color-text);
+  letter-spacing: 2px;
+  padding: var(--space-md) 0;
+}
+.trainer__antworten {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-sm);
+}
+.trainer__antwort {
+  background: var(--color-surface-2);
+  color: var(--color-text);
+  border: 2px solid var(--color-border);
+  padding: var(--space-md);
+  font-family: var(--font-mono);
+  font-size: 26px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+.trainer__antwort:hover:not(:disabled) { border-color: var(--color-action); }
+.trainer__antwort--richtig { background: var(--color-success); color: var(--color-bg); border-color: var(--color-success); }
+.trainer__antwort--falsch { background: var(--color-danger); color: var(--color-bg); border-color: var(--color-danger); }
+.trainer__tipp { text-align: center; color: var(--color-success); font-family: var(--font-mono); }
+
+/* Abschluss */
+.trainer__abschluss { display: flex; flex-direction: column; align-items: center; gap: var(--space-md); }
+.trainer__abschluss-emoji { font-size: 64px; }
+.trainer__abschluss-text { color: var(--color-text); font-family: var(--font-mono); }
+
+@media (max-width: 480px) {
+  .trainer__aufgabe { font-size: 32px; }
+  .trainer__antwort { font-size: 22px; padding: var(--space-sm); }
+  .trainer__reihe { font-size: 18px; }
+  .trainer__zeile { font-size: 18px; }
+}

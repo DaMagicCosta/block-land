@@ -1,0 +1,38 @@
+{
+  "plus": {
+    "default_stufe": 2,
+    "stufen": [
+      { "nr": 1, "label": "Klein, ohne Zehnerübergang",   "a_min": 1,  "a_max": 20,  "b_min": 1,  "b_max": 9,  "kein_zehneruebergang": true },
+      { "nr": 2, "label": "Mittel, ohne Zehnerübergang",  "a_min": 10, "a_max": 89,  "b_min": 1,  "b_max": 9,  "kein_zehneruebergang": true },
+      { "nr": 3, "label": "Mittel, mit Zehnerübergang",   "a_min": 5,  "a_max": 89,  "b_min": 3,  "b_max": 9,  "kein_zehneruebergang": false },
+      { "nr": 4, "label": "Groß, beide zweistellig",      "a_min": 11, "a_max": 79,  "b_min": 11, "b_max": 21, "kein_zehneruebergang": false }
+    ],
+    "distraktoren": {
+      "anzahl": 4,
+      "abstaende": [-10, -1, 1, 10]
+    }
+  },
+  "mal": {
+    "default_stufe": 1,
+    "stufen": [
+      { "nr": 1, "label": "Kleines 1x1 (bis 5)",      "a_min": 1, "a_max": 5,  "b_min": 1, "b_max": 5  },
+      { "nr": 2, "label": "Volles 1x1 (bis 10)",      "a_min": 1, "a_max": 10, "b_min": 1, "b_max": 10 },
+      { "nr": 3, "label": "Schwere Reihen (6-9)",     "a_min": 6, "a_max": 9,  "b_min": 2, "b_max": 10 },
+      { "nr": 4, "label": "Gemischt, großes 1x1",     "a_min": 2, "a_max": 12, "b_min": 2, "b_max": 12 }
+    ],
+    "distraktoren": {
+      "anzahl": 4
+    }
+  },
+  "mengen": {
+    "default_stufe": 1,
+    "stufen": [
+      { "nr": 1, "label": "Mengen bis 3",  "ziel_min": 1, "ziel_max": 3  },
+      { "nr": 2, "label": "Mengen bis 5",  "ziel_min": 1, "ziel_max": 5  },
+      { "nr": 3, "label": "Mengen bis 10", "ziel_min": 1, "ziel_max": 10 }
+    ],
+    "distraktoren": {
+      "anzahl": 4
+    }
+  }
+}
