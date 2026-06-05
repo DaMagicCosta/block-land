@@ -97,6 +97,18 @@
 .wuerfelhaus--lege .wuerfelhaus__punkt { cursor: pointer; }
 .wuerfelhaus--lege .wuerfelhaus__punkt:hover { outline: 2px solid var(--color-action); }
 
+/* Echte Würfel (Augen-Muster) für die statische Anzeige */
+.wuerfel {
+  display: grid;
+  grid-template-columns: repeat(3, 13px);
+  grid-auto-rows: 13px;
+  gap: 4px;
+  background: var(--color-surface-2);
+  padding: 7px;
+  border-radius: var(--radius-sm);
+}
+.wuerfel__auge { width: 13px; height: 13px; border-radius: 50%; }
+
 /* Antwort-Optionen */
 .aufgabe__optionen {
   display: grid;
@@ -153,6 +165,8 @@
   .aufgabe__optionen { grid-template-columns: repeat(5, 1fr); gap: var(--space-xs); }
   .wuerfelhaus__haus { grid-template-columns: repeat(5, 11px); grid-auto-rows: 11px; }
   .wuerfelhaus__punkt { width: 11px; height: 11px; }
+  .wuerfel { grid-template-columns: repeat(3, 11px); grid-auto-rows: 11px; gap: 3px; padding: 5px; }
+  .wuerfel__auge { width: 11px; height: 11px; }
   .aufgabe__plus { font-size: 18px; }
   .modal-backdrop { padding: var(--space-sm); }
 }
