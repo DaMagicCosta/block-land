@@ -312,7 +312,7 @@ export function getBiomFreigabe(profileId) {
   const p = state.profiles[profileId];
   if (!p) return { alter: 'kindergarten', autoFrei: [], elternFrei: [], elternGesperrt: [] };
   const b = sichereBiom(p);
-  return { alter: p.alter, autoFrei: b.autoFrei, elternFrei: b.elternFrei, elternGesperrt: b.elternGesperrt };
+  return { alter: p.alter, autoFrei: [...b.autoFrei], elternFrei: [...b.elternFrei], elternGesperrt: [...b.elternGesperrt] };
 }
 
 // Aktives Biom: gespeicherte Wahl, falls noch freigeschaltet; sonst höchstes freies.
