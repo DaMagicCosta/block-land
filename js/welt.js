@@ -57,7 +57,7 @@ export async function renderWelt(container) {
   }).join('');
 
   container.innerHTML = `
-    <div class="welt">
+    <div class="welt welt--${escapeHtml(aktivId)}">
       <div class="welt__header">
         <div>
           <div class="welt__welt-name">${escapeHtml(profile.weltName)}</div>

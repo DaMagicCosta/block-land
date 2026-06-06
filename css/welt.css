@@ -5,7 +5,14 @@
   align-items: center;
   padding: var(--space-md);
   gap: var(--space-md);
+  transition: background 0.4s ease;
 }
+
+/* Biom-Atmosphäre: dezenter Hintergrund je Land (Welt-Stimmung, bewusst hartcodiert). */
+.welt--mengen { background: linear-gradient(180deg, #24351f, #18220f); }
+.welt--plus   { background: linear-gradient(180deg, #1f3320, #14210f); }
+.welt--minus  { background: linear-gradient(180deg, #20202a, #131319); }
+.welt--mal    { background: linear-gradient(180deg, #2d2620, #3a2f22); }
 
 .welt__header {
   width: 100%;
