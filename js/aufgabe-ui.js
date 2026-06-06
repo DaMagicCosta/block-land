@@ -6,9 +6,9 @@ import { generiereMengenAufgabe } from './aufgaben/mengen.js';
 import { generiereMinusAufgabe } from './aufgaben/minus.js';
 import { rendereStellenwert } from './stellenwert.js';
 import { verteileBelohnung } from './belohnung.js';
-import { loadAufgabenPool } from './data.js';
+import { loadAufgabenPool, loadBiomManifest } from './data.js';
 import { waehleMechanik, aktuelleStufe, rapportiereErgebnis } from './adaptiv.js';
-import { getCurrentProfile } from './state.js';
+import { getCurrentProfile, getAktivesBiom, schalteNaechstesBiomFrei } from './state.js';
 import { escapeHtml } from './utils.js';
 
 const MAX_FEHLVERSUCHE = 2;  // Nach 2 Fehlversuchen Lösung zeigen.
@@ -42,7 +42,15 @@ export async function oeffneAufgabe(reward) {
     return;
   }
 
-  const typ = waehleAufgabentyp(profile);
+  const aktivBiom = getAktivesBiom(profile.id);
+  let manifest;
+  try {
+    manifest = await loadBiomManifest();
+  } catch (err) {
+    console.error('[aufgabe-ui] Manifest-Load fehlgeschlagen', err);
+    return;
+  }
+  const typ = manifest[aktivBiom]?.aufgabentyp ?? 'plus';
   const stufe_nr = aktuelleStufe(profile.id, typ);
   const stufenConfig = pool[typ].stufen.find(s => s.nr === stufe_nr) ?? pool[typ].stufen[0];
   const maxStufe = pool[typ].stufen.length;
@@ -65,20 +73,6 @@ export async function oeffneAufgabe(reward) {
   const mechanik = (typ === 'mengen' || grosseZahl) ? 'A' : waehleMechanik(profile.id, typ);
 
   zeigeAufgabenModal(aufgabe, mechanik, reward, profile, maxStufe);
-}
-
-// Welcher Aufgabentyp in der Welt erscheint — abhängig vom Alter des Profils.
-// Kindergarten: Mengen. 1. Klasse: Plus/Minus. Klasse 2/3: Plus/Minus/Mal.
-function waehleAufgabentyp(profile) {
-  if (profile.alter === 'kindergarten') return 'mengen';
-  const kannMal = profile.alter === 'klasse-2' || profile.alter === 'klasse-3';
-  const r = Math.random();
-  if (kannMal) {
-    // Gewichtung: mal 40%, plus 30%, minus 30%
-    if (r < 0.4) return 'mal';
-    return r < 0.7 ? 'plus' : 'minus';
-  }
-  return r < 0.5 ? 'plus' : 'minus';
 }
 
 function zeigeAufgabenModal(aufgabe, mechanik, reward, profile, maxStufe) {
@@ -228,7 +222,11 @@ function starteAufgabe(aufgabe, mechanik, reward, profile, modal, inhalt, maxStu
       const zeit_ms = performance.now() - startZeit;
       rapportiereErgebnis(profile.id, aufgabe.aufgabentyp, true, zeit_ms);
       const gegeben = verteileBelohnung(aufgabe.stufe, maxStufe, reward.item);
-      zeigeErfolg(modal, gegeben, istKleinkind(profile));
+      let neuesBiom = null;
+      if (aufgabe.stufe === maxStufe) {
+        neuesBiom = schalteNaechstesBiomFrei(profile.id, getAktivesBiom(profile.id));
+      }
+      zeigeErfolg(modal, gegeben, istKleinkind(profile), neuesBiom);
       return;
     }
     fehlversuche++;
@@ -285,7 +283,10 @@ const ITEM_INFO = {
   diamant: { e: '💎', l: 'Diamant' },
 };
 
-function zeigeErfolg(modal, gegeben = [], istKlein = false) {
+function zeigeErfolg(modal, gegeben = [], istKlein = false, neuesBiom = null) {
+  const unlockHtml = neuesBiom
+    ? `<div class="feier__unlock">🗺️ Neues Land freigeschaltet! Schau auf der Karte (🗺️).</div>`
+    : '';
   let inner;
   if (!gegeben.length) {
     // Nichts gefallen -> gefeierte Gratulation (mit Animation).
@@ -295,6 +296,7 @@ function zeigeErfolg(modal, gegeben = [], istKlein = false) {
         <div class="feier__konfetti">✨🎊⭐🎉✨</div>
         <div class="modal__titel">RICHTIG!</div>
         <p class="modal__text">Super gemacht!</p>
+        ${unlockHtml}
         <button class="modal__close">Weiter</button>
       </div>
     `;
@@ -307,6 +309,7 @@ function zeigeErfolg(modal, gegeben = [], istKlein = false) {
         <div class="modal__emoji">${emojis}</div>
         <div class="modal__titel">RICHTIG!</div>
         <p class="modal__text">Du hast <strong>${escapeHtml(labels)}</strong> gefunden!</p>
+        ${unlockHtml}
         <button class="modal__close">Weiter</button>
       </div>
     `;

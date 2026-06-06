@@ -207,3 +207,5 @@
   cursor: pointer;
 }
 .aufgabe__hoeren:hover { border-color: var(--color-action); }
+
+.feier__unlock { color: var(--color-success); font-family: var(--font-mono); font-size: var(--font-size-sm); margin: var(--space-sm) 0; }
