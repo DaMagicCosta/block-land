@@ -1,4 +1,5 @@
 import { istFrei, freieBiome, naechstesBiom, hoechstesFreies } from './biome-logik.js';
+import { gruppiereGutscheine, entferneAusStapel } from './gutschein-logik.js';
 
 const STORAGE_KEY = 'block-land-state-v1';
 
@@ -9,7 +10,7 @@ const STANDARD_REZEPTE = [
   { id: 'r_brettspiel', name: 'Brettspiel zusammen', emoji: '🧩', kategorie: 'Eltern-Zeit',     kosten: { holz: 8 },            aktiv: true },
   { id: 'r_nachtisch',  name: 'Nachtisch wünschen',  emoji: '🍨', kategorie: 'Naschen & Essen', kosten: { stein: 6 },           aktiv: true },
   { id: 'r_nasch',      name: 'Nasch-Gutschein',     emoji: '🍫', kategorie: 'Naschen & Essen', kosten: { stein: 8 },           aktiv: true },
-  { id: 'r_spiel15',    name: '15 Min Spielen',      emoji: '⏱️', kategorie: 'Bildschirm-Zeit', kosten: { holz: 10, stein: 4 }, aktiv: true },
+  { id: 'r_spiel15',    name: '15 Min Spielen',      emoji: '⏱️', kategorie: 'Bildschirm-Zeit', kosten: { holz: 10, stein: 4 }, aktiv: true, wert: 15, einheit: 'Min' },
   { id: 'r_film',       name: 'Extra-Filmzeit',      emoji: '📺', kategorie: 'Bildschirm-Zeit', kosten: { holz: 12, stein: 6 }, aktiv: true },
   { id: 'r_aufbleiben', name: 'Länger aufbleiben',   emoji: '🌙', kategorie: 'Erlebnisse',      kosten: { holz: 8, blume: 6 },  aktiv: true },
   { id: 'r_filmabend',  name: 'Filmabend aussuchen', emoji: '🎬', kategorie: 'Erlebnisse',      kosten: { eisen: 2 },           aktiv: true },
@@ -190,6 +191,8 @@ export function baueGutschein(profileId, rezept) {
     rezeptId: rezept.id,
     name: rezept.name,
     emoji: rezept.emoji,
+    wert: rezept.wert,
+    einheit: rezept.einheit,
     erstelltAm: new Date().toISOString(),
     eingeloest: false,
   };
@@ -252,6 +255,24 @@ export function loescheGutschein(profileId, gutscheinId) {
   if (!p || !p.gutscheine) return;
   p.gutscheine = p.gutscheine.filter(x => x.id !== gutscheinId);
   save(state);
+}
+
+// Offene Gutscheine gruppiert (für Werkstatt + Eltern-Anzeige).
+export function getGutscheinStapel(profileId) {
+  return gruppiereGutscheine(state.profiles[profileId]?.gutscheine ?? []);
+}
+
+// Bis zu `anzahl` offene Gutscheine einer Sorte einlösen (= aus dem Stapel entfernen).
+export function loeseGutscheineEin(profileId, rezeptId, anzahl) {
+  const p = state.profiles[profileId];
+  if (!p || !p.gutscheine) return;
+  p.gutscheine = entferneAusStapel(p.gutscheine, rezeptId, anzahl);
+  save(state);
+}
+
+// Ganzen offenen Stapel einer Sorte entfernen (Eltern-Korrektur).
+export function loescheGutscheinStapel(profileId, rezeptId) {
+  loeseGutscheineEin(profileId, rezeptId, Infinity);
 }
 
 // --- Rohstoff-Korrektur (Eltern) ---
