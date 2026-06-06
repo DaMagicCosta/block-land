@@ -1,0 +1,35 @@
+/* Übersichts-Karte der Biome (Phase 1: stilisiert, positionierte Marker). */
+.karte { display: flex; flex-direction: column; gap: var(--space-md); padding: var(--space-md); }
+.karte__kopf { display: flex; align-items: center; gap: var(--space-md); }
+.karte__titel { font-family: var(--font-mono); font-size: 22px; color: var(--color-success); letter-spacing: 1px; }
+.karte__back {
+  background: transparent; color: var(--color-text-dim); border: 2px solid var(--color-border);
+  border-radius: var(--radius-sm); padding: var(--space-xs) var(--space-sm); font-family: var(--font-mono); cursor: pointer;
+}
+.karte__feld {
+  position: relative; width: 100%; aspect-ratio: 16 / 10; border-radius: var(--radius-md);
+  background:
+    radial-gradient(circle at 18% 75%, #3a5a3a 0 12%, transparent 13%),
+    radial-gradient(circle at 40% 48%, #2f5d2f 0 14%, transparent 15%),
+    radial-gradient(circle at 64% 64%, #2b2b33 0 13%, transparent 14%),
+    radial-gradient(circle at 85% 32%, #5a4a3a 0 13%, transparent 14%),
+    linear-gradient(160deg, #1d2b22, #16202a);
+  border: 2px solid var(--color-border); overflow: hidden;
+}
+.karte__biom {
+  position: absolute; transform: translate(-50%, -50%);
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  background: rgba(0,0,0,.35); border: 2px solid var(--color-border); border-radius: var(--radius-md);
+  padding: var(--space-xs) var(--space-sm); cursor: pointer; color: var(--color-text); font-family: var(--font-mono);
+}
+.karte__biom:hover { border-color: var(--color-action); }
+.karte__biom--aktiv { border-color: var(--color-success); box-shadow: 0 0 0 2px var(--color-success); }
+.karte__biom--gesperrt { opacity: .55; filter: grayscale(.6); }
+.karte__icon { font-size: 28px; line-height: 1; }
+.karte__name { font-size: var(--font-size-sm); white-space: nowrap; }
+
+@media (max-width: 480px) {
+  .karte__feld { aspect-ratio: 3 / 4; }
+  .karte__icon { font-size: 22px; }
+  .karte__name { font-size: var(--font-size-xs); }
+}
