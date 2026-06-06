@@ -126,12 +126,13 @@ function zeigeAufgabenModal(aufgabe, mechanik, reward, profile, maxStufe) {
 
 // Visualisierung für die A-Mechanik (Würfelaugen).
 // Plus: zwei Summanden nebeneinander (a + b).
-// Mal: wiederholte Addition als Würfelgruppen — 3 · 5 zeigt 5 + 5 + 5,
-//   also a Gruppen mit je b Augen. Abwechselnde Farbe macht die Gruppen zählbar.
-//   Nur bei wenigen Gruppen (a <= 6), sonst würde das Bild den Rahmen sprengen.
+// Mal: wiederholte Addition als Würfelgruppen — 9 · 7 zeigt 7 + 7 + … (9 Gruppen à 7),
+//   wörtliche Lesart "a mal b" = a Gruppen mit je b Augen (kein Vertauschen, damit
+//   es zur gesprochenen Aufgabe passt). Abwechselnde Farbe macht die Gruppen zählbar.
+//   Wird immer gezeigt — auch große Reihen (bewusst, zum Live-Beurteilen).
 function baueVisualisierung(aufgabe) {
   if (aufgabe.aufgabentyp === 'mal') {
-    if (aufgabe.a < 1 || aufgabe.a > 6) return '';
+    if (aufgabe.a < 1) return '';
     const gruppen = [];
     for (let i = 0; i < aufgabe.a; i++) {
       gruppen.push(rendereZehnerhaus(aufgabe.b, { farbe: i % 2 === 0 ? 'success' : 'action' }));
