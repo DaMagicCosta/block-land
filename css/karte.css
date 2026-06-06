@@ -10,6 +10,18 @@
   position: relative; width: 100%; flex: 1; min-height: 240px; border-radius: var(--radius-md);
   border: 2px solid var(--color-border); overflow: hidden;
 }
+/* Fortschritt zum nächsten (gesperrten) Land — macht das Ziel und den Weg sichtbar. */
+.karte__fortschritt {
+  display: flex; flex-direction: column; gap: var(--space-xs);
+  background: var(--color-surface-2); border: 2px solid var(--color-border);
+  border-radius: var(--radius-sm); padding: var(--space-sm) var(--space-md);
+}
+.karte__fortschritt-text { font-family: var(--font-mono); font-size: var(--font-size-sm); color: var(--color-text); }
+.karte__fortschritt-balken { height: 12px; background: var(--color-surface); border-radius: 999px; overflow: hidden; }
+.karte__fortschritt-fuell {
+  height: 100%; background: var(--color-success); border-radius: 999px;
+  transition: width .4s ease;
+}
 .karte__svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 /* Marker: Fahnenmast mit wehender Fahne (trägt das Symbol), Name als Schild im Biom darunter.
    Anker unten-mitte (translate -50%,-100%): der Name sitzt am Biom-Punkt, der Mast ragt darüber. */

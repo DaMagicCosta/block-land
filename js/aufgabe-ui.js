@@ -152,13 +152,13 @@ function baueVisualisierung(aufgabe) {
     }
     return `<div class="aufgabe__visualisierung">${gruppen.join('<div class="aufgabe__plus">+</div>')}</div>`;
   }
-  // Minus zeigt hier kein statisches Bild: zwei Würfelgruppen mit "+" würden eine
-  // Addition suggerieren. Sinnvolle zweistellige Minus-Aufgaben laufen über die
-  // geführten Stellenwert-Schritte; kleine einstellige brauchen kein Bild.
-  if (aufgabe.aufgabentyp !== 'plus') return '';
-  // Plus: Bild nur bei kleinen Zahlen — bei großen würde es den Rahmen sprengen.
+  // Plus & Minus: zwei Würfelgruppen nebeneinander, Operator dazwischen (gleiches
+  // Bild für beide Rechenarten). Zweistellige/Übergangs-Fälle laufen ohnehin über die
+  // geführten Stellenwert-Schritte; hier greift das Bild nur bei kleinen Zahlen.
+  if (aufgabe.aufgabentyp !== 'plus' && aufgabe.aufgabentyp !== 'minus') return '';
   if (aufgabe.a > 20 || aufgabe.b > 20) return '';
-  return `<div class="aufgabe__visualisierung">${rendereZehnerhaus(aufgabe.a, { farbe: 'success' })}<div class="aufgabe__plus">+</div>${rendereZehnerhaus(aufgabe.b, { farbe: 'action' })}</div>`;
+  const operator = aufgabe.aufgabentyp === 'minus' ? '−' : '+';
+  return `<div class="aufgabe__visualisierung">${rendereZehnerhaus(aufgabe.a, { farbe: 'success' })}<div class="aufgabe__plus">${operator}</div>${rendereZehnerhaus(aufgabe.b, { farbe: 'action' })}</div>`;
 }
 
 function baueAufgabeInhalt(aufgabe, mechanik) {

@@ -194,8 +194,33 @@
 }
 .eltern__avatar-btn.aktiv { border-color: var(--color-action); background: var(--color-surface); }
 .eltern__kind-neu-form { display: flex; flex-direction: column; gap: var(--space-sm); }
-.eltern__kind-verwalt { display: flex; flex-wrap: wrap; gap: var(--space-xs); align-items: center; margin-top: var(--space-xs); }
-.eltern__kinder { display: flex; flex-direction: column; gap: var(--space-xs); }
+.eltern__kind-verwalt { display: flex; flex-wrap: wrap; gap: var(--space-xs); align-items: center; }
+.eltern__kinder { display: flex; flex-direction: column; gap: var(--space-md); }
+
+/* Eine Karte pro Kind — Avatar-Kopf + klar abgegrenzte Abschnitte (Rohstoffe/Statistik/PIN). */
+.eltern__kind-karte {
+  background: var(--color-surface-2);
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+.eltern__kind-kopf {
+  display: flex; align-items: center; gap: var(--space-sm);
+  padding-bottom: var(--space-sm);
+  border-bottom: 1px solid var(--color-border);
+}
+.eltern__kind-avatar { font-size: 28px; line-height: 1; }
+.eltern__kind-name { font-family: var(--font-mono); font-weight: bold; color: var(--color-text); flex: 1; min-width: 0; }
+.eltern__kind-alter { color: var(--color-text-dim); font-size: var(--font-size-sm); text-transform: none; letter-spacing: 0; }
+.eltern__kind-block { display: flex; flex-direction: column; gap: var(--space-xs); align-items: flex-start; }
+.eltern__kind-label {
+  font-family: var(--font-mono); font-size: var(--font-size-xs);
+  color: var(--color-action); text-transform: uppercase; letter-spacing: 1px;
+}
+.eltern__kind-loeschen { align-self: flex-end; }
 
 .eltern__regler { display: flex; flex-direction: column; gap: var(--space-xs); }
 .eltern__regler-zeile {
@@ -207,5 +232,20 @@
   font-size: var(--font-size-sm);
 }
 .eltern__regler-label { flex: 1; min-width: 0; }
-.eltern__regler-zeile input[type="range"] { flex: 1; accent-color: var(--color-success); cursor: pointer; }
+.eltern__regler-zeile input[type="range"] { flex: 1; min-width: 0; accent-color: var(--color-success); cursor: pointer; }
 .eltern__regler-wert { width: 44px; text-align: right; color: var(--color-text-dim); }
+.eltern__regler-step {
+  flex: 0 0 auto;
+  width: 32px;
+  height: 32px;
+  background: var(--color-surface-2);
+  color: var(--color-text);
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+.eltern__regler-step:hover { border-color: var(--color-action); }
+.eltern__regler-step:active { background: var(--color-surface); }

@@ -1,11 +1,12 @@
 // Übersichts-Karte: zeigt die Biome als Stationen, Auswahl setzt das aktive Biom.
 // Phase 2: illustrierte SVG-Szene (Wiese/Wald/Höhle/Berg + Pfad) mit Marker-Overlay.
 import { getCurrentProfile, getAktivesBiom, setAktivesBiom, getBiomFreigabe, getGesamtErfolge } from './state.js';
-import { loadBiomManifest, loadAvatare } from './data.js';
-import { istFrei } from './biome-logik.js';
+import { loadBiomManifest, loadAvatare, loadAufgabenPool } from './data.js';
+import { istFrei, naechstesBiom } from './biome-logik.js';
 import { escapeHtml } from './utils.js';
 import { oeffneModal, schliesseAlleModals } from './modal.js';
-import { aktuelleStufe } from './burg-logik.js';
+import { aktuelleStufe as burgStufeAus } from './burg-logik.js';
+import { aktuelleStufe as aufgabenStufe } from './adaptiv.js';
 import { rendereBurgSvg } from './burg.js';
 
 // Stilisierte Landkarte im Hochformat (Pixel-/Minecraft-Anmutung). viewBox 100×150,
@@ -50,9 +51,9 @@ export async function renderKarte(container) {
   const profile = getCurrentProfile();
   if (!profile) { location.hash = 'auswahl'; return; }
 
-  let manifest, avatare;
+  let manifest, avatare, pool;
   try {
-    [manifest, avatare] = await Promise.all([loadBiomManifest(), loadAvatare()]);
+    [manifest, avatare, pool] = await Promise.all([loadBiomManifest(), loadAvatare(), loadAufgabenPool()]);
   } catch (err) {
     container.innerHTML = `<p style="padding:var(--space-xl);color:var(--color-danger)">Karte konnte nicht geladen werden.<br>${escapeHtml(err.message)}</p>`;
     return;
@@ -62,7 +63,30 @@ export async function renderKarte(container) {
   const aktiv = getAktivesBiom(profile.id);
   const avatarEmoji = (avatare.find(a => a.id === profile.avatar) || {}).emoji || '🧑';
   const aktivPos = manifest[aktiv]?.kartenposition || { x: 50, y: 50 };
-  const burgStufe = aktuelleStufe(getGesamtErfolge(profile.id));
+  const burgStufe = burgStufeAus(getGesamtErfolge(profile.id));
+
+  // Fortschritt zum nächsten Land: nur sinnvoll, wenn direkt danach ein gesperrtes Biom liegt
+  // (das schaltet frei, sobald das Kind die höchste Stufe des aktuellen Landes meistert).
+  const naechstes = naechstesBiom(aktiv);
+  const naechstesGesperrt = naechstes && !istFrei(naechstes, freigabe);
+  let fortschrittHtml = '';
+  if (naechstesGesperrt) {
+    const typ = manifest[aktiv]?.aufgabentyp ?? 'plus';
+    const maxStufe = pool[typ]?.stufen.length ?? 4;
+    const stufe = Math.min(aufgabenStufe(profile.id, typ), maxStufe);
+    const proz = Math.round((stufe / maxStufe) * 100);
+    const offen = maxStufe - stufe;
+    const nm = manifest[naechstes] || {};
+    const ziel = `${nm.icon ?? '🔒'} ${escapeHtml(nm.name ?? naechstes)}`;
+    const text = offen > 0
+      ? `Noch ${offen} ${offen === 1 ? 'Stufe' : 'Stufen'} bis ${ziel}`
+      : `Fast geschafft — eine schwere Aufgabe noch, dann öffnet sich ${ziel}!`;
+    fortschrittHtml = `
+      <div class="karte__fortschritt">
+        <div class="karte__fortschritt-text">${text}</div>
+        <div class="karte__fortschritt-balken"><div class="karte__fortschritt-fuell" style="width:${proz}%"></div></div>
+      </div>`;
+  }
 
   const marker = Object.entries(manifest).map(([id, b]) => {
     const frei = istFrei(id, freigabe);
@@ -82,6 +106,7 @@ export async function renderKarte(container) {
         <button class="karte__back" id="karte-back">← Zurück</button>
         <div class="karte__titel">🗺️ Wähle dein Land</div>
       </div>
+      ${fortschrittHtml}
       <div class="karte__feld">
         ${kartenSzene()}
         ${marker}

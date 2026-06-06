@@ -20,8 +20,8 @@ const SELTENHEIT = [['selten', 'Selten'], ['sehr_selten', 'Sehr selten'], ['extr
 const ALTER = [['kindergarten', 'Kindergarten'], ['klasse-1', '1. Klasse'], ['klasse-2', '2. Klasse'], ['klasse-3', '3. Klasse']];
 const AVATARE = [['krieger', '🗡️'], ['bergmann', '⛏️'], ['magier', '🧙'], ['ninja', '🥷'], ['ritter', '🛡️'], ['schurke', '🦹'], ['tier', '🐺'], ['drache', '🐉']];
 
-export function oeffneElternBereich() {
-  const modal = oeffneModal({ klassen: 'modal-backdrop--eltern', inhaltHtml: '<div class="modal modal--eltern"></div>' });
+export function oeffneElternBereich(onClose) {
+  const modal = oeffneModal({ klassen: 'modal-backdrop--eltern', inhaltHtml: '<div class="modal modal--eltern"></div>', onClose });
   if (!modal) return;
   if (istPinGesetzt()) pinAbfrage(modal);
   else pinErstellen(modal);
@@ -130,11 +130,13 @@ function tabBelohnungen(container, neuRendern) {
       ${MATERIAL.map(([k, l]) => {
         const proz = Math.round((chancen[k] ?? 0) * 100);
         return `
-          <label class="eltern__regler-zeile">
+          <div class="eltern__regler-zeile">
             <span class="eltern__regler-label">${l}</span>
+            <button type="button" class="eltern__regler-step" data-dropstep="${k}" data-richtung="-1" aria-label="weniger">−</button>
             <input type="range" min="0" max="100" step="5" data-drop="${k}" value="${proz}" />
+            <button type="button" class="eltern__regler-step" data-dropstep="${k}" data-richtung="1" aria-label="mehr">+</button>
             <span class="eltern__regler-wert" data-dropwert="${k}">${proz}%</span>
-          </label>
+          </div>
         `;
       }).join('')}
     </div>
@@ -150,12 +152,23 @@ function tabBelohnungen(container, neuRendern) {
     <button class="eltern__sekundaer eltern__standard">↺ Standard wiederherstellen</button>
   `;
 
+  // Reglerwert setzen (0..100 geklemmt) + persistieren + Anzeige aktualisieren.
+  function setzeReglerWert(item, proz) {
+    proz = Math.max(0, Math.min(100, proz));
+    const slider = container.querySelector(`[data-drop="${item}"]`);
+    if (slider) slider.value = proz;
+    container.querySelector(`[data-dropwert="${item}"]`).textContent = proz + '%';
+    setzeDropChance(item, proz / 100);
+  }
   container.querySelectorAll('[data-drop]').forEach(slider => {
-    slider.addEventListener('input', () => {
-      const item = slider.dataset.drop;
-      const proz = parseInt(slider.value, 10);
-      container.querySelector(`[data-dropwert="${item}"]`).textContent = proz + '%';
-      setzeDropChance(item, proz / 100);
+    slider.addEventListener('input', () => setzeReglerWert(slider.dataset.drop, parseInt(slider.value, 10)));
+  });
+  // −/+ treffen auch die Endpunkte 0 %/100 % sicher (am Slider-Rand schwer per Touch).
+  container.querySelectorAll('[data-dropstep]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const item = btn.dataset.dropstep;
+      const slider = container.querySelector(`[data-drop="${item}"]`);
+      setzeReglerWert(item, parseInt(slider.value, 10) + 5 * parseInt(btn.dataset.richtung, 10));
     });
   });
   container.querySelector('.eltern__standard').addEventListener('click', () => {
@@ -316,6 +329,8 @@ function tabKinder(container, neuRendern) {
     kinder.innerHTML = '<div class="eltern__leer">Noch keine Kinder. Lege oben eins an.</div>';
     return;
   }
+  const avatarEmojiMap = Object.fromEntries(AVATARE);
+  const alterLabelMap = Object.fromEntries(ALTER);
   kinder.innerHTML = profile.map(p => {
     const inv = getInventar(p.id);
     const felder = ITEM_KEYS.map(it => `
@@ -328,15 +343,32 @@ function tabKinder(container, neuRendern) {
           return `${typ}: ${s.richtig}/${s.gesamt} · ⌀ ${schnitt.toFixed(1)}s`;
         }).join(' · ')
       : 'noch keine';
+    const avatarEmoji = avatarEmojiMap[p.avatar] ?? '🧒';
+    const alterLabel = alterLabelMap[p.alter] ?? p.alter;
     return `
-      <div class="eltern__abschnitt-titel">${escapeHtml(p.name)} <span class="eltern__alter">(${escapeHtml(p.alter)})</span></div>
-      <div class="eltern__kosten-grid">${felder}</div>
-      <button class="eltern__mini" data-saveroh="${p.id}">Rohstoffe speichern</button>
-      <div class="eltern__stat">📊 ${escapeHtml(statText)}</div>
-      <div class="eltern__kind-verwalt">
-        <input class="eltern__feld" data-kpinp="${p.id}" placeholder="Kind-PIN (leer = keine)" inputmode="numeric" maxlength="8" value="${escapeHtml(p.kindPin ?? '')}" />
-        <button class="eltern__mini" data-savekpin="${p.id}">PIN setzen</button>
-        <button class="eltern__mini eltern__mini--rot" data-delkind="${p.id}">Kind löschen</button>
+      <div class="eltern__kind-karte">
+        <div class="eltern__kind-kopf">
+          <span class="eltern__kind-avatar">${avatarEmoji}</span>
+          <span class="eltern__kind-name">${escapeHtml(p.name)}</span>
+          <span class="eltern__kind-alter">${escapeHtml(alterLabel)}</span>
+        </div>
+        <div class="eltern__kind-block">
+          <div class="eltern__kind-label">🎒 Rohstoffe</div>
+          <div class="eltern__kosten-grid">${felder}</div>
+          <button class="eltern__mini" data-saveroh="${p.id}">Speichern</button>
+        </div>
+        <div class="eltern__kind-block">
+          <div class="eltern__kind-label">📊 Statistik</div>
+          <div class="eltern__stat">${escapeHtml(statText)}</div>
+        </div>
+        <div class="eltern__kind-block">
+          <div class="eltern__kind-label">🔒 Kind-PIN <span class="eltern__alter">(leer = keine)</span></div>
+          <div class="eltern__kind-verwalt">
+            <input class="eltern__feld" data-kpinp="${p.id}" placeholder="z.B. 123" inputmode="numeric" maxlength="8" value="${escapeHtml(p.kindPin ?? '')}" />
+            <button class="eltern__mini" data-savekpin="${p.id}">PIN setzen</button>
+          </div>
+        </div>
+        <button class="eltern__mini eltern__mini--rot eltern__kind-loeschen" data-delkind="${p.id}">🗑️ Kind löschen</button>
       </div>
     `;
   }).join('');

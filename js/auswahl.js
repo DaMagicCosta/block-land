@@ -58,7 +58,9 @@ export async function renderAuswahl(container) {
     btn.addEventListener('click', (e) => { e.stopPropagation(); bildAendern(btn.dataset.bild); });
   });
 
-  container.querySelector('#auswahl-eltern').addEventListener('click', () => oeffneElternBereich());
+  // Nach Schließen des Eltern-Bereichs die Startseite neu rendern — neu angelegte
+  // (oder gelöschte/umbenannte) Kinder erscheinen so sofort, ohne manuelles Reload.
+  container.querySelector('#auswahl-eltern').addEventListener('click', () => oeffneElternBereich(() => renderAuswahl(container)));
 
   function kindPinAbfrage(id) {
     const modal = oeffneModal({ klassen: 'modal-backdrop--eltern', inhaltHtml: '<div class="modal modal--eltern"></div>' });
