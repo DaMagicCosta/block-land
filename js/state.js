@@ -1,4 +1,5 @@
 import { istFrei, freieBiome, naechstesBiom, hoechstesFreies } from './biome-logik.js';
+import { gruppiereGutscheine, entferneAusStapel } from './gutschein-logik.js';
 
 const STORAGE_KEY = 'block-land-state-v1';
 
@@ -9,7 +10,7 @@ const STANDARD_REZEPTE = [
   { id: 'r_brettspiel', name: 'Brettspiel zusammen', emoji: '🧩', kategorie: 'Eltern-Zeit',     kosten: { holz: 8 },            aktiv: true },
   { id: 'r_nachtisch',  name: 'Nachtisch wünschen',  emoji: '🍨', kategorie: 'Naschen & Essen', kosten: { stein: 6 },           aktiv: true },
   { id: 'r_nasch',      name: 'Nasch-Gutschein',     emoji: '🍫', kategorie: 'Naschen & Essen', kosten: { stein: 8 },           aktiv: true },
-  { id: 'r_spiel15',    name: '15 Min Spielen',      emoji: '⏱️', kategorie: 'Bildschirm-Zeit', kosten: { holz: 10, stein: 4 }, aktiv: true },
+  { id: 'r_spiel15',    name: '15 Min Spielen',      emoji: '⏱️', kategorie: 'Bildschirm-Zeit', kosten: { holz: 10, stein: 4 }, aktiv: true, wert: 15, einheit: 'Min' },
   { id: 'r_film',       name: 'Extra-Filmzeit',      emoji: '📺', kategorie: 'Bildschirm-Zeit', kosten: { holz: 12, stein: 6 }, aktiv: true },
   { id: 'r_aufbleiben', name: 'Länger aufbleiben',   emoji: '🌙', kategorie: 'Erlebnisse',      kosten: { holz: 8, blume: 6 },  aktiv: true },
   { id: 'r_filmabend',  name: 'Filmabend aussuchen', emoji: '🎬', kategorie: 'Erlebnisse',      kosten: { eisen: 2 },           aktiv: true },
@@ -160,7 +161,18 @@ export function getRezepte() {
   const quelle = (state.rezepteVerwaltet && Array.isArray(state.rezepte) && state.rezepte.length)
     ? state.rezepte
     : STANDARD_REZEPTE;
-  return quelle.map(r => structuredClone(r));
+  // Seed-Merge: Standard-Rezepte bringen wert/einheit mit. Ein älterer Eltern-Katalog
+  // (vor diesem Feature gespeichert) hat diese Felder nicht — hier zerstörungsfrei ergänzen,
+  // damit das Aufsummieren auch in bestehenden Familien-Setups greift. Eltern-Overrides bleiben.
+  const seed = Object.fromEntries(STANDARD_REZEPTE.map(r => [r.id, r]));
+  return quelle.map(r => {
+    const klon = structuredClone(r);
+    if (klon.wert === undefined && seed[klon.id]?.wert !== undefined) {
+      klon.wert = seed[klon.id].wert;
+      klon.einheit = seed[klon.id].einheit;
+    }
+    return klon;
+  });
 }
 
 export function getGutscheine(profileId) {
@@ -190,6 +202,8 @@ export function baueGutschein(profileId, rezept) {
     rezeptId: rezept.id,
     name: rezept.name,
     emoji: rezept.emoji,
+    wert: rezept.wert,
+    einheit: rezept.einheit,
     erstelltAm: new Date().toISOString(),
     eingeloest: false,
   };
@@ -252,6 +266,33 @@ export function loescheGutschein(profileId, gutscheinId) {
   if (!p || !p.gutscheine) return;
   p.gutscheine = p.gutscheine.filter(x => x.id !== gutscheinId);
   save(state);
+}
+
+// Offene Gutscheine gruppiert (für Werkstatt + Eltern-Anzeige).
+// Fallback: Gutscheine, die VOR diesem Feature gebaut wurden, haben keinen wert/einheit-Snapshot.
+// Fehlt der Wert, wird er aus dem aktuellen Katalog (getRezepte, inkl. Seed-Merge) nachgefüllt,
+// damit die Minuten-Summe auch für Altbestände erscheint.
+export function getGutscheinStapel(profileId) {
+  const stapel = gruppiereGutscheine(state.profiles[profileId]?.gutscheine ?? []);
+  const katalog = Object.fromEntries(getRezepte().map(r => [r.id, r]));
+  return stapel.map(s => {
+    if (typeof s.wert === 'number') return s;
+    const r = katalog[s.rezeptId];
+    return (r && typeof r.wert === 'number') ? { ...s, wert: r.wert, einheit: r.einheit } : s;
+  });
+}
+
+// Bis zu `anzahl` offene Gutscheine einer Sorte einlösen (= aus dem Stapel entfernen).
+export function loeseGutscheineEin(profileId, rezeptId, anzahl) {
+  const p = state.profiles[profileId];
+  if (!p || !p.gutscheine) return;
+  p.gutscheine = entferneAusStapel(p.gutscheine, rezeptId, anzahl);
+  save(state);
+}
+
+// Ganzen offenen Stapel einer Sorte entfernen (Eltern-Korrektur).
+export function loescheGutscheinStapel(profileId, rezeptId) {
+  loeseGutscheineEin(profileId, rezeptId, Infinity);
 }
 
 // --- Rohstoff-Korrektur (Eltern) ---

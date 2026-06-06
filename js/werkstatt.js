@@ -1,6 +1,6 @@
 // Werkstatt / Rezeptbuch: Rohstoffe in Belohnungen "bauen" -> Gutscheine.
 import { oeffneModal } from './modal.js';
-import { getCurrentProfile, getRezepte, getGutscheine, getInventar, kannBauen, baueGutschein } from './state.js';
+import { getCurrentProfile, getRezepte, getGutscheinStapel, getInventar, kannBauen, baueGutschein } from './state.js';
 import { aktualisiereInventarHeader } from './inventar.js';
 import { escapeHtml } from './utils.js';
 
@@ -95,19 +95,24 @@ function rendereRezepte(container, profile, neuRendern) {
 }
 
 function rendereGutscheine(container, profile) {
-  const liste = getGutscheine(profile.id);
-  if (!liste.length) {
+  const stapel = getGutscheinStapel(profile.id);
+  if (!stapel.length) {
     container.innerHTML = '<div class="werkstatt__leer">Noch keine Gutscheine gebaut.</div>';
     return;
   }
   container.innerHTML = `
     <div class="werkstatt__gutscheine">
-      ${liste.slice().reverse().map(g => `
-        <div class="werkstatt__gutschein${g.eingeloest ? ' werkstatt__gutschein--weg' : ''}">
-          <span>${g.emoji} ${escapeHtml(g.name)}</span>
-          <span class="werkstatt__gutschein-status">${g.eingeloest ? 'eingelöst' : 'offen'}</span>
-        </div>
-      `).join('')}
+      ${stapel.map(s => {
+        const summe = (typeof s.wert === 'number' && s.wert > 0)
+          ? `<span class="werkstatt__gutschein-summe">= ${s.anzahl * s.wert} ${escapeHtml(s.einheit ?? '')}</span>`
+          : '';
+        return `
+          <div class="werkstatt__gutschein">
+            <span class="werkstatt__gutschein-name">${s.emoji} ${escapeHtml(s.name)}</span>
+            <span class="werkstatt__gutschein-anzahl">×${s.anzahl}</span>
+            ${summe}
+          </div>`;
+      }).join('')}
     </div>
   `;
 }

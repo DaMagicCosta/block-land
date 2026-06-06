@@ -3,7 +3,7 @@ import { oeffneModal } from './modal.js';
 import {
   istPinGesetzt, pruefePin, setzePin,
   getProfiles, getInventar, setzeRohstoff,
-  getGutscheine, setGutscheinEingeloest, loescheGutschein,
+  getGutscheinStapel, loeseGutscheineEin, loescheGutscheinStapel,
   getRezepte, speichereRezepte, setzeRezepteStandard,
   getDropChancen, setzeDropChance,
   addProfile, deleteProfile, setzeKindPin,
@@ -232,6 +232,11 @@ function tabBelohnungen(container, neuRendern) {
         </select>
       </div>
       <input class="eltern__feld" data-neukat placeholder="Name der neuen Rubrik (z.B. Fototour)" maxlength="30" hidden />
+      <label class="eltern__form-label">Wert (optional) — fürs Aufsummieren gleicher Gutscheine</label>
+      <div class="eltern__neu-zeile">
+        <input class="eltern__feld" data-wert type="number" min="0" placeholder="z.B. 15" />
+        <input class="eltern__feld" data-einheit placeholder="Einheit (z.B. Min)" maxlength="12" />
+      </div>
       <label class="eltern__form-label">Wie viel muss das Kind dafür sammeln? (mind. 1 Rohstoff)</label>
       ${preisFormHtml({ holz: 5 })}
       <button class="eltern__primary" data-add>✓ Belohnung speichern</button>
@@ -254,7 +259,10 @@ function tabBelohnungen(container, neuRendern) {
       }
       const kosten = leseKostenForm(neuForm);
       if (Object.keys(kosten).length === 0) { alert('Bitte mindestens einen Rohstoff als Preis setzen.'); return; }
-      const neu = [...getRezepte(), { id: `r_custom_${Date.now()}`, name, emoji, kategorie, kosten, aktiv: true }];
+      const wertRoh = parseInt(neuForm.querySelector('[data-wert]').value, 10);
+      const einheit = neuForm.querySelector('[data-einheit]').value.trim();
+      const wertFelder = (wertRoh > 0) ? { wert: wertRoh, einheit: einheit || 'Stück' } : {};
+      const neu = [...getRezepte(), { id: `r_custom_${Date.now()}`, name, emoji, kategorie, kosten, aktiv: true, ...wertFelder }];
       speichereRezepte(neu);
       neuRendern();
     });
@@ -265,25 +273,40 @@ function tabGutscheine(container, neuRendern) {
   const profile = getProfiles();
   if (!profile.length) { container.innerHTML = '<div class="eltern__leer">Keine Profile.</div>'; return; }
   container.innerHTML = profile.map(p => {
-    const g = getGutscheine(p.id);
-    const rows = g.length
-      ? g.slice().reverse().map(gut => `
-        <div class="eltern__gutschein" data-pid="${p.id}" data-gid="${escapeHtml(gut.id)}">
-          <span>${gut.emoji} ${escapeHtml(gut.name)}</span>
-          <label class="eltern__aktiv"><input type="checkbox" data-eing ${gut.eingeloest ? 'checked' : ''}/> eingelöst</label>
-          <button class="eltern__mini eltern__mini--rot" data-delg>✕</button>
-        </div>
-      `).join('')
+    const stapel = getGutscheinStapel(p.id);
+    const rows = stapel.length
+      ? stapel.map(s => {
+          const summe = (typeof s.wert === 'number' && s.wert > 0)
+            ? ` = ${s.anzahl * s.wert} ${escapeHtml(s.einheit ?? '')}`
+            : '';
+          return `
+            <div class="eltern__gutschein" data-pid="${p.id}" data-rid="${escapeHtml(s.rezeptId)}">
+              <span class="eltern__gutschein-name">${s.emoji} ${escapeHtml(s.name)} <strong>×${s.anzahl}</strong>${summe}</span>
+              <span class="eltern__gutschein-einloesen">
+                einlösen:
+                <input type="number" class="eltern__gutschein-menge" min="1" max="${s.anzahl}" value="${s.anzahl}" />
+                <span class="eltern__gutschein-von">von ${s.anzahl}</span>
+                <button class="eltern__mini" data-ok>ok</button>
+                <button class="eltern__mini eltern__mini--rot" data-clear>✕ Stapel</button>
+              </span>
+            </div>`;
+        }).join('')
       : '<div class="eltern__leer">keine Gutscheine</div>';
     return `<div class="eltern__abschnitt-titel">${escapeHtml(p.name)}</div>${rows}`;
   }).join('');
 
   container.querySelectorAll('.eltern__gutschein').forEach(row => {
     const pid = row.dataset.pid;
-    const gid = row.dataset.gid;
-    row.querySelector('[data-eing]').addEventListener('change', (e) => setGutscheinEingeloest(pid, gid, e.target.checked));
-    row.querySelector('[data-delg]').addEventListener('click', () => {
-      if (confirm('Gutschein löschen?')) { loescheGutschein(pid, gid); neuRendern(); }
+    const rid = row.dataset.rid;
+    if (!rid) return; // Leer-Zeile
+    row.querySelector('[data-ok]').addEventListener('click', () => {
+      const feld = row.querySelector('.eltern__gutschein-menge');
+      const menge = Math.max(1, parseInt(feld.value, 10) || 1);
+      loeseGutscheineEin(pid, rid, menge);
+      neuRendern();
+    });
+    row.querySelector('[data-clear]').addEventListener('click', () => {
+      if (confirm('Diesen Gutschein-Stapel ganz entfernen?')) { loescheGutscheinStapel(pid, rid); neuRendern(); }
     });
   });
 }
@@ -355,7 +378,7 @@ function tabKinder(container, neuRendern) {
         <div class="eltern__kind-block">
           <div class="eltern__kind-label">🎒 Rohstoffe</div>
           <div class="eltern__kosten-grid">${felder}</div>
-          <button class="eltern__mini" data-saveroh="${p.id}">Speichern</button>
+          <button class="eltern__mini eltern__roh-speichern" data-saveroh="${p.id}">💾 Rohstoffe speichern</button>
         </div>
         <div class="eltern__kind-block">
           <div class="eltern__kind-label">📊 Statistik</div>
