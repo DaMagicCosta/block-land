@@ -1,5 +1,6 @@
-// Würfel-Visualisierung von Mengen als echte Würfel (Augen-Muster 1–6).
-// Zahlen > 6 werden als mehrere Würfel dargestellt (volle Sechser zuerst, dann Rest).
+// Würfel-Visualisierung von Mengen als echte Würfel (Augen-Muster 1–5).
+// Würfelhaus-Methode / "Kraft der Fünf": Augen gehen nur bis 5; größere Zahlen
+// werden als mehrere Würfel dargestellt (volle Fünfer zuerst, dann Rest).
 // Das interaktive Lege-Feld (B-Mechanik) bleibt ein Zähl-Raster.
 
 // Augen-Positionen im 3×3-Raster (Index 0..8):
@@ -12,7 +13,6 @@ const WUERFEL_AUGEN = {
   3: [0, 4, 8],
   4: [0, 2, 6, 8],
   5: [0, 2, 4, 6, 8],
-  6: [0, 2, 3, 5, 6, 8],
 };
 
 export function rendereZehnerhaus(zahl, options = {}) {
@@ -21,11 +21,11 @@ export function rendereZehnerhaus(zahl, options = {}) {
                : farbe === 'action'  ? 'var(--color-action)'
                : 'var(--color-text)';
 
-  // Zahl in Würfel mit höchstens 6 Augen aufteilen (volle Sechser zuerst).
+  // Zahl in Würfel mit höchstens 5 Augen aufteilen (volle Fünfer zuerst).
   const werte = [];
   let rest = zahl;
   while (rest > 0) {
-    const w = Math.min(6, rest);
+    const w = Math.min(5, rest);
     werte.push(w);
     rest -= w;
   }
