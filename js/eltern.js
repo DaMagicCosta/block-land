@@ -200,23 +200,40 @@ function tabBelohnungen(container, neuRendern) {
   container.querySelector('.eltern__neu-toggle').addEventListener('click', () => {
     if (!neuForm.hidden) { neuForm.hidden = true; neuForm.innerHTML = ''; return; }
     neuForm.hidden = false;
+    // Bekannte Rubriken = Standard-Kategorien + alle bereits selbst angelegten.
+    const vorhandeneKategorien = [...new Set([...KATEGORIEN, ...getRezepte().map(r => r.kategorie)])];
     neuForm.innerHTML = `
       <label class="eltern__form-label">Name der Belohnung</label>
       <input class="eltern__feld" data-name placeholder="z.B. Eis essen gehen" maxlength="30" />
       <label class="eltern__form-label">Aussehen</label>
       <div class="eltern__neu-zeile">
         <input class="eltern__feld eltern__feld--emoji" data-emoji placeholder="Emoji" maxlength="4" value="🎁" />
-        <select class="eltern__feld" data-kat>${KATEGORIEN.map(k => `<option>${k}</option>`).join('')}</select>
+        <select class="eltern__feld" data-kat>
+          ${vorhandeneKategorien.map(k => `<option value="${escapeHtml(k)}">${escapeHtml(k)}</option>`).join('')}
+          <option value="__neu__">➕ Neue Rubrik…</option>
+        </select>
       </div>
+      <input class="eltern__feld" data-neukat placeholder="Name der neuen Rubrik (z.B. Fototour)" maxlength="30" hidden />
       <label class="eltern__form-label">Wie viel muss das Kind dafür sammeln? (mind. 1 Rohstoff)</label>
       ${preisFormHtml({ holz: 5 })}
       <button class="eltern__primary" data-add>✓ Belohnung speichern</button>
     `;
+    const katSelect = neuForm.querySelector('[data-kat]');
+    const neuKatFeld = neuForm.querySelector('[data-neukat]');
+    katSelect.addEventListener('change', () => {
+      const istNeu = katSelect.value === '__neu__';
+      neuKatFeld.hidden = !istNeu;
+      if (istNeu) neuKatFeld.focus();
+    });
     neuForm.querySelector('[data-add]').addEventListener('click', () => {
       const name = neuForm.querySelector('[data-name]').value.trim();
       if (!name) { neuForm.querySelector('[data-name]').focus(); return; }
       const emoji = neuForm.querySelector('[data-emoji]').value.trim() || '🎁';
-      const kategorie = neuForm.querySelector('[data-kat]').value;
+      let kategorie = katSelect.value;
+      if (kategorie === '__neu__') {
+        kategorie = neuKatFeld.value.trim();
+        if (!kategorie) { neuKatFeld.focus(); return; }
+      }
       const kosten = leseKostenForm(neuForm);
       if (Object.keys(kosten).length === 0) { alert('Bitte mindestens einen Rohstoff als Preis setzen.'); return; }
       const neu = [...getRezepte(), { id: `r_custom_${Date.now()}`, name, emoji, kategorie, kosten, aktiv: true }];
