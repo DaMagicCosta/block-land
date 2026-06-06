@@ -157,6 +157,7 @@
 
 .eltern__gutschein {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--space-sm);
   background: var(--color-surface-2);
@@ -165,7 +166,15 @@
   font-family: var(--font-mono);
   color: var(--color-text);
 }
-.eltern__gutschein span:first-child { flex: 1; }
+.eltern__gutschein-name { flex: 1; min-width: 0; }
+.eltern__gutschein-einloesen { display: flex; align-items: center; gap: var(--space-xs); font-size: var(--font-size-sm); color: var(--color-text-dim); flex-wrap: wrap; }
+.eltern__gutschein-menge {
+  width: 52px; text-align: center;
+  background: var(--color-surface); border: 2px solid var(--color-border);
+  color: var(--color-text); font-family: var(--font-mono);
+  padding: var(--space-xs); border-radius: var(--radius-sm);
+}
+.eltern__gutschein-menge:focus { outline: none; border-color: var(--color-action); }
 
 .welt__eltern {
   background: transparent;
