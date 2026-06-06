@@ -1,4 +1,4 @@
-import { getCurrentProfile, setCurrentProfile } from './state.js';
+import { getCurrentProfile, setCurrentProfile, getAktivesBiom } from './state.js';
 import { loadAvatare, loadBiom } from './data.js';
 import { escapeHtml } from './utils.js';
 import { oeffneModal, schliesseAlleModals } from './modal.js';
@@ -18,9 +18,10 @@ export async function renderWelt(container) {
     return;
   }
 
+  const aktivId = getAktivesBiom(profile.id);
   let biom, avatare;
   try {
-    [biom, avatare] = await Promise.all([loadBiom('wald'), loadAvatare()]);
+    [biom, avatare] = await Promise.all([loadBiom(aktivId), loadAvatare()]);
   } catch (err) {
     container.innerHTML = `
       <div style="padding:var(--space-xl);text-align:center;color:var(--color-danger)">
@@ -28,11 +29,6 @@ export async function renderWelt(container) {
         <p style="color:var(--color-text-dim);font-size:var(--font-size-sm);margin-top:var(--space-md)">${escapeHtml(err.message)}</p>
       </div>
     `;
-    return;
-  }
-
-  if (!biom) {
-    container.innerHTML = `<p style="padding:var(--space-xl);color:var(--color-danger)">Wald-Biom nicht gefunden.</p>`;
     return;
   }
 
@@ -65,9 +61,10 @@ export async function renderWelt(container) {
       <div class="welt__header">
         <div>
           <div class="welt__welt-name">${escapeHtml(profile.weltName)}</div>
-          <div class="welt__profil-name">${escapeHtml(profile.name)}</div>
+          <div class="welt__profil-name">${escapeHtml(profile.name)} · ${escapeHtml(biom.name)}</div>
         </div>
         ${rendereInventarHeader()}
+        <button class="welt__karte-btn" id="welt-karte" title="Land wechseln">🗺️</button>
         <button class="welt__rezeptbuch" id="welt-rezeptbuch" title="Werkstatt / Rezeptbuch">📖</button>
         <button class="welt__eltern" id="welt-eltern" title="Eltern-Bereich">⚙️</button>
         <button class="welt__back" id="welt-back">Profil wechseln</button>
@@ -85,6 +82,7 @@ export async function renderWelt(container) {
 
   container.querySelector('#welt-rezeptbuch').addEventListener('click', () => oeffneRezeptbuch());
   container.querySelector('#welt-eltern').addEventListener('click', () => oeffneElternBereich());
+  container.querySelector('#welt-karte').addEventListener('click', () => { location.hash = 'karte'; });
 
   container.querySelectorAll('.welt__tile.is-interaktiv').forEach(el => {
     el.addEventListener('click', () => {
