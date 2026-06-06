@@ -94,16 +94,33 @@ export async function renderKarte(container) {
   const fade = container.querySelector('#karte-fade');
   let unterwegs = false;
 
-  // Figur wandert zum Zielbiom, Bildschirm dunkelt ab, dann Welt öffnen.
+  // Figur wandert zum Zielbiom; ERST wenn sie angekommen ist, rückt sie ins Zentrum
+  // und der Bildschirm dunkelt (knapp versetzt) ab — dann öffnet die Welt.
   function wandereUndOeffne(id) {
     if (unterwegs) return;
     unterwegs = true;
     const ziel = manifest[id].kartenposition;
     figur.classList.add('karte__figur--gehen');
-    figur.style.left = ziel.x + '%';
-    figur.style.top = ziel.y + '%';
-    fade.classList.add('karte__fade--an');
-    setTimeout(() => { setAktivesBiom(profile.id, id); location.hash = 'welt'; }, 1000);
+    requestAnimationFrame(() => {
+      figur.style.left = ziel.x + '%';
+      figur.style.top = ziel.y + '%';
+    });
+
+    let angekommen = false;
+    const ankommen = () => {
+      if (angekommen) return;
+      angekommen = true;
+      figur.removeEventListener('transitionend', onEnd);
+      // Lauf stoppen, ins Zentrum rücken + hervorheben (über dem Schleier sichtbar).
+      figur.classList.remove('karte__figur--gehen');
+      figur.classList.add('karte__figur--final');
+      requestAnimationFrame(() => { figur.style.left = '50%'; figur.style.top = '50%'; });
+      setTimeout(() => fade.classList.add('karte__fade--an'), 150);       // knapp versetzt abdunkeln
+      setTimeout(() => { setAktivesBiom(profile.id, id); location.hash = 'welt'; }, 950);
+    };
+    const onEnd = (e) => { if (e.propertyName === 'left' || e.propertyName === 'top') ankommen(); };
+    figur.addEventListener('transitionend', onEnd);
+    setTimeout(ankommen, 1300); // Fallback, falls transitionend ausbleibt
   }
 
   container.querySelectorAll('.karte__biom').forEach(btn => {
