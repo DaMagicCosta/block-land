@@ -1,7 +1,7 @@
-// Service Worker für Block-Land — cache-first, damit die App offline läuft.
-// Precache nur die Hülle; Module/CSS/Daten landen beim ersten Laden im Cache.
-// Bei Änderungen an der App einfach CACHE_VERSION hochzählen.
-const CACHE_VERSION = "block-land-v21";
+// Service Worker für Block-Land — NETWORK-FIRST.
+// Online wird IMMER die neueste Version geladen (kein manuelles Cache-Leeren / App-Neustart mehr);
+// der Cache dient nur als Offline-Fallback. Der neue Worker übernimmt sofort (skipWaiting + claim).
+const CACHE_VERSION = "block-land-v22";
 const DATEIEN = [
   "BlockLand.html",
   "manifest.webmanifest",
@@ -22,21 +22,25 @@ self.addEventListener("activate", (e) => {
   );
 });
 
+// Network-first: erst Netz versuchen (frische Version), dabei in den Cache spiegeln;
+// nur bei Netz-Fehler (offline) aus dem Cache bedienen, für Navigationen die Hülle.
 self.addEventListener("fetch", (e) => {
-  if (e.request.method !== "GET") return;
+  const req = e.request;
+  if (req.method !== "GET") return;
+  if (new URL(req.url).origin !== self.location.origin) return;
   e.respondWith(
-    caches.match(e.request).then((treffer) => {
-      if (treffer) return treffer;
-      return fetch(e.request)
-        .then((antwort) => {
-          // neue gleiche-Origin-Antworten in den Cache legen (Module, CSS, JSON)
-          if (antwort.ok && new URL(e.request.url).origin === self.location.origin) {
-            const kopie = antwort.clone();
-            caches.open(CACHE_VERSION).then((c) => c.put(e.request, kopie));
-          }
-          return antwort;
-        })
-        .catch(() => treffer);
-    })
+    fetch(req)
+      .then((antwort) => {
+        if (antwort && antwort.ok) {
+          const kopie = antwort.clone();
+          caches.open(CACHE_VERSION).then((c) => c.put(req, kopie));
+        }
+        return antwort;
+      })
+      .catch(() =>
+        caches.match(req).then((treffer) =>
+          treffer || (req.mode === "navigate" ? caches.match("BlockLand.html") : Response.error())
+        )
+      )
   );
 });
