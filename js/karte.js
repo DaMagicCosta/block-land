@@ -1,10 +1,12 @@
 // Übersichts-Karte: zeigt die Biome als Stationen, Auswahl setzt das aktive Biom.
 // Phase 2: illustrierte SVG-Szene (Wiese/Wald/Höhle/Berg + Pfad) mit Marker-Overlay.
-import { getCurrentProfile, getAktivesBiom, setAktivesBiom, getBiomFreigabe } from './state.js';
+import { getCurrentProfile, getAktivesBiom, setAktivesBiom, getBiomFreigabe, getGesamtErfolge } from './state.js';
 import { loadBiomManifest, loadAvatare } from './data.js';
 import { istFrei } from './biome-logik.js';
 import { escapeHtml } from './utils.js';
 import { oeffneModal, schliesseAlleModals } from './modal.js';
+import { aktuelleStufe } from './burg-logik.js';
+import { rendereBurgSvg } from './burg.js';
 
 // Stilisierte Landkarte im Hochformat (Pixel-/Minecraft-Anmutung). viewBox 100×150,
 // per CSS aufs Feld gestreckt (preserveAspectRatio="none"). Reise von unten (Wiese) nach
@@ -60,6 +62,7 @@ export async function renderKarte(container) {
   const aktiv = getAktivesBiom(profile.id);
   const avatarEmoji = (avatare.find(a => a.id === profile.avatar) || {}).emoji || '🧑';
   const aktivPos = manifest[aktiv]?.kartenposition || { x: 50, y: 50 };
+  const burgStufe = aktuelleStufe(getGesamtErfolge(profile.id));
 
   const marker = Object.entries(manifest).map(([id, b]) => {
     const frei = istFrei(id, freigabe);
@@ -82,6 +85,10 @@ export async function renderKarte(container) {
       <div class="karte__feld">
         ${kartenSzene()}
         ${marker}
+        <button class="karte__burg" id="karte-burg" style="left:83%;top:84%">
+          ${rendereBurgSvg(burgStufe)}
+          <span class="karte__burg-label">Meine Burg</span>
+        </button>
         <div class="karte__figur" id="karte-figur" style="left:${aktivPos.x}%;top:${aktivPos.y}%"><span class="karte__figur-emoji">${avatarEmoji}</span></div>
       </div>
       <div class="karte__fade" id="karte-fade"></div>
@@ -89,6 +96,7 @@ export async function renderKarte(container) {
   `;
 
   container.querySelector('#karte-back').addEventListener('click', () => { location.hash = 'welt'; });
+  container.querySelector('#karte-burg').addEventListener('click', () => { location.hash = 'burg'; });
 
   const figur = container.querySelector('#karte-figur');
   const fade = container.querySelector('#karte-fade');
