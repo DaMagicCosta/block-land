@@ -1,7 +1,7 @@
 // Service Worker für Block-Land — cache-first, damit die App offline läuft.
 // Precache nur die Hülle; Module/CSS/Daten landen beim ersten Laden im Cache.
 // Bei Änderungen an der App einfach CACHE_VERSION hochzählen.
-const CACHE_VERSION = "block-land-v20";
+const CACHE_VERSION = "block-land-v21";
 const DATEIEN = [
   "BlockLand.html",
   "manifest.webmanifest",

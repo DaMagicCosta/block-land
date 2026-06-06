@@ -19,8 +19,8 @@ function kartenSzene() {
         </linearGradient>
       </defs>
       <rect width="100" height="150" fill="url(#sw-himmel)"/>
-      <!-- Pfad: Reise von unten nach oben -->
-      <path d="M 28 132 C 46 122, 64 110, 70 98 C 77 84, 36 78, 30 64 C 23 50, 60 40, 68 30"
+      <!-- Pfad: Reise von unten nach oben (Klasse für die Figur-Wegfindung) -->
+      <path class="karte__pfad" d="M 28 132 C 46 122, 64 110, 70 98 C 77 84, 36 78, 30 64 C 23 50, 60 40, 68 30"
             fill="none" stroke="#d9c89a" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="2 5" opacity="0.8"/>
       <!-- Boden-Regionen -->
       <ellipse cx="28" cy="130" rx="26" ry="17" fill="#3f6e34"/>
@@ -92,35 +92,59 @@ export async function renderKarte(container) {
 
   const figur = container.querySelector('#karte-figur');
   const fade = container.querySelector('#karte-fade');
+  const pfad = container.querySelector('.karte__pfad');
   let unterwegs = false;
 
-  // Figur wandert zum Zielbiom; ERST wenn sie angekommen ist, rückt sie ins Zentrum
-  // und der Bildschirm dunkelt (knapp versetzt) ab — dann öffnet die Welt.
+  // Pfad-Länge, deren Punkt einem Biom-Punkt am nächsten liegt (viewBox-Koordinaten).
+  function laengeFuerPunkt(vbx, vby) {
+    const total = pfad.getTotalLength();
+    let best = 0, bestD = Infinity;
+    for (let l = 0; l <= total; l += total / 240) {
+      const p = pfad.getPointAtLength(l);
+      const d = (p.x - vbx) ** 2 + (p.y - vby) ** 2;
+      if (d < bestD) { bestD = d; best = l; }
+    }
+    return best;
+  }
+  // Biom-Position als Pfad-Länge merken (kartenposition in %; viewBox 100×150 → vby = y·1,5).
+  const biomLaenge = {};
+  if (pfad) {
+    for (const [bid, b] of Object.entries(manifest)) {
+      biomLaenge[bid] = laengeFuerPunkt(b.kartenposition.x, b.kartenposition.y * 1.5);
+    }
+  }
+
+  // Figur exakt am Pfad entlang bewegen (JS-gesteuert, Punkt für Punkt), dann onDone().
+  function laufeEntlangPfad(vonLen, zuLen, onDone) {
+    if (!pfad) { onDone(); return; }
+    const dauer = 1100;
+    let start = null;
+    figur.classList.add('karte__figur--gehen');
+    figur.style.transition = 'none'; // Position kommt aus JS, keine CSS-Glättung
+    function schritt(ts) {
+      if (start === null) start = ts;
+      const t = Math.min(1, (ts - start) / dauer);
+      const p = pfad.getPointAtLength(vonLen + (zuLen - vonLen) * t);
+      figur.style.left = p.x + '%';
+      figur.style.top = (p.y / 1.5) + '%';
+      if (t < 1) requestAnimationFrame(schritt);
+      else onDone();
+    }
+    requestAnimationFrame(schritt);
+  }
+
+  // Figur folgt dem Pfad zum Zielbiom; danach ins Zentrum rücken + knapp versetzt abdunkeln → Welt.
   function wandereUndOeffne(id) {
     if (unterwegs) return;
     unterwegs = true;
-    const ziel = manifest[id].kartenposition;
-    figur.classList.add('karte__figur--gehen');
-    requestAnimationFrame(() => {
-      figur.style.left = ziel.x + '%';
-      figur.style.top = ziel.y + '%';
-    });
-
-    let angekommen = false;
-    const ankommen = () => {
-      if (angekommen) return;
-      angekommen = true;
-      figur.removeEventListener('transitionend', onEnd);
-      // Lauf stoppen, ins Zentrum rücken + hervorheben (über dem Schleier sichtbar).
+    laufeEntlangPfad(biomLaenge[aktiv] ?? 0, biomLaenge[id] ?? 0, () => {
       figur.classList.remove('karte__figur--gehen');
+      figur.style.transition = ''; // CSS-Transition aus --final wieder aktiv
       figur.classList.add('karte__figur--final');
       requestAnimationFrame(() => { figur.style.left = '50%'; figur.style.top = '50%'; });
-      setTimeout(() => fade.classList.add('karte__fade--an'), 150);       // knapp versetzt abdunkeln
-      setTimeout(() => { setAktivesBiom(profile.id, id); location.hash = 'welt'; }, 950);
-    };
-    const onEnd = (e) => { if (e.propertyName === 'left' || e.propertyName === 'top') ankommen(); };
-    figur.addEventListener('transitionend', onEnd);
-    setTimeout(ankommen, 1300); // Fallback, falls transitionend ausbleibt
+      setTimeout(() => fade.classList.add('karte__fade--an'), 150);   // knapp versetzt
+      setTimeout(() => { setAktivesBiom(profile.id, id); location.hash = 'welt'; }, 800);
+    });
   }
 
   container.querySelectorAll('.karte__biom').forEach(btn => {
