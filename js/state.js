@@ -1,3 +1,5 @@
+import { istFrei, freieBiome, naechstesBiom, hoechstesFreies } from './biome-logik.js';
+
 const STORAGE_KEY = 'block-land-state-v1';
 
 const STANDARD_REZEPTE = [
@@ -94,6 +96,7 @@ export function addProfile({ name, weltName, avatar, alter, kindPin = null }) {
     gutscheine: [],
     schwierigkeit: { plus: 2 },
     statistik: { plus: { gesamt: 0, richtig: 0 } },
+    biome: { aktiv: null, autoFrei: [], elternFrei: [], elternGesperrt: [] },
   };
   save(state);
   return id;
@@ -293,3 +296,69 @@ export function setzeDropChance(item, wert) {
 
 // Debug-Helper: globaler Zugriff im Browser-Konsole
 window.__blockLandState = { getState, resetAll };
+
+// --- Biom-System ---
+// Stellt sicher, dass ein Profil den biome-Block hat (für Altprofile ohne Migration).
+function sichereBiom(p) {
+  if (!p.biome) p.biome = { aktiv: null, autoFrei: [], elternFrei: [], elternGesperrt: [] };
+  p.biome.autoFrei = p.biome.autoFrei ?? [];
+  p.biome.elternFrei = p.biome.elternFrei ?? [];
+  p.biome.elternGesperrt = p.biome.elternGesperrt ?? [];
+  return p.biome;
+}
+
+// Freigabe-Objekt für die pure Logik (alter + Unlock-Listen).
+export function getBiomFreigabe(profileId) {
+  const p = state.profiles[profileId];
+  if (!p) return { alter: 'kindergarten', autoFrei: [], elternFrei: [], elternGesperrt: [] };
+  const b = sichereBiom(p);
+  return { alter: p.alter, autoFrei: b.autoFrei, elternFrei: b.elternFrei, elternGesperrt: b.elternGesperrt };
+}
+
+// Aktives Biom: gespeicherte Wahl, falls noch freigeschaltet; sonst höchstes freies.
+export function getAktivesBiom(profileId) {
+  const p = state.profiles[profileId];
+  if (!p) return hoechstesFreies({ alter: 'kindergarten' });
+  const b = sichereBiom(p);
+  const frei = getBiomFreigabe(profileId);
+  if (b.aktiv && istFrei(b.aktiv, frei)) return b.aktiv;
+  return hoechstesFreies(frei);
+}
+
+export function setAktivesBiom(profileId, id) {
+  const p = state.profiles[profileId];
+  if (!p) return;
+  sichereBiom(p).aktiv = id;
+  save(state);
+}
+
+// Liste freigeschalteter Biom-Ids (für die Karte).
+export function getFreieBiome(profileId) {
+  return freieBiome(getBiomFreigabe(profileId));
+}
+
+// Schaltet das nächste Biom frei, falls noch gesperrt. Gibt die neue Id zurück oder null.
+export function schalteNaechstesBiomFrei(profileId, vonId) {
+  const p = state.profiles[profileId];
+  if (!p) return null;
+  const next = naechstesBiom(vonId);
+  if (!next) return null;
+  const frei = getBiomFreigabe(profileId);
+  if (istFrei(next, frei)) return null; // schon offen
+  const b = sichereBiom(p);
+  b.autoFrei.push(next);
+  save(state);
+  return next;
+}
+
+// Eltern: Biom öffnen (offen=true) oder schließen (offen=false).
+export function setBiomElternStatus(profileId, id, offen) {
+  const p = state.profiles[profileId];
+  if (!p) return;
+  const b = sichereBiom(p);
+  b.elternFrei = b.elternFrei.filter(x => x !== id);
+  b.elternGesperrt = b.elternGesperrt.filter(x => x !== id);
+  if (offen) b.elternFrei.push(id);
+  else b.elternGesperrt.push(id);
+  save(state);
+}
