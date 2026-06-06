@@ -141,8 +141,10 @@ export async function renderKarte(container) {
       figur.classList.remove('karte__figur--gehen');
       figur.style.transition = ''; // CSS-Transition aus --final wieder aktiv
       figur.classList.add('karte__figur--final');
-      requestAnimationFrame(() => { figur.style.left = '50%'; figur.style.top = '50%'; });
-      setTimeout(() => fade.classList.add('karte__fade--an'), 150);   // knapp versetzt
+      // Figur bleibt auf der Zielinsel stehen (nicht ins Zentrum) und wird dort hervorgehoben.
+      const ziel = manifest[id].kartenposition;
+      requestAnimationFrame(() => { figur.style.left = ziel.x + '%'; figur.style.top = ziel.y + '%'; });
+      setTimeout(() => fade.classList.add('karte__fade--an'), 150);   // knapp versetzt abdunkeln
       setTimeout(() => { setAktivesBiom(profile.id, id); location.hash = 'welt'; }, 800);
     });
   }
