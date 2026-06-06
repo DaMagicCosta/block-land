@@ -36,6 +36,7 @@
     }
   },
   "minus": {
+    "default_stufe": 1,
     "stufen": [
       { "nr": 1, "label": "Klein, ohne Borgen",        "a_min": 2,  "a_max": 20, "b_min": 1,  "b_max": 9,  "kein_entbuendeln": true },
       { "nr": 2, "label": "Mittel, ohne Borgen",       "a_min": 10, "a_max": 89, "b_min": 1,  "b_max": 9,  "kein_entbuendeln": true },
