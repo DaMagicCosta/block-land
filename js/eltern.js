@@ -7,8 +7,11 @@ import {
   getRezepte, speichereRezepte, setzeRezepteStandard,
   getDropChancen, setzeDropChance,
   addProfile, deleteProfile, setzeKindPin,
+  getBiomFreigabe, setBiomElternStatus,
 } from './state.js';
 import { escapeHtml } from './utils.js';
+import { loadBiomManifest } from './data.js';
+import { istFrei } from './biome-logik.js';
 
 const ITEM_KEYS = ['holz', 'stein', 'blume', 'eisen', 'diamant'];
 const ITEM_EMOJI = { holz: '🪵', stein: '🪨', blume: '🌸', eisen: '⛏️', diamant: '💎' };
@@ -76,6 +79,7 @@ function dashboard(modal) {
         <button data-tab="belohnungen" class="${tab === 'belohnungen' ? 'aktiv' : ''}">🎁 Belohnungen</button>
         <button data-tab="gutscheine" class="${tab === 'gutscheine' ? 'aktiv' : ''}">🎟️ Gutscheine</button>
         <button data-tab="kinder" class="${tab === 'kinder' ? 'aktiv' : ''}">🧒 Kinder</button>
+        <button data-tab="biome" class="${tab === 'biome' ? 'aktiv' : ''}">🗺️ Biome</button>
         <button data-tab="pin" class="${tab === 'pin' ? 'aktiv' : ''}">🔒 PIN</button>
       </div>
       <div class="eltern__inhalt"></div>
@@ -85,6 +89,7 @@ function dashboard(modal) {
     if (tab === 'belohnungen') tabBelohnungen(inhalt, render);
     else if (tab === 'gutscheine') tabGutscheine(inhalt, render);
     else if (tab === 'kinder') tabKinder(inhalt, render);
+    else if (tab === 'biome') tabBiome(inhalt, render);
     else tabPin(inhalt);
     modal.inhalt.querySelectorAll('.eltern__tabs button').forEach(b => {
       b.addEventListener('click', () => { tab = b.dataset.tab; render(); });
@@ -361,6 +366,36 @@ function tabKinder(container, neuRendern) {
         deleteProfile(pid);
         neuRendern();
       }
+    });
+  });
+}
+
+async function tabBiome(container, neuRendern) {
+  const profile = getProfiles();
+  if (!profile.length) { container.innerHTML = '<div class="eltern__leer">Keine Profile.</div>'; return; }
+  let manifest;
+  try { manifest = await loadBiomManifest(); }
+  catch { container.innerHTML = '<div class="eltern__leer">Manifest nicht ladbar.</div>'; return; }
+  const order = ['mengen', 'plus', 'minus', 'mal'];
+
+  container.innerHTML = profile.map(p => {
+    const frei = getBiomFreigabe(p.id);
+    const zeilen = order.map(id => {
+      const offen = istFrei(id, frei);
+      return `
+        <label class="eltern__rezept-zeile">
+          <span class="eltern__rezept-kosten">${manifest[id].icon} ${escapeHtml(manifest[id].name)}</span>
+          <input type="checkbox" data-biom="${escapeHtml(id)}" data-pid="${p.id}" ${offen ? 'checked' : ''} />
+          <span class="eltern__aktiv">${offen ? 'offen' : '🔒'}</span>
+        </label>`;
+    }).join('');
+    return `<div class="eltern__abschnitt-titel">${escapeHtml(p.name)}</div>${zeilen}`;
+  }).join('');
+
+  container.querySelectorAll('[data-biom]').forEach(cb => {
+    cb.addEventListener('change', () => {
+      setBiomElternStatus(cb.dataset.pid, cb.dataset.biom, cb.checked);
+      neuRendern();
     });
   });
 }
