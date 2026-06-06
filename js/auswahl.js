@@ -74,10 +74,14 @@ export async function renderAuswahl(container) {
     const inp = modal.inhalt.querySelector('.eltern__pin');
     const fehler = modal.inhalt.querySelector('.eltern__fehler');
     inp.focus();
-    modal.inhalt.querySelector('.eltern__primary').addEventListener('click', () => {
-      if (pruefeKindPin(id, inp.value)) { modal.schliessen(); setCurrentProfile(id); location.hash = 'welt'; }
-      else { fehler.hidden = false; fehler.textContent = 'Falsche PIN.'; inp.value = ''; inp.focus(); }
-    });
+    function versuch(zeigeFehler) {
+      if (pruefeKindPin(id, inp.value)) { modal.schliessen(); setCurrentProfile(id); location.hash = 'welt'; return; }
+      if (zeigeFehler) { fehler.hidden = false; fehler.textContent = 'Falsche PIN.'; inp.value = ''; inp.focus(); }
+    }
+    // Auto-weiter, sobald die PIN stimmt — kein Bestätigen nötig (blockiert sonst den Einstieg).
+    inp.addEventListener('input', () => { fehler.hidden = true; versuch(false); });
+    inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') versuch(true); });
+    modal.inhalt.querySelector('.eltern__primary').addEventListener('click', () => versuch(true));
     modal.inhalt.querySelector('.eltern__abbruch').addEventListener('click', () => modal.schliessen());
   }
 
