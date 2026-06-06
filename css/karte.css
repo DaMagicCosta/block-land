@@ -1,5 +1,5 @@
 /* Übersichts-Karte der Biome (Phase 1: stilisiert, positionierte Marker). */
-.karte { display: flex; flex-direction: column; gap: var(--space-md); padding: var(--space-md); }
+.karte { display: flex; flex-direction: column; gap: var(--space-md); padding: var(--space-md); min-height: 100vh; box-sizing: border-box; }
 .karte__kopf { display: flex; align-items: center; gap: var(--space-md); }
 .karte__titel { font-family: var(--font-mono); font-size: 22px; color: var(--color-success); letter-spacing: 1px; }
 .karte__back {
@@ -7,26 +7,40 @@
   border-radius: var(--radius-sm); padding: var(--space-xs) var(--space-sm); font-family: var(--font-mono); cursor: pointer;
 }
 .karte__feld {
-  position: relative; width: 100%; aspect-ratio: 16 / 10; border-radius: var(--radius-md);
+  position: relative; width: 100%; flex: 1; min-height: 240px; border-radius: var(--radius-md);
   border: 2px solid var(--color-border); overflow: hidden;
 }
 .karte__svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 .karte__biom {
   position: absolute; transform: translate(-50%, -50%); z-index: 1;
-  display: flex; flex-direction: column; align-items: center; gap: 2px;
-  background: rgba(0,0,0,.55); border: 2px solid rgba(255,255,255,.25); border-radius: var(--radius-md);
-  padding: var(--space-xs) var(--space-sm); cursor: pointer; color: var(--color-text); font-family: var(--font-mono);
-  box-shadow: 0 2px 6px rgba(0,0,0,.45);
+  display: flex; flex-direction: column; align-items: center; gap: 1px;
+  background: transparent; border: 0; padding: 0; cursor: pointer; color: #fff; font-family: var(--font-mono);
 }
-.karte__biom:hover { border-color: var(--color-action); }
-.karte__biom--aktiv { border-color: var(--color-success); box-shadow: 0 0 0 2px var(--color-success), 0 2px 8px rgba(0,0,0,.5); animation: karte-puls 1.4s ease-in-out infinite; }
+.karte__icon { font-size: 30px; line-height: 1; filter: drop-shadow(0 2px 3px rgba(0,0,0,.6)); }
+
+/* Wehendes Banner mit Wimpel-Unterkante, Farbe je Biom */
+.karte__name {
+  font-size: var(--font-size-sm); white-space: nowrap; color: #fff;
+  background: var(--sw-banner, #7a5a3a);
+  padding: 3px 9px 9px; border-radius: 3px;
+  clip-path: polygon(0 0, 100% 0, 100% 72%, 50% 100%, 0 72%);
+  text-shadow: 0 1px 2px rgba(0,0,0,.8); box-shadow: 0 2px 4px rgba(0,0,0,.4);
+  transform-origin: top center; animation: sw-wehen 2.6s ease-in-out infinite;
+}
+.karte__biom--mengen .karte__name { --sw-banner: #4a7a3a; }
+.karte__biom--plus   .karte__name { --sw-banner: #2f6d2f; }
+.karte__biom--minus  .karte__name { --sw-banner: #4a4a58; }
+.karte__biom--mal    .karte__name { --sw-banner: #6b5a48; }
+.karte__biom:hover .karte__name { filter: brightness(1.15); }
+.karte__biom--aktiv .karte__name { box-shadow: 0 0 0 2px var(--color-success), 0 2px 5px rgba(0,0,0,.45); }
+.karte__biom--aktiv .karte__icon { animation: karte-huepf 1.4s ease-in-out infinite; }
 .karte__biom--gesperrt { opacity: .6; filter: grayscale(.7); }
-.karte__icon { font-size: 28px; line-height: 1; filter: drop-shadow(0 1px 2px rgba(0,0,0,.6)); }
-.karte__name { font-size: var(--font-size-sm); white-space: nowrap; text-shadow: 0 1px 2px rgba(0,0,0,.7); }
-@keyframes karte-puls { 0%,100% { transform: translate(-50%,-50%) scale(1); } 50% { transform: translate(-50%,-50%) scale(1.06); } }
+.karte__biom--gesperrt .karte__name { animation: none; }
+
+@keyframes sw-wehen { 0%,100% { transform: rotate(-1.5deg) skewX(-3deg); } 50% { transform: rotate(1.5deg) skewX(3deg); } }
+@keyframes karte-huepf { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
 
 @media (max-width: 480px) {
-  .karte__feld { aspect-ratio: 3 / 4; }
-  .karte__icon { font-size: 22px; }
+  .karte__icon { font-size: 24px; }
   .karte__name { font-size: var(--font-size-xs); }
 }

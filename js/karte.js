@@ -61,7 +61,7 @@ export async function renderKarte(container) {
   const marker = Object.entries(manifest).map(([id, b]) => {
     const frei = istFrei(id, freigabe);
     const istAktiv = id === aktiv;
-    const klassen = ['karte__biom', frei ? '' : 'karte__biom--gesperrt', istAktiv ? 'karte__biom--aktiv' : ''].filter(Boolean).join(' ');
+    const klassen = ['karte__biom', `karte__biom--${id}`, frei ? '' : 'karte__biom--gesperrt', istAktiv ? 'karte__biom--aktiv' : ''].filter(Boolean).join(' ');
     return `
       <button class="${klassen}" data-biom="${escapeHtml(id)}" style="left:${b.kartenposition.x}%;top:${b.kartenposition.y}%"
               data-frei="${frei ? '1' : '0'}">
