@@ -161,7 +161,18 @@ export function getRezepte() {
   const quelle = (state.rezepteVerwaltet && Array.isArray(state.rezepte) && state.rezepte.length)
     ? state.rezepte
     : STANDARD_REZEPTE;
-  return quelle.map(r => structuredClone(r));
+  // Seed-Merge: Standard-Rezepte bringen wert/einheit mit. Ein älterer Eltern-Katalog
+  // (vor diesem Feature gespeichert) hat diese Felder nicht — hier zerstörungsfrei ergänzen,
+  // damit das Aufsummieren auch in bestehenden Familien-Setups greift. Eltern-Overrides bleiben.
+  const seed = Object.fromEntries(STANDARD_REZEPTE.map(r => [r.id, r]));
+  return quelle.map(r => {
+    const klon = structuredClone(r);
+    if (klon.wert === undefined && seed[klon.id]?.wert !== undefined) {
+      klon.wert = seed[klon.id].wert;
+      klon.einheit = seed[klon.id].einheit;
+    }
+    return klon;
+  });
 }
 
 export function getGutscheine(profileId) {
@@ -258,8 +269,17 @@ export function loescheGutschein(profileId, gutscheinId) {
 }
 
 // Offene Gutscheine gruppiert (für Werkstatt + Eltern-Anzeige).
+// Fallback: Gutscheine, die VOR diesem Feature gebaut wurden, haben keinen wert/einheit-Snapshot.
+// Fehlt der Wert, wird er aus dem aktuellen Katalog (getRezepte, inkl. Seed-Merge) nachgefüllt,
+// damit die Minuten-Summe auch für Altbestände erscheint.
 export function getGutscheinStapel(profileId) {
-  return gruppiereGutscheine(state.profiles[profileId]?.gutscheine ?? []);
+  const stapel = gruppiereGutscheine(state.profiles[profileId]?.gutscheine ?? []);
+  const katalog = Object.fromEntries(getRezepte().map(r => [r.id, r]));
+  return stapel.map(s => {
+    if (typeof s.wert === 'number') return s;
+    const r = katalog[s.rezeptId];
+    return (r && typeof r.wert === 'number') ? { ...s, wert: r.wert, einheit: r.einheit } : s;
+  });
 }
 
 // Bis zu `anzahl` offene Gutscheine einer Sorte einlösen (= aus dem Stapel entfernen).

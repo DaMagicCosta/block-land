@@ -378,7 +378,7 @@ function tabKinder(container, neuRendern) {
         <div class="eltern__kind-block">
           <div class="eltern__kind-label">🎒 Rohstoffe</div>
           <div class="eltern__kosten-grid">${felder}</div>
-          <button class="eltern__mini" data-saveroh="${p.id}">Speichern</button>
+          <button class="eltern__mini eltern__roh-speichern" data-saveroh="${p.id}">💾 Rohstoffe speichern</button>
         </div>
         <div class="eltern__kind-block">
           <div class="eltern__kind-label">📊 Statistik</div>
