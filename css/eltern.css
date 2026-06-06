@@ -126,6 +126,20 @@
 .eltern__rezept-kosten { color: var(--color-text-dim); font-size: var(--font-size-sm); flex: 1; }
 .eltern__aktiv { color: var(--color-text-dim); font-size: var(--font-size-sm); display: flex; align-items: center; gap: 4px; white-space: nowrap; cursor: pointer; }
 
+.eltern__neu-belohnung {
+  background: transparent;
+  color: var(--color-action);
+  border: 2px dashed var(--color-action);
+  padding: var(--space-md);
+  font-family: var(--font-mono);
+  font-weight: bold;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+.eltern__neu-belohnung:hover { background: var(--color-surface-2); }
+.eltern__form-label { font-family: var(--font-mono); font-size: var(--font-size-sm); color: var(--color-text-dim); }
+.eltern__hinweis--links { text-align: left; }
+
 .eltern__preis-form, .eltern__neu-form { display: flex; flex-direction: column; gap: var(--space-sm); }
 .eltern__kosten-grid { display: flex; flex-wrap: wrap; gap: var(--space-sm); }
 .eltern__kosten-feld { display: flex; align-items: center; gap: 4px; color: var(--color-text); font-family: var(--font-mono); }

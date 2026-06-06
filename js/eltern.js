@@ -134,10 +134,14 @@ function tabBelohnungen(container, neuRendern) {
       }).join('')}
     </div>
     <p class="eltern__hinweis">Fällt mal nichts, gibt's eine kleine Gratulation. 🎉</p>
-    <div class="eltern__abschnitt-titel">Belohnungen</div>
-    <div class="eltern__rezepte"></div>
-    <button class="eltern__mini eltern__neu-toggle">➕ Neue Belohnung</button>
+
+    <div class="eltern__abschnitt-titel">Eigene Belohnung</div>
+    <p class="eltern__hinweis eltern__hinweis--links">Lege selbst fest, was es zu gewinnen gibt — eigener Name, Emoji und wie viel das Kind dafür sammeln muss.</p>
+    <button class="eltern__neu-belohnung eltern__neu-toggle">➕ Eigene Belohnung erstellen</button>
     <div class="eltern__neu-form" hidden></div>
+
+    <div class="eltern__abschnitt-titel">Alle Belohnungen</div>
+    <div class="eltern__rezepte"></div>
     <button class="eltern__sekundaer eltern__standard">↺ Standard wiederherstellen</button>
   `;
 
@@ -197,14 +201,16 @@ function tabBelohnungen(container, neuRendern) {
     if (!neuForm.hidden) { neuForm.hidden = true; neuForm.innerHTML = ''; return; }
     neuForm.hidden = false;
     neuForm.innerHTML = `
-      <input class="eltern__feld" data-name placeholder="Name (z.B. Eis essen)" maxlength="30" />
+      <label class="eltern__form-label">Name der Belohnung</label>
+      <input class="eltern__feld" data-name placeholder="z.B. Eis essen gehen" maxlength="30" />
+      <label class="eltern__form-label">Aussehen</label>
       <div class="eltern__neu-zeile">
         <input class="eltern__feld eltern__feld--emoji" data-emoji placeholder="Emoji" maxlength="4" value="🎁" />
         <select class="eltern__feld" data-kat>${KATEGORIEN.map(k => `<option>${k}</option>`).join('')}</select>
       </div>
-      <div class="eltern__abschnitt-titel">Kosten</div>
-      ${preisFormHtml({})}
-      <button class="eltern__mini" data-add>Hinzufügen</button>
+      <label class="eltern__form-label">Wie viel muss das Kind dafür sammeln? (mind. 1 Rohstoff)</label>
+      ${preisFormHtml({ holz: 5 })}
+      <button class="eltern__primary" data-add>✓ Belohnung speichern</button>
     `;
     neuForm.querySelector('[data-add]').addEventListener('click', () => {
       const name = neuForm.querySelector('[data-name]').value.trim();

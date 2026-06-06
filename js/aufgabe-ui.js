@@ -124,6 +124,25 @@ function zeigeAufgabenModal(aufgabe, mechanik, reward, profile, maxStufe) {
   });
 }
 
+// Visualisierung für die A-Mechanik (Würfelaugen).
+// Plus: zwei Summanden nebeneinander (a + b).
+// Mal: wiederholte Addition als Würfelgruppen — 3 · 5 zeigt 5 + 5 + 5,
+//   also a Gruppen mit je b Augen. Abwechselnde Farbe macht die Gruppen zählbar.
+//   Nur bei wenigen Gruppen (a <= 6), sonst würde das Bild den Rahmen sprengen.
+function baueVisualisierung(aufgabe) {
+  if (aufgabe.aufgabentyp === 'mal') {
+    if (aufgabe.a < 1 || aufgabe.a > 6) return '';
+    const gruppen = [];
+    for (let i = 0; i < aufgabe.a; i++) {
+      gruppen.push(rendereZehnerhaus(aufgabe.b, { farbe: i % 2 === 0 ? 'success' : 'action' }));
+    }
+    return `<div class="aufgabe__visualisierung">${gruppen.join('<div class="aufgabe__plus">+</div>')}</div>`;
+  }
+  // Plus: Bild nur bei kleinen Zahlen — bei großen würde es den Rahmen sprengen.
+  if (aufgabe.a > 20 || aufgabe.b > 20) return '';
+  return `<div class="aufgabe__visualisierung">${rendereZehnerhaus(aufgabe.a, { farbe: 'success' })}<div class="aufgabe__plus">+</div>${rendereZehnerhaus(aufgabe.b, { farbe: 'action' })}</div>`;
+}
+
 function baueAufgabeInhalt(aufgabe, mechanik) {
   if (aufgabe.aufgabentyp === 'mengen') {
     const wuerfel = rendereZehnerhaus(aufgabe.ziel, { farbe: 'success' });
@@ -137,18 +156,13 @@ function baueAufgabeInhalt(aufgabe, mechanik) {
       <div class="aufgabe__feedback" hidden></div>
     `;
   }
-  const operator = aufgabe.aufgabentyp === 'mal' ? '·' : '+';
   const aufgabenText = `<div class="aufgabe__text">${aufgabe.text}</div>`;
-  // Punkte-Bild nur bei kleinen Zahlen — bei großen würde es den Rahmen sprengen.
-  const zeigeBild = aufgabe.a <= 20 && aufgabe.b <= 20;
 
   if (mechanik === 'A') {
     const knoepfe = aufgabe.antwort_optionen.map(opt =>
       `<button class="aufgabe__option" data-wert="${opt}">${opt}</button>`
     ).join('');
-    const visualisierung = zeigeBild
-      ? `<div class="aufgabe__visualisierung">${rendereZehnerhaus(aufgabe.a, { farbe: 'success' })}<div class="aufgabe__plus">${operator}</div>${rendereZehnerhaus(aufgabe.b, { farbe: 'action' })}</div>`
-      : '';
+    const visualisierung = baueVisualisierung(aufgabe);
     return `
       ${aufgabenText}
       ${visualisierung}
