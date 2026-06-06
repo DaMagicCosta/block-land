@@ -1,7 +1,7 @@
 // Übersichts-Karte: zeigt die Biome als Stationen, Auswahl setzt das aktive Biom.
 // Phase 2: illustrierte SVG-Szene (Wiese/Wald/Höhle/Berg + Pfad) mit Marker-Overlay.
 import { getCurrentProfile, getAktivesBiom, setAktivesBiom, getBiomFreigabe } from './state.js';
-import { loadBiomManifest } from './data.js';
+import { loadBiomManifest, loadAvatare } from './data.js';
 import { istFrei } from './biome-logik.js';
 import { escapeHtml } from './utils.js';
 import { oeffneModal, schliesseAlleModals } from './modal.js';
@@ -48,9 +48,9 @@ export async function renderKarte(container) {
   const profile = getCurrentProfile();
   if (!profile) { location.hash = 'auswahl'; return; }
 
-  let manifest;
+  let manifest, avatare;
   try {
-    manifest = await loadBiomManifest();
+    [manifest, avatare] = await Promise.all([loadBiomManifest(), loadAvatare()]);
   } catch (err) {
     container.innerHTML = `<p style="padding:var(--space-xl);color:var(--color-danger)">Karte konnte nicht geladen werden.<br>${escapeHtml(err.message)}</p>`;
     return;
@@ -58,6 +58,8 @@ export async function renderKarte(container) {
 
   const freigabe = getBiomFreigabe(profile.id);
   const aktiv = getAktivesBiom(profile.id);
+  const avatarEmoji = (avatare.find(a => a.id === profile.avatar) || {}).emoji || '🧑';
+  const aktivPos = manifest[aktiv]?.kartenposition || { x: 50, y: 50 };
 
   const marker = Object.entries(manifest).map(([id, b]) => {
     const frei = istFrei(id, freigabe);
@@ -77,19 +79,37 @@ export async function renderKarte(container) {
         <button class="karte__back" id="karte-back">← Zurück</button>
         <div class="karte__titel">🗺️ Wähle dein Land</div>
       </div>
-      <div class="karte__feld">${kartenSzene()}${marker}</div>
+      <div class="karte__feld">
+        ${kartenSzene()}
+        ${marker}
+        <div class="karte__figur" id="karte-figur" style="left:${aktivPos.x}%;top:${aktivPos.y}%"><span class="karte__figur-emoji">${avatarEmoji}</span></div>
+      </div>
+      <div class="karte__fade" id="karte-fade"></div>
     </div>
   `;
 
   container.querySelector('#karte-back').addEventListener('click', () => { location.hash = 'welt'; });
 
+  const figur = container.querySelector('#karte-figur');
+  const fade = container.querySelector('#karte-fade');
+  let unterwegs = false;
+
+  // Figur wandert zum Zielbiom, Bildschirm dunkelt ab, dann Welt öffnen.
+  function wandereUndOeffne(id) {
+    if (unterwegs) return;
+    unterwegs = true;
+    const ziel = manifest[id].kartenposition;
+    figur.classList.add('karte__figur--gehen');
+    figur.style.left = ziel.x + '%';
+    figur.style.top = ziel.y + '%';
+    fade.classList.add('karte__fade--an');
+    setTimeout(() => { setAktivesBiom(profile.id, id); location.hash = 'welt'; }, 1000);
+  }
+
   container.querySelectorAll('.karte__biom').forEach(btn => {
     btn.addEventListener('click', () => {
       const id = btn.dataset.biom;
-      if (btn.dataset.frei === '1') {
-        setAktivesBiom(profile.id, id);
-        location.hash = 'welt';
-      } else {
+      if (btn.dataset.frei !== '1') {
         oeffneModal({
           inhaltHtml: `
             <div class="modal">
@@ -100,7 +120,17 @@ export async function renderKarte(container) {
             </div>`,
         });
         document.querySelector('.modal-backdrop .modal__close')?.addEventListener('click', () => schliesseAlleModals());
+        return;
       }
+      if (id === aktiv) {
+        // Schon hier: kurz abdunkeln, dann direkt in die Welt (kein Wandern nötig).
+        if (unterwegs) return;
+        unterwegs = true;
+        fade.classList.add('karte__fade--an');
+        setTimeout(() => { location.hash = 'welt'; }, 350);
+        return;
+      }
+      wandereUndOeffne(id);
     });
   });
 }
