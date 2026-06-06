@@ -3,6 +3,8 @@ import { rendereZehnerhaus, rendereLegehaus } from './wuerfelhaus.js';
 import { generierePlusAufgabe } from './aufgaben/plus.js';
 import { generiereMalAufgabe } from './aufgaben/mal.js';
 import { generiereMengenAufgabe } from './aufgaben/mengen.js';
+import { generiereMinusAufgabe } from './aufgaben/minus.js';
+import { rendereStellenwert } from './stellenwert.js';
 import { verteileBelohnung } from './belohnung.js';
 import { loadAufgabenPool } from './data.js';
 import { waehleMechanik, aktuelleStufe, rapportiereErgebnis } from './adaptiv.js';
@@ -48,6 +50,7 @@ export async function oeffneAufgabe(reward) {
   function generiere() {
     if (typ === 'mal') return generiereMalAufgabe(stufenConfig, pool.mal.distraktoren);
     if (typ === 'mengen') return generiereMengenAufgabe(stufenConfig, pool.mengen.distraktoren);
+    if (typ === 'minus') return generiereMinusAufgabe(stufenConfig, pool.minus.distraktoren);
     return generierePlusAufgabe(stufenConfig, pool.plus.distraktoren);
   }
   let aufgabe = generiere();
@@ -65,12 +68,16 @@ export async function oeffneAufgabe(reward) {
 }
 
 // Welcher Aufgabentyp in der Welt erscheint — abhängig vom Alter des Profils.
-// Klasse 2/3: gemischt Plus und Mal. Sonst nur Plus (Mengen für Kindergarten ist Future-Work).
+// Kindergarten: Mengen. 1. Klasse: Plus/Minus. Klasse 2/3: Plus/Minus/Mal.
 function waehleAufgabentyp(profile) {
   if (profile.alter === 'kindergarten') return 'mengen';
   const kannMal = profile.alter === 'klasse-2' || profile.alter === 'klasse-3';
-  if (kannMal && Math.random() < 0.5) return 'mal';
-  return 'plus';
+  const r = Math.random();
+  if (kannMal) {
+    if (r < 0.4) return 'mal';
+    return r < 0.7 ? 'plus' : 'minus';
+  }
+  return r < 0.5 ? 'plus' : 'minus';
 }
 
 function zeigeAufgabenModal(aufgabe, mechanik, reward, profile, maxStufe) {
@@ -130,6 +137,16 @@ function zeigeAufgabenModal(aufgabe, mechanik, reward, profile, maxStufe) {
 //   wörtliche Lesart "a mal b" = a Gruppen mit je b Augen (kein Vertauschen, damit
 //   es zur gesprochenen Aufgabe passt). Abwechselnde Farbe macht die Gruppen zählbar.
 //   Wird immer gezeigt — auch große Reihen (bewusst, zum Live-Beurteilen).
+// Stellenwert-Fall: geführte Schritte statt statischer Visualisierung.
+// Greift bei Plus/Minus, wenn zweistellig ODER mit Zehnerübergang/Borgen.
+function istStellenwertFall(aufgabe) {
+  if (aufgabe.aufgabentyp !== 'plus' && aufgabe.aufgabentyp !== 'minus') return false;
+  const zweistellig = aufgabe.a >= 10 || aufgabe.b >= 10;
+  const einerA = aufgabe.a % 10, einerB = aufgabe.b % 10;
+  const uebergang = aufgabe.aufgabentyp === 'plus' ? (einerA + einerB >= 10) : (einerA < einerB);
+  return zweistellig || uebergang;
+}
+
 function baueVisualisierung(aufgabe) {
   if (aufgabe.aufgabentyp === 'mal') {
     if (aufgabe.a < 1) return '';
@@ -163,6 +180,15 @@ function baueAufgabeInhalt(aufgabe, mechanik) {
     const knoepfe = aufgabe.antwort_optionen.map(opt =>
       `<button class="aufgabe__option" data-wert="${opt}">${opt}</button>`
     ).join('');
+    if (istStellenwertFall(aufgabe)) {
+      // Optionen zunächst verborgen — werden nach den Schritten (oder per Skip) gezeigt.
+      return `
+        ${aufgabenText}
+        <div class="aufgabe__stellenwert"></div>
+        <div class="aufgabe__optionen" hidden>${knoepfe}</div>
+        <div class="aufgabe__feedback" hidden></div>
+      `;
+    }
     const visualisierung = baueVisualisierung(aufgabe);
     return `
       ${aufgabenText}
@@ -214,6 +240,15 @@ function starteAufgabe(aufgabe, mechanik, reward, profile, modal, inhalt, maxStu
   }
 
   if (mechanik === 'A') {
+    const swContainer = inhalt.querySelector('.aufgabe__stellenwert');
+    if (swContainer) {
+      rendereStellenwert(aufgabe, swContainer, {
+        onFertig: () => {
+          const optionen = inhalt.querySelector('.aufgabe__optionen');
+          if (optionen) optionen.hidden = false;
+        },
+      });
+    }
     inhalt.querySelectorAll('.aufgabe__option').forEach(btn => {
       btn.addEventListener('click', () => antwortPruefen(parseInt(btn.dataset.wert, 10)));
     });
