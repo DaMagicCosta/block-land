@@ -1,6 +1,7 @@
 import { renderAuswahl } from './auswahl.js';
 import { renderWelt }    from './welt.js';
 import { renderKarte }  from './karte.js';
+import { renderBurg }   from './burg.js';
 
 const root = document.getElementById('app');
 
@@ -11,6 +12,7 @@ const routes = {
   'auswahl': () => renderAuswahl(root),
   'welt':    () => renderWelt(root),
   'karte':   () => renderKarte(root),
+  'burg':    () => renderBurg(root),
 };
 
 function route() {
