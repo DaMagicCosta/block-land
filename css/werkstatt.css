@@ -99,9 +99,6 @@
   font-family: var(--font-mono);
   color: var(--color-text);
 }
-.werkstatt__gutschein-status { color: var(--color-action); font-size: var(--font-size-sm); }
-.werkstatt__gutschein--weg { opacity: 0.5; }
-.werkstatt__gutschein--weg .werkstatt__gutschein-status { color: var(--color-text-dim); }
 .werkstatt__gutschein-name { flex: 1; min-width: 0; }
 .werkstatt__gutschein-anzahl { font-family: var(--font-mono); color: var(--color-text); font-weight: bold; }
 .werkstatt__gutschein-summe { font-family: var(--font-mono); color: var(--color-success); font-size: var(--font-size-sm); }
