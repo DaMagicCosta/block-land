@@ -1,7 +1,7 @@
 // Service Worker für Block-Land — NETWORK-FIRST.
 // Online wird IMMER die neueste Version geladen (kein manuelles Cache-Leeren / App-Neustart mehr);
 // der Cache dient nur als Offline-Fallback. Der neue Worker übernimmt sofort (skipWaiting + claim).
-const CACHE_VERSION = "block-land-v24";
+const CACHE_VERSION = "block-land-v25";
 const DATEIEN = [
   "BlockLand.html",
   "manifest.webmanifest",

@@ -79,6 +79,9 @@
   color: var(--color-text-dim);
 }
 .wuerfelhaus__haeuser { display: flex; gap: var(--space-xs); }
+/* Würfel in der Aufgaben-Visualisierung als gestapelte Häuser (von unten aufgebaut),
+   konsistent mit den Stellenwert-Schritten. Legehaus (B-Mechanik) bleibt unberührt. */
+.aufgabe__visualisierung .wuerfelhaus__haeuser { flex-direction: column-reverse; align-items: center; }
 .wuerfelhaus__haus {
   display: grid;
   grid-template-columns: repeat(5, 14px);
