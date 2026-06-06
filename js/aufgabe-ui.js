@@ -9,6 +9,7 @@ import { verteileBelohnung } from './belohnung.js';
 import { loadAufgabenPool, loadBiomManifest } from './data.js';
 import { waehleMechanik, aktuelleStufe, rapportiereErgebnis } from './adaptiv.js';
 import { getCurrentProfile, getAktivesBiom, schalteNaechstesBiomFrei } from './state.js';
+import { BIOME_REIHENFOLGE, baselineMaxIndex } from './biome-logik.js';
 import { escapeHtml } from './utils.js';
 
 const MAX_FEHLVERSUCHE = 2;  // Nach 2 Fehlversuchen Lösung zeigen.
@@ -221,10 +222,15 @@ function starteAufgabe(aufgabe, mechanik, reward, profile, modal, inhalt, maxStu
     if (richtig) {
       const zeit_ms = performance.now() - startZeit;
       rapportiereErgebnis(profile.id, aufgabe.aufgabentyp, true, zeit_ms);
-      const gegeben = verteileBelohnung(aufgabe.stufe, maxStufe, reward.item);
+      // Niveau-Abstufung: in Biomen UNTER der Schulstufe des Kindes weniger Basis-Drops + kein Premium.
+      const biomId = getAktivesBiom(profile.id);
+      const delta = baselineMaxIndex(profile.alter) - BIOME_REIHENFOLGE.indexOf(biomId);
+      const unterNiveau = delta > 0;
+      const biomFaktor = unterNiveau ? Math.max(0.2, 1 - 0.35 * delta) : 1;
+      const gegeben = verteileBelohnung(aufgabe.stufe, maxStufe, reward.item, biomFaktor, !unterNiveau);
       let neuesBiom = null;
       if (aufgabe.stufe === maxStufe) {
-        neuesBiom = schalteNaechstesBiomFrei(profile.id, getAktivesBiom(profile.id));
+        neuesBiom = schalteNaechstesBiomFrei(profile.id, biomId);
       }
       zeigeErfolg(modal, gegeben, istKleinkind(profile), neuesBiom);
       return;
