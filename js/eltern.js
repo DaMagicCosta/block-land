@@ -232,6 +232,11 @@ function tabBelohnungen(container, neuRendern) {
         </select>
       </div>
       <input class="eltern__feld" data-neukat placeholder="Name der neuen Rubrik (z.B. Fototour)" maxlength="30" hidden />
+      <label class="eltern__form-label">Wert (optional) — fürs Aufsummieren gleicher Gutscheine</label>
+      <div class="eltern__neu-zeile">
+        <input class="eltern__feld" data-wert type="number" min="0" placeholder="z.B. 15" />
+        <input class="eltern__feld" data-einheit placeholder="Einheit (z.B. Min)" maxlength="12" />
+      </div>
       <label class="eltern__form-label">Wie viel muss das Kind dafür sammeln? (mind. 1 Rohstoff)</label>
       ${preisFormHtml({ holz: 5 })}
       <button class="eltern__primary" data-add>✓ Belohnung speichern</button>
@@ -254,7 +259,10 @@ function tabBelohnungen(container, neuRendern) {
       }
       const kosten = leseKostenForm(neuForm);
       if (Object.keys(kosten).length === 0) { alert('Bitte mindestens einen Rohstoff als Preis setzen.'); return; }
-      const neu = [...getRezepte(), { id: `r_custom_${Date.now()}`, name, emoji, kategorie, kosten, aktiv: true }];
+      const wertRoh = parseInt(neuForm.querySelector('[data-wert]').value, 10);
+      const einheit = neuForm.querySelector('[data-einheit]').value.trim();
+      const wertFelder = (wertRoh > 0) ? { wert: wertRoh, einheit: einheit || 'Stück' } : {};
+      const neu = [...getRezepte(), { id: `r_custom_${Date.now()}`, name, emoji, kategorie, kosten, aktiv: true, ...wertFelder }];
       speichereRezepte(neu);
       neuRendern();
     });
