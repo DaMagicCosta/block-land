@@ -1,0 +1,13 @@
+{
+  "name": "Plus-Wald", "spalten": 12, "zeilen": 8,
+  "tile_typen": {
+    "g": { "label": "Gras", "emoji": "🌿", "interaktiv": false, "klasse": "tile--gras" },
+    "G": { "label": "Hohes Gras", "emoji": "🌾", "interaktiv": false, "klasse": "tile--gras" },
+    ".": { "label": "Lichtung", "emoji": "", "interaktiv": false, "klasse": "tile--gras" },
+    "b": { "label": "Baum", "emoji": "🌳", "interaktiv": true, "klasse": "tile--baum", "reward": { "item": "holz", "emoji": "🪵", "label": "Holz" } },
+    "s": { "label": "Stein", "emoji": "🪨", "interaktiv": true, "klasse": "tile--stein", "reward": { "item": "stein", "emoji": "🪨", "label": "Stein" } },
+    "f": { "label": "Blume", "emoji": "🌸", "interaktiv": true, "klasse": "tile--blume", "reward": { "item": "blume", "emoji": "🌸", "label": "Blume" } }
+  },
+  "spielfigur_start": { "spalte": 6, "zeile": 4 },
+  "layout": ["bgGgbgggbggb","ggbgggsgbggg","ggGggfgggGbg","gbggg.gggGsg","ggggbgggggGb","ggsgggGggsgg","ggGggggfggbg","ggggggsggbfg"]
+}

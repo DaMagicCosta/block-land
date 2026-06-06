@@ -14,7 +14,11 @@ export function loadAvatare() {
 }
 
 export function loadBiom(id) {
-  return loadJson('./data/biome.json').then(all => all[id] ?? null);
+  return loadJson(`./data/biome/${id}.json`);
+}
+
+export function loadBiomManifest() {
+  return loadJson('./data/biome-manifest.json');
 }
 
 export function loadAufgabenPool() {

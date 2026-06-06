@@ -1,0 +1,13 @@
+{
+  "name": "Minus-Höhle", "spalten": 12, "zeilen": 8,
+  "tile_typen": {
+    "g": { "label": "Boden", "emoji": "⬛", "interaktiv": false, "klasse": "tile--hoehle" },
+    "G": { "label": "Geröll", "emoji": "🌑", "interaktiv": false, "klasse": "tile--hoehle" },
+    ".": { "label": "Lichtung", "emoji": "", "interaktiv": false, "klasse": "tile--hoehle" },
+    "b": { "label": "Stein", "emoji": "🪨", "interaktiv": true, "klasse": "tile--stein", "reward": { "item": "stein", "emoji": "🪨", "label": "Stein" } },
+    "s": { "label": "Kohle", "emoji": "⬛", "interaktiv": true, "klasse": "tile--stein", "reward": { "item": "stein", "emoji": "🪨", "label": "Stein" } },
+    "f": { "label": "Kristall", "emoji": "💎", "interaktiv": true, "klasse": "tile--stein", "reward": { "item": "holz", "emoji": "🪵", "label": "Holz" } }
+  },
+  "spielfigur_start": { "spalte": 6, "zeile": 4 },
+  "layout": ["bgGgbgggbggb","ggbgggsgbggg","ggGggfgggGbg","gbggg.gggGsg","ggggbgggggGb","ggsgggGggsgg","ggGggggfggbg","ggggggsggbfg"]
+}

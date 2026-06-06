@@ -1,0 +1,13 @@
+{
+  "name": "Mengen-Wiese", "spalten": 12, "zeilen": 8,
+  "tile_typen": {
+    "g": { "label": "Gras", "emoji": "🌿", "interaktiv": false, "klasse": "tile--gras" },
+    "G": { "label": "Hohes Gras", "emoji": "🌾", "interaktiv": false, "klasse": "tile--gras" },
+    ".": { "label": "Lichtung", "emoji": "", "interaktiv": false, "klasse": "tile--gras" },
+    "b": { "label": "Blume", "emoji": "🌼", "interaktiv": true, "klasse": "tile--blume", "reward": { "item": "blume", "emoji": "🌸", "label": "Blume" } },
+    "s": { "label": "Beere", "emoji": "🍓", "interaktiv": true, "klasse": "tile--blume", "reward": { "item": "blume", "emoji": "🌸", "label": "Blume" } },
+    "f": { "label": "Pilz", "emoji": "🍄", "interaktiv": true, "klasse": "tile--blume", "reward": { "item": "holz", "emoji": "🪵", "label": "Holz" } }
+  },
+  "spielfigur_start": { "spalte": 6, "zeile": 4 },
+  "layout": ["bgGgbgggbggb","ggbgggsgbggg","ggGggfgggGbg","gbggg.gggGsg","ggggbgggggGb","ggsgggGggsgg","ggGggggfggbg","ggggggsggbfg"]
+}
