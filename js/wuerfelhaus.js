@@ -19,6 +19,8 @@ export function rendereZehnerhaus(zahl, options = {}) {
   const { farbe = 'success', anzahl_anzeigen = true } = options;
   const farbVar = farbe === 'success' ? 'var(--color-success)'
                : farbe === 'action'  ? 'var(--color-action)'
+               : farbe === 'einer'   ? 'var(--color-einer)'
+               : farbe === 'zehner'  ? 'var(--color-zehner)'
                : 'var(--color-text)';
 
   // Zahl in Würfel mit höchstens 5 Augen aufteilen (volle Fünfer zuerst).
