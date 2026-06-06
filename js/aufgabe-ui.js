@@ -74,6 +74,7 @@ function waehleAufgabentyp(profile) {
   const kannMal = profile.alter === 'klasse-2' || profile.alter === 'klasse-3';
   const r = Math.random();
   if (kannMal) {
+    // Gewichtung: mal 40%, plus 30%, minus 30%
     if (r < 0.4) return 'mal';
     return r < 0.7 ? 'plus' : 'minus';
   }
@@ -156,6 +157,10 @@ function baueVisualisierung(aufgabe) {
     }
     return `<div class="aufgabe__visualisierung">${gruppen.join('<div class="aufgabe__plus">+</div>')}</div>`;
   }
+  // Minus zeigt hier kein statisches Bild: zwei Würfelgruppen mit "+" würden eine
+  // Addition suggerieren. Sinnvolle zweistellige Minus-Aufgaben laufen über die
+  // geführten Stellenwert-Schritte; kleine einstellige brauchen kein Bild.
+  if (aufgabe.aufgabentyp !== 'plus') return '';
   // Plus: Bild nur bei kleinen Zahlen — bei großen würde es den Rahmen sprengen.
   if (aufgabe.a > 20 || aufgabe.b > 20) return '';
   return `<div class="aufgabe__visualisierung">${rendereZehnerhaus(aufgabe.a, { farbe: 'success' })}<div class="aufgabe__plus">+</div>${rendereZehnerhaus(aufgabe.b, { farbe: 'action' })}</div>`;
