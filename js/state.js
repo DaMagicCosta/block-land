@@ -362,3 +362,9 @@ export function setBiomElternStatus(profileId, id, offen) {
   else b.elternGesperrt.push(id);
   save(state);
 }
+
+// Summe aller richtig gelösten Aufgaben eines Profils (über alle Aufgabentypen) — Antrieb der Burg.
+export function getGesamtErfolge(profileId) {
+  const stat = state.profiles[profileId]?.statistik ?? {};
+  return Object.values(stat).reduce((summe, t) => summe + (t?.richtig ?? 0), 0);
+}
