@@ -19,8 +19,8 @@ export async function renderWelt(container) {
   }
 
   const aktivId = getAktivesBiom(profile.id);
-  const reihe = getAktiveReihe(profile.id);
-  const hatReihe = reihe && reihe.biom === aktivId;
+  const reihe = getAktiveReihe(profile.id, aktivId);
+  const hatReihe = !!reihe;
   let biom, avatare;
   try {
     [biom, avatare] = await Promise.all([loadBiom(aktivId), loadAvatare()]);
