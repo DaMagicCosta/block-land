@@ -73,3 +73,68 @@ export function quoteFarbe(quote, gesamt) {
   if (quote >= 0.5) return 'mittel';
   return 'schwach';
 }
+
+// Summiert einen Tag (verlauf[key]) über die gewählte Rechenart ('alle' = alle).
+function summiereTag(tagObj, typFilter) {
+  let gesamt = 0, richtig = 0;
+  for (const [typ, s] of Object.entries(tagObj ?? {})) {
+    if (typFilter !== 'alle' && typ !== typFilter) continue;
+    gesamt += s.gesamt ?? 0;
+    richtig += s.richtig ?? 0;
+  }
+  return { gesamt, richtig };
+}
+
+// Letzte `anzahlTage` Tage, lückenlos, Reihenfolge alt -> neu.
+export function verlaufTage(verlauf = {}, typFilter = 'alle', anzahlTage = 7, heute) {
+  const reihe = [];
+  for (let i = anzahlTage - 1; i >= 0; i--) {
+    const d = new Date(heute);
+    d.setDate(d.getDate() - i);
+    const { gesamt, richtig } = summiereTag(verlauf[tagesSchluessel(d)], typFilter);
+    reihe.push({
+      datum: tagesSchluessel(d),
+      label: WOCHENTAG[d.getDay()],
+      gesamt,
+      richtig,
+      quote: gesamt ? richtig / gesamt : 0,
+    });
+  }
+  return reihe;
+}
+
+// Montag der Woche eines Datums (Mo=Wochenstart).
+function montagVon(date) {
+  const d = new Date(date);
+  const tag = d.getDay();                 // 0=So .. 6=Sa
+  const diff = tag === 0 ? 6 : tag - 1;
+  d.setDate(d.getDate() - diff);
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+// Letzte `anzahlWochen` Kalenderwochen (Mo-So), Reihenfolge alt -> neu.
+export function verlaufWochen(verlauf = {}, typFilter = 'alle', anzahlWochen = 5, heute) {
+  const montagDieserWoche = montagVon(heute);
+  const reihe = [];
+  for (let w = anzahlWochen - 1; w >= 0; w--) {
+    const start = new Date(montagDieserWoche);
+    start.setDate(start.getDate() - w * 7);
+    let gesamt = 0, richtig = 0;
+    for (let d = 0; d < 7; d++) {
+      const tag = new Date(start);
+      tag.setDate(tag.getDate() + d);
+      const t = summiereTag(verlauf[tagesSchluessel(tag)], typFilter);
+      gesamt += t.gesamt;
+      richtig += t.richtig;
+    }
+    reihe.push({
+      start: tagesSchluessel(start),
+      label: `${start.getDate()}.${start.getMonth() + 1}.`,
+      gesamt,
+      richtig,
+      quote: gesamt ? richtig / gesamt : 0,
+    });
+  }
+  return reihe;
+}
