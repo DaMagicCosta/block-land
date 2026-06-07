@@ -68,11 +68,11 @@
   animation: mast-knauf 2.4s ease-in-out infinite;
 }
 
-/* Dunkler Konturring (0 0 0 1.5px) macht den Knauf auch auf hellem Grund sichtbar
-   (Schneegipfel beim Mal-Land); Glow in Orange statt Blassgold, damit er auf Weiß nicht untergeht. */
+/* Warm-dunkler Konturring (Dunkelbraun, passend zu Mast/Knauf) macht den Knauf auch auf
+   hellem Grund sichtbar (Schneegipfel beim Mal-Land); Glow in Orange, damit er auf Weiß nicht untergeht. */
 @keyframes mast-knauf {
-  0%, 100% { transform: scale(1);    box-shadow: 0 0 0 1.5px rgba(0,0,0,0.45), 0 0 4px 1px rgba(240,168,48,0.6); }
-  50%      { transform: scale(1.45); box-shadow: 0 0 0 1.5px rgba(0,0,0,0.45), 0 0 11px 4px rgba(240,168,48,1); }
+  0%, 100% { transform: scale(1);    box-shadow: 0 0 0 1.5px rgba(74,51,24,0.6), 0 0 4px 1px rgba(240,168,48,0.6); }
+  50%      { transform: scale(1.45); box-shadow: 0 0 0 1.5px rgba(74,51,24,0.6), 0 0 11px 4px rgba(240,168,48,1); }
 }
 
 @keyframes sw-wehen { 0%,100% { transform: rotate(-2deg) skewX(-4deg); } 50% { transform: rotate(2deg) skewX(6deg); } }
