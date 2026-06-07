@@ -1,0 +1,73 @@
+/* Statistik-Tab: Übersicht-Karten, Detailansicht, Balkendiagramm. */
+
+.stat-uebersicht { display: flex; flex-direction: column; gap: var(--space-md); }
+
+.stat-karte {
+  display: flex; flex-direction: column; gap: var(--space-sm);
+  width: 100%; text-align: left; cursor: pointer;
+  background: var(--color-surface); border: 1px solid var(--color-border);
+  border-radius: var(--radius-md); padding: var(--space-md);
+}
+.stat-karte:hover { border-color: var(--color-action); }
+.stat-karte__kopf { display: flex; align-items: center; gap: var(--space-sm); }
+.stat-karte__avatar { font-size: 24px; }
+.stat-karte__name { font-weight: 600; color: var(--color-text); }
+.stat-karte__pfeil { margin-left: auto; color: var(--color-text-dim); font-size: 22px; }
+.stat-karte__kennzahl { color: var(--color-text-dim); font-size: 14px; }
+.stat-karte__mini { height: 48px; }
+
+.stat-zurueck {
+  background: none; border: none; color: var(--color-action);
+  cursor: pointer; font-size: 15px; padding: 0; margin-bottom: var(--space-sm);
+}
+.stat-detail__kopf { font-size: 20px; font-weight: 700; margin-bottom: var(--space-md); }
+.stat-detail__abschnitt {
+  font-weight: 600; color: var(--color-text); margin: var(--space-md) 0 var(--space-sm);
+}
+
+.stat-tabelle { display: flex; flex-direction: column; gap: var(--space-xs); }
+.stat-zeile {
+  display: grid; grid-template-columns: 1.4fr 1fr 1fr 1.3fr 1.2fr;
+  gap: var(--space-xs); align-items: center;
+  padding: var(--space-sm); background: var(--color-surface);
+  border-radius: var(--radius-sm); font-size: 14px;
+}
+.stat-zeile__typ { font-weight: 600; }
+.stat-zeile__wert { color: var(--color-text-dim); }
+.stat-biome { margin-top: var(--space-sm); color: var(--color-text-dim); font-size: 13px; }
+
+.stat-fenster, .stat-chips { display: flex; flex-wrap: wrap; gap: var(--space-xs); margin-bottom: var(--space-sm); }
+.stat-chip {
+  background: var(--color-surface); border: 1px solid var(--color-border);
+  border-radius: 999px; padding: 4px 12px;
+  cursor: pointer; color: var(--color-text-dim); font-size: 13px;
+}
+.stat-chip.aktiv { background: var(--color-action); color: #1a1a1a; border-color: var(--color-action); }
+
+.stat-diagramm {
+  display: flex; align-items: flex-end; gap: 4px;
+  height: 140px; padding: var(--space-sm);
+  background: var(--color-surface); border-radius: var(--radius-md);
+}
+.stat-balken { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 4px; height: 100%; }
+.stat-balken__saeule { flex: 1; width: 100%; display: flex; align-items: flex-end; }
+.stat-balken__fuellung { width: 100%; min-height: 2px; border-radius: 3px 3px 0 0; background: var(--color-border); }
+.stat-balken__fuellung--gut { background: var(--color-success); }
+.stat-balken__fuellung--mittel { background: var(--color-action); }
+.stat-balken__fuellung--schwach { background: var(--color-danger); }
+.stat-balken__fuellung--leer { background: var(--color-border); }
+.stat-balken__label { font-size: 11px; color: var(--color-text-dim); white-space: nowrap; }
+
+.stat-legende { display: flex; gap: var(--space-md); margin-top: var(--space-sm); font-size: 12px; color: var(--color-text-dim); }
+.stat-legende span { display: inline-flex; align-items: center; gap: 4px; }
+.stat-punkt { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+.stat-punkt--gut { background: var(--color-success); }
+.stat-punkt--mittel { background: var(--color-action); }
+.stat-punkt--schwach { background: var(--color-danger); }
+
+@media (max-width: 480px) {
+  .stat-zeile { grid-template-columns: 1.2fr 1fr 1fr; row-gap: 2px; }
+  .stat-zeile__typ { grid-column: 1 / -1; }
+  .stat-diagramm { height: 120px; }
+  .stat-balken__label { font-size: 10px; }
+}
