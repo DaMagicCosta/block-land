@@ -62,16 +62,15 @@
 .karte__biom--gesperrt { opacity: .6; filter: grayscale(.7); }
 .karte__biom--gesperrt .karte__fahne { animation: none; }
 
-/* Offene Reihe: Flaggenwechsel auf Aktions-Orange, lebhafteres Wehen + sanftes Leuchten.
-   (filter: drop-shadow respektiert die clip-path-Fahnenform; zwei Animationen kommasepariert.) */
-.karte__biom--offen .karte__fahne {
-  --sw-banner: var(--color-action);
-  animation: sw-wehen 1.3s ease-in-out infinite, fahne-glow 1.8s ease-in-out infinite;
+/* Offene Reihe: der runde Mast-Knauf ganz oben schwillt an/ab und leuchtet —
+   gut sichtbarer, ruhiger Hinweis, ohne die Fahne selbst zu verändern. */
+.karte__biom--offen .karte__mast::before {
+  animation: mast-knauf 1.3s ease-in-out infinite;
 }
 
-@keyframes fahne-glow {
-  0%, 100% { filter: drop-shadow(0 0 3px rgba(240, 168, 48, 0.55)); }
-  50%      { filter: drop-shadow(0 0 10px rgba(240, 168, 48, 1)); }
+@keyframes mast-knauf {
+  0%, 100% { transform: scale(1);   box-shadow: 0 0 4px 1px rgba(245, 215, 110, 0.75); }
+  50%      { transform: scale(1.8); box-shadow: 0 0 12px 4px rgba(245, 215, 110, 1); }
 }
 
 @keyframes sw-wehen { 0%,100% { transform: rotate(-2deg) skewX(-4deg); } 50% { transform: rotate(2deg) skewX(6deg); } }
