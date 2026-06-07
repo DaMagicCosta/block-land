@@ -77,9 +77,24 @@
 
 @keyframes sw-wehen { 0%,100% { transform: rotate(-2deg) skewX(-4deg); } 50% { transform: rotate(2deg) skewX(6deg); } }
 
+/* Rechen-Trainer-Station auf der Karte (fester Platz, öffnet den Trainer). */
+.karte__trainer {
+  position: absolute; transform: translate(-50%, -50%); z-index: 1;
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  background: transparent; border: 0; padding: 0; cursor: pointer;
+  color: #fff; font-family: var(--font-mono);
+}
+.karte__trainer-icon { font-size: 40px; line-height: 1; filter: drop-shadow(0 2px 3px rgba(0,0,0,.5)); }
+.karte__trainer-label {
+  font-size: var(--font-size-xs); background: rgba(0,0,0,.6);
+  padding: 1px 6px; border-radius: 3px; text-shadow: 0 1px 2px rgba(0,0,0,.8);
+}
+.karte__trainer:hover .karte__trainer-icon { filter: drop-shadow(0 2px 3px rgba(0,0,0,.5)) brightness(1.1); }
+
 @media (max-width: 480px) {
   .karte__fahne { font-size: 14px; }
   .karte__name { font-size: var(--font-size-xs); }
+  .karte__trainer-icon { font-size: 34px; }
 }
 
 /* Wandernde Avatar-Figur: gleitet (Transition left/top) mit Geh-Wackeln zum Zielbiom. */

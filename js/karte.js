@@ -8,6 +8,10 @@ import { oeffneModal, schliesseAlleModals } from './modal.js';
 import { aktuelleStufe as burgStufeAus } from './burg-logik.js';
 import { aktuelleStufe as aufgabenStufe } from './adaptiv.js';
 import { rendereBurgSvg } from './burg.js';
+import { oeffneTrainer } from './trainer.js';
+
+// Belohnung fürs Trainer-Quiz, wenn der Trainer von der Karte (ohne Biom-Tile) gestartet wird.
+const TRAINER_REWARD = { item: 'holz', emoji: '🪵', label: 'Holz' };
 
 // Stilisierte Landkarte im Hochformat (Pixel-/Minecraft-Anmutung). viewBox 100×150,
 // per CSS aufs Feld gestreckt (preserveAspectRatio="none"). Reise von unten (Wiese) nach
@@ -116,6 +120,10 @@ export async function renderKarte(container) {
           ${rendereBurgSvg(burgStufe)}
           <span class="karte__burg-label">Meine Burg</span>
         </button>
+        <button class="karte__trainer" id="karte-trainer" style="left:15%;top:72%">
+          <span class="karte__trainer-icon">🧮</span>
+          <span class="karte__trainer-label">Rechen-Trainer</span>
+        </button>
         <div class="karte__figur" id="karte-figur" style="left:${aktivPos.x}%;top:${aktivPos.y}%"><span class="karte__figur-emoji">${avatarEmoji}</span></div>
       </div>
       <div class="karte__fade" id="karte-fade"></div>
@@ -124,6 +132,7 @@ export async function renderKarte(container) {
 
   container.querySelector('#karte-back').addEventListener('click', () => { location.hash = 'welt'; });
   container.querySelector('#karte-burg').addEventListener('click', () => { location.hash = 'burg'; });
+  container.querySelector('#karte-trainer').addEventListener('click', () => oeffneTrainer(TRAINER_REWARD));
 
   const figur = container.querySelector('#karte-figur');
   const fade = container.querySelector('#karte-fade');
