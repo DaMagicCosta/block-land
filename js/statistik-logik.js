@@ -44,13 +44,19 @@ export function summen(statistik = {}) {
       typ,
       gesamt,
       richtig,
+      zeitSumme,
       quote: gesamt ? richtig / gesamt : 0,
       zeitSchnittMs: gesamt ? zeitSumme / gesamt : 0,
     };
   });
-  const gesamt = proTyp.reduce((a, t) => a + t.gesamt, 0);
-  const richtig = proTyp.reduce((a, t) => a + t.richtig, 0);
-  const zeitSumme = Object.values(statistik).reduce((a, s) => a + (s.zeit_summe_ms ?? 0), 0);
+  const { gesamt, richtig, zeitSumme } = proTyp.reduce(
+    (a, t) => ({
+      gesamt:    a.gesamt    + t.gesamt,
+      richtig:   a.richtig   + t.richtig,
+      zeitSumme: a.zeitSumme + t.zeitSumme,
+    }),
+    { gesamt: 0, richtig: 0, zeitSumme: 0 },
+  );
   return {
     proTyp,
     gesamt,
