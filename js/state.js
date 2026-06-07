@@ -97,7 +97,7 @@ export function addProfile({ name, weltName, avatar, alter, kindPin = null }) {
     inventar: {},
     gutscheine: [],
     verlauf: {},                 // Tages-Verlauf pro Rechenart (Statistik-Tab)
-    aktiveReihe: null,           // laufende Übungsreihe (Wiedereinstieg) oder null
+    aktiveReihen: {},            // laufende Übungsreihen pro Biom (Wiedereinstieg)
     schwierigkeit: { plus: 2 },
     statistik: { plus: { gesamt: 0, richtig: 0 } },
     biome: { aktiv: null, autoFrei: [], elternFrei: [], elternGesperrt: [] },
@@ -166,14 +166,19 @@ export function getVerlauf(profileId) {
 }
 
 // --- Übungsreihe (Wiedereinstieg) ---
-export function getAktiveReihe(profileId) {
-  const r = state.profiles[profileId]?.aktiveReihe;
+// Eine offene Reihe PRO Biom (Map biom→reihe), damit unterbrochene Übungen in
+// mehreren Ländern unabhängig fortsetzbar sind.
+export function getAktiveReihe(profileId, biom) {
+  const r = state.profiles[profileId]?.aktiveReihen?.[biom];
   return r ? structuredClone(r) : null;
 }
 
-export function setzeAktiveReihe(profileId, reihe) {
-  if (!state.profiles[profileId]) return;
-  state.profiles[profileId].aktiveReihe = reihe ? structuredClone(reihe) : null;
+export function setzeAktiveReihe(profileId, biom, reihe) {
+  const p = state.profiles[profileId];
+  if (!p) return;
+  p.aktiveReihen = p.aktiveReihen ?? {};
+  if (reihe) p.aktiveReihen[biom] = structuredClone(reihe);
+  else delete p.aktiveReihen[biom];
   save(state);
 }
 

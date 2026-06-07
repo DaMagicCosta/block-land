@@ -10,8 +10,10 @@
 .sw-text .sw-z, .sw-z { color: var(--color-zehner); }
 
 .sw-visual { display: flex; justify-content: center; align-items: flex-start; gap: var(--space-md); flex-wrap: wrap; min-height: 70px; }
-.sw-zahlen { display: flex; align-items: flex-start; gap: var(--space-md); flex-wrap: wrap; justify-content: center; }
-.sw-zahl { display: flex; gap: var(--space-sm); background: var(--color-surface-2); border-radius: var(--radius-sm); padding: var(--space-xs); }
+.sw-zahlen { display: flex; align-items: flex-end; gap: var(--space-md); flex-wrap: wrap; justify-content: center; }
+/* align-items: flex-end → Würfelgruppen stehen auf einer Bodenlinie (Flucht),
+   kürzere Mengen schweben nicht in der „oberen Etage". */
+.sw-zahl { display: flex; align-items: flex-end; gap: var(--space-sm); background: var(--color-surface-2); border-radius: var(--radius-sm); padding: var(--space-xs); }
 .sw-spalte { display: flex; flex-direction: column; align-items: center; gap: var(--space-xs); }
 .sw-label { font-size: 10px; text-transform: uppercase; letter-spacing: .5px; }
 .sw-label--z { color: var(--color-zehner); }

@@ -64,9 +64,9 @@ export async function oeffneAufgabe(reward, { onClose } = {}) {
     return a;
   }
 
-  // Passende laufende Reihe fortsetzen, sonst neue starten.
-  let reihe = getAktiveReihe(profile.id);
-  if (!(reihe && reihe.biom === aktivBiom)) {
+  // Laufende Reihe DIESES Bioms fortsetzen, sonst neue starten.
+  let reihe = getAktiveReihe(profile.id, aktivBiom);
+  if (!reihe) {
     reihe = {
       biom: aktivBiom,
       reward,
@@ -75,7 +75,7 @@ export async function oeffneAufgabe(reward, { onClose } = {}) {
       aufgabe: generiere(),
       fehlversuche: 0,
     };
-    setzeAktiveReihe(profile.id, reihe);
+    setzeAktiveReihe(profile.id, reihe.biom, reihe);
   }
 
   const modal = oeffneModal({
@@ -87,14 +87,14 @@ export async function oeffneAufgabe(reward, { onClose } = {}) {
 
   function naechsteFrage() {
     if (istReiheFertig(reihe)) {
-      setzeAktiveReihe(profile.id, null);
+      setzeAktiveReihe(profile.id, reihe.biom, null);
       zeigeReiheGeschafft(modal, istKleinkind(profile));
       return;
     }
     reihe.position += 1;
     reihe.aufgabe = generiere();
     reihe.fehlversuche = 0;
-    setzeAktiveReihe(profile.id, reihe);
+    setzeAktiveReihe(profile.id, reihe.biom, reihe);
     rendereFrageInModal(modal, reihe, profile, maxStufe, naechsteFrage);
   }
 
@@ -267,7 +267,7 @@ function starteAufgabe(reihe, mechanik, profile, modal, inhalt, maxStufe, onWeit
       return;
     }
     reihe.fehlversuche++;
-    setzeAktiveReihe(profile.id, reihe);   // Versuchsstand persistieren (Mitten-drin-Verlassen)
+    setzeAktiveReihe(profile.id, reihe.biom, reihe);   // Versuchsstand persistieren (Mitten-drin-Verlassen)
     if (reihe.fehlversuche >= MAX_FEHLVERSUCHE) {
       const zeit_ms = performance.now() - startZeit;
       rapportiereErgebnis(profile.id, aufgabe.aufgabentyp, false, zeit_ms);
