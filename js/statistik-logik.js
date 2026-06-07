@@ -33,3 +33,37 @@ export function aktualisiereVerlauf(verlauf = {}, typ, warRichtig, heute, maxTag
   }
   return next;
 }
+
+// Aggregiert die Summen-Statistik (statistik[typ] = {gesamt, richtig, zeit_summe_ms}).
+export function summen(statistik = {}) {
+  const proTyp = Object.entries(statistik).map(([typ, s]) => {
+    const gesamt = s.gesamt ?? 0;
+    const richtig = s.richtig ?? 0;
+    const zeitSumme = s.zeit_summe_ms ?? 0;
+    return {
+      typ,
+      gesamt,
+      richtig,
+      quote: gesamt ? richtig / gesamt : 0,
+      zeitSchnittMs: gesamt ? zeitSumme / gesamt : 0,
+    };
+  });
+  const gesamt = proTyp.reduce((a, t) => a + t.gesamt, 0);
+  const richtig = proTyp.reduce((a, t) => a + t.richtig, 0);
+  const zeitSumme = Object.values(statistik).reduce((a, s) => a + (s.zeit_summe_ms ?? 0), 0);
+  return {
+    proTyp,
+    gesamt,
+    richtig,
+    quote: gesamt ? richtig / gesamt : 0,
+    zeitSchnittMs: gesamt ? zeitSumme / gesamt : 0,
+  };
+}
+
+// Farbstufe einer Quote für die Balkenfarbe. `leer` bei 0 Aufgaben (neutral statt rot).
+export function quoteFarbe(quote, gesamt) {
+  if (!gesamt) return 'leer';
+  if (quote >= 0.8) return 'gut';
+  if (quote >= 0.5) return 'mittel';
+  return 'schwach';
+}
