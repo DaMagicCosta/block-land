@@ -22,3 +22,9 @@ export function fortschrittPunkte(position, laenge) {
   }
   return punkte;
 }
+
+// Biom-Ids, die eine offene Reihe haben (für Karten-/Welt-Marker).
+// `aktiveReihen` ist die Map biom→reihe aus dem State; falsy-Einträge gelten als "nicht offen".
+export function offeneBiome(aktiveReihen = {}) {
+  return Object.keys(aktiveReihen).filter(biom => aktiveReihen[biom]);
+}
