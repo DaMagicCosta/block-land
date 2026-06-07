@@ -1,5 +1,6 @@
 import { istFrei, freieBiome, naechstesBiom, hoechstesFreies } from './biome-logik.js';
 import { gruppiereGutscheine, entferneAusStapel } from './gutschein-logik.js';
+import { aktualisiereVerlauf } from './statistik-logik.js';
 
 const STORAGE_KEY = 'block-land-state-v1';
 
@@ -95,6 +96,7 @@ export function addProfile({ name, weltName, avatar, alter, kindPin = null }) {
     createdAt: new Date().toISOString(),
     inventar: {},
     gutscheine: [],
+    verlauf: {},                 // Tages-Verlauf pro Rechenart (Statistik-Tab)
     schwierigkeit: { plus: 2 },
     statistik: { plus: { gesamt: 0, richtig: 0 } },
     biome: { aktiv: null, autoFrei: [], elternFrei: [], elternGesperrt: [] },
@@ -153,7 +155,13 @@ export function trackeAufgabe(profileId, aufgabentyp, war_richtig, zeit_ms = 0) 
   if (war_richtig) stat[aufgabentyp].richtig += 1;
   stat[aufgabentyp].zeit_summe_ms = (stat[aufgabentyp].zeit_summe_ms ?? 0) + (zeit_ms || 0);
   state.profiles[profileId].statistik = stat;
+  const p = state.profiles[profileId];
+  p.verlauf = aktualisiereVerlauf(p.verlauf, aufgabentyp, war_richtig, new Date());
   save(state);
+}
+
+export function getVerlauf(profileId) {
+  return structuredClone(state.profiles[profileId]?.verlauf ?? {});
 }
 
 export function getRezepte() {
@@ -173,10 +181,6 @@ export function getRezepte() {
     }
     return klon;
   });
-}
-
-export function getGutscheine(profileId) {
-  return structuredClone(state.profiles[profileId]?.gutscheine ?? []);
 }
 
 export function kannBauen(profileId, kosten) {
@@ -226,17 +230,6 @@ export function setzeRezepteStandard() {
   save(state);
 }
 
-// --- Diamant-Seltenheit ---
-export function getDiamantSeltenheit() {
-  return state.parentSettings?.diamantSeltenheit ?? 'sehr_selten';
-}
-
-export function setzeDiamantSeltenheit(wert) {
-  state.parentSettings = state.parentSettings ?? {};
-  state.parentSettings.diamantSeltenheit = wert;
-  save(state);
-}
-
 // --- PIN (Soft-Lock) ---
 export function istPinGesetzt() {
   return !!(state.parentSettings && state.parentSettings.pin);
@@ -254,20 +247,6 @@ export function setzePin(pin) {
 }
 
 // --- Gutschein-Verwaltung (Eltern) ---
-export function setGutscheinEingeloest(profileId, gutscheinId, eingeloest) {
-  const p = state.profiles[profileId];
-  if (!p || !p.gutscheine) return;
-  const g = p.gutscheine.find(x => x.id === gutscheinId);
-  if (g) { g.eingeloest = !!eingeloest; save(state); }
-}
-
-export function loescheGutschein(profileId, gutscheinId) {
-  const p = state.profiles[profileId];
-  if (!p || !p.gutscheine) return;
-  p.gutscheine = p.gutscheine.filter(x => x.id !== gutscheinId);
-  save(state);
-}
-
 // Offene Gutscheine gruppiert (für Werkstatt + Eltern-Anzeige).
 // Fallback: Gutscheine, die VOR diesem Feature gebaut wurden, haben keinen wert/einheit-Snapshot.
 // Fehlt der Wert, wird er aus dem aktuellen Katalog (getRezepte, inkl. Seed-Merge) nachgefüllt,

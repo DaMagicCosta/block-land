@@ -16,7 +16,6 @@ import { istFrei } from './biome-logik.js';
 const ITEM_KEYS = ['holz', 'stein', 'blume', 'eisen', 'diamant'];
 const ITEM_EMOJI = { holz: '🪵', stein: '🪨', blume: '🌸', eisen: '⛏️', diamant: '💎' };
 const KATEGORIEN = ['Eltern-Zeit', 'Naschen & Essen', 'Bildschirm-Zeit', 'Erlebnisse'];
-const SELTENHEIT = [['selten', 'Selten'], ['sehr_selten', 'Sehr selten'], ['extrem', 'Extrem selten']];
 const ALTER = [['kindergarten', 'Kindergarten'], ['klasse-1', '1. Klasse'], ['klasse-2', '2. Klasse'], ['klasse-3', '3. Klasse']];
 const AVATARE = [['krieger', '🗡️'], ['bergmann', '⛏️'], ['magier', '🧙'], ['ninja', '🥷'], ['ritter', '🛡️'], ['schurke', '🦹'], ['tier', '🐺'], ['drache', '🐉']];
 
