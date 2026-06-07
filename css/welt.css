@@ -215,3 +215,14 @@
 
 /* Während ein Modal offen ist (z.B. nach Wiedereinstieg), nicht im Hintergrund blinken */
 body:has(.modal-backdrop) .welt__weiter { visibility: hidden; }
+
+/* Offene Reihen in anderen Ländern: dezenter Punkt am Karten-Knopf */
+.welt__karte-btn--hinweis { position: relative; }
+.welt__karte-btn--hinweis::after {
+  content: "";
+  position: absolute; top: -3px; right: -3px;
+  width: 10px; height: 10px; border-radius: 50%;
+  background: var(--color-action);
+  border: 1px solid var(--color-bg);
+  animation: welt-weiter-glow 2s ease-in-out infinite;
+}
