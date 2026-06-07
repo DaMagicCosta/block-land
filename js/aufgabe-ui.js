@@ -8,7 +8,8 @@ import { rendereStellenwert } from './stellenwert.js';
 import { verteileBelohnung } from './belohnung.js';
 import { loadAufgabenPool, loadBiomManifest } from './data.js';
 import { waehleMechanik, aktuelleStufe, rapportiereErgebnis } from './adaptiv.js';
-import { getCurrentProfile, getAktivesBiom, schalteNaechstesBiomFrei } from './state.js';
+import { getCurrentProfile, getAktivesBiom, schalteNaechstesBiomFrei, getAktiveReihe, setzeAktiveReihe } from './state.js';
+import { reihenLaenge, istReiheFertig, fortschrittPunkte } from './reihe-logik.js';
 import { BIOME_REIHENFOLGE, baselineMaxIndex } from './biome-logik.js';
 import { escapeHtml } from './utils.js';
 
@@ -31,90 +32,120 @@ function istKleinkind(profile) {
   return profile.alter === 'kindergarten' || profile.alter === 'klasse-1';
 }
 
-export async function oeffneAufgabe(reward) {
+export async function oeffneAufgabe(reward, { onClose } = {}) {
   const profile = getCurrentProfile();
   if (!profile) return;
 
-  let pool;
+  let pool, manifest;
   try {
-    pool = await loadAufgabenPool();
+    [pool, manifest] = await Promise.all([loadAufgabenPool(), loadBiomManifest()]);
   } catch (err) {
-    console.error('[aufgabe-ui] Pool-Load fehlgeschlagen', err);
+    console.error('[aufgabe-ui] Laden fehlgeschlagen', err);
     return;
   }
 
   const aktivBiom = getAktivesBiom(profile.id);
-  let manifest;
-  try {
-    manifest = await loadBiomManifest();
-  } catch (err) {
-    console.error('[aufgabe-ui] Manifest-Load fehlgeschlagen', err);
-    return;
-  }
   const typ = manifest[aktivBiom]?.aufgabentyp ?? 'plus';
-  const stufe_nr = aktuelleStufe(profile.id, typ);
-  const stufenConfig = pool[typ].stufen.find(s => s.nr === stufe_nr) ?? pool[typ].stufen[0];
   const maxStufe = pool[typ].stufen.length;
 
-  function generiere() {
+  function einmalGenerieren() {
+    const stufe_nr = aktuelleStufe(profile.id, typ);
+    const stufenConfig = pool[typ].stufen.find(s => s.nr === stufe_nr) ?? pool[typ].stufen[0];
     if (typ === 'mal') return generiereMalAufgabe(stufenConfig, pool.mal.distraktoren);
     if (typ === 'mengen') return generiereMengenAufgabe(stufenConfig, pool.mengen.distraktoren);
     if (typ === 'minus') return generiereMinusAufgabe(stufenConfig, pool.minus.distraktoren);
     return generierePlusAufgabe(stufenConfig, pool.plus.distraktoren);
   }
-  let aufgabe = generiere();
-  // Nicht zweimal hintereinander dieselbe Aufgabe (wirkt sonst monoton).
-  for (let v = 0; v < 6 && aufgabeKey(aufgabe) === letzteAufgabeKey; v++) {
-    aufgabe = generiere();
+  function generiere() {
+    let a = einmalGenerieren();
+    // Nicht zweimal hintereinander dieselbe Aufgabe (wirkt sonst monoton).
+    for (let v = 0; v < 6 && aufgabeKey(a) === letzteAufgabeKey; v++) a = einmalGenerieren();
+    letzteAufgabeKey = aufgabeKey(a);
+    return a;
   }
-  letzteAufgabeKey = aufgabeKey(aufgabe);
 
-  // Mengen & große Zahlen immer als A-Mechanik (kein riesiges Punkte-/Legebild).
-  const grosseZahl = aufgabe.a > 20 || aufgabe.b > 20;
-  const mechanik = (typ === 'mengen' || grosseZahl) ? 'A' : waehleMechanik(profile.id, typ);
+  // Passende laufende Reihe fortsetzen, sonst neue starten.
+  let reihe = getAktiveReihe(profile.id);
+  if (!(reihe && reihe.biom === aktivBiom)) {
+    reihe = {
+      biom: aktivBiom,
+      reward,
+      laenge: reihenLaenge(profile.alter),
+      position: 1,
+      aufgabe: generiere(),
+      fehlversuche: 0,
+    };
+    setzeAktiveReihe(profile.id, reihe);
+  }
 
-  zeigeAufgabenModal(aufgabe, mechanik, reward, profile, maxStufe);
-}
-
-function zeigeAufgabenModal(aufgabe, mechanik, reward, profile, maxStufe) {
-  // Kindergarten + 1. Klasse: App trägt vor, kein Gelesen-Knopf (lernen erst lesen).
-  const istKlein = istKleinkind(profile);
   const modal = oeffneModal({
     klassen: 'modal-backdrop--aufgabe',
-    inhaltHtml: `
-      <div class="modal modal--aufgabe">
-        <div class="aufgabe__vorlesen"${istKlein ? ' hidden' : ''}>
-          <div class="aufgabe__mikro">🎤</div>
-          <div class="aufgabe__vorlesen-text">
-            <div class="aufgabe__vorlesen-label">Lies laut vor:</div>
-            <div class="aufgabe__vorlesen-aufgabe">${escapeHtml(aufgabe.vorlese_text)}</div>
-          </div>
-          <button class="aufgabe__gelesen">✓ Gelesen</button>
-        </div>
-        <div class="aufgabe__inhalt"${istKlein ? '' : ' hidden'}></div>
-      </div>
-    `,
+    inhaltHtml: '<div class="modal modal--aufgabe"></div>',
+    onClose,
   });
-
   if (!modal) return;
+
+  function naechsteFrage() {
+    if (istReiheFertig(reihe)) {
+      setzeAktiveReihe(profile.id, null);
+      zeigeReiheGeschafft(modal, istKleinkind(profile));
+      return;
+    }
+    reihe.position += 1;
+    reihe.aufgabe = generiere();
+    reihe.fehlversuche = 0;
+    setzeAktiveReihe(profile.id, reihe);
+    rendereFrageInModal(modal, reihe, profile, maxStufe, naechsteFrage);
+  }
+
+  rendereFrageInModal(modal, reihe, profile, maxStufe, naechsteFrage);
+}
+
+// Baut die Fortschrittspunkte (●●○○) für den Modal-Kopf.
+function fortschrittHtml(position, laenge) {
+  const punkte = fortschrittPunkte(position, laenge)
+    .map(z => `<span class="aufgabe__fortschritt-punkt aufgabe__fortschritt-punkt--${z}"></span>`)
+    .join('');
+  return `<div class="aufgabe__fortschritt">${punkte}</div>`;
+}
+
+// Rendert die aktuelle Frage der Reihe ins (eine) Modal und verdrahtet die Beantwortung.
+function rendereFrageInModal(modal, reihe, profile, maxStufe, onWeiter) {
+  const aufgabe = reihe.aufgabe;
+  const istKlein = istKleinkind(profile);
+  const grosseZahl = aufgabe.a > 20 || aufgabe.b > 20;
+  const mechanik = (aufgabe.aufgabentyp === 'mengen' || grosseZahl)
+    ? 'A'
+    : waehleMechanik(profile.id, aufgabe.aufgabentyp);
+
+  modal.inhalt.innerHTML = `
+    ${fortschrittHtml(reihe.position, reihe.laenge)}
+    <div class="aufgabe__vorlesen"${istKlein ? ' hidden' : ''}>
+      <div class="aufgabe__mikro">🎤</div>
+      <div class="aufgabe__vorlesen-text">
+        <div class="aufgabe__vorlesen-label">Lies laut vor:</div>
+        <div class="aufgabe__vorlesen-aufgabe">${escapeHtml(aufgabe.vorlese_text)}</div>
+      </div>
+      <button class="aufgabe__gelesen">✓ Gelesen</button>
+    </div>
+    <div class="aufgabe__inhalt"${istKlein ? '' : ' hidden'}></div>
+  `;
 
   const inhalt = modal.inhalt.querySelector('.aufgabe__inhalt');
 
   function starteInhalt() {
     inhalt.innerHTML = baueAufgabeInhalt(aufgabe, mechanik);
     if (istKlein) {
-      // Kleine Kinder können noch nicht lesen — Knopf zum erneuten Vortragen.
       const hoeren = document.createElement('button');
       hoeren.className = 'aufgabe__hoeren';
       hoeren.textContent = '🔊 Nochmal hören';
       hoeren.addEventListener('click', () => sprich(aufgabe.vorlese_text));
       inhalt.prepend(hoeren);
     }
-    starteAufgabe(aufgabe, mechanik, reward, profile, modal, inhalt, maxStufe);
+    starteAufgabe(reihe, mechanik, profile, modal, inhalt, maxStufe, onWeiter);
   }
 
   if (istKlein) {
-    // Kindergarten: nicht selbst lesen lassen — App trägt vor und springt direkt zur Aufgabe.
     sprich(aufgabe.vorlese_text);
     starteInhalt();
     return;
@@ -206,9 +237,9 @@ function baueAufgabeInhalt(aufgabe, mechanik) {
   `;
 }
 
-function starteAufgabe(aufgabe, mechanik, reward, profile, modal, inhalt, maxStufe) {
+function starteAufgabe(reihe, mechanik, profile, modal, inhalt, maxStufe, onWeiter) {
+  const aufgabe = reihe.aufgabe;
   const startZeit = performance.now();
-  let fehlversuche = 0;
 
   function feedbackZeigen(text, klasse) {
     const fb = inhalt.querySelector('.aufgabe__feedback');
@@ -222,24 +253,25 @@ function starteAufgabe(aufgabe, mechanik, reward, profile, modal, inhalt, maxStu
     if (richtig) {
       const zeit_ms = performance.now() - startZeit;
       rapportiereErgebnis(profile.id, aufgabe.aufgabentyp, true, zeit_ms);
-      // Niveau-Abstufung: in Biomen UNTER der Schulstufe des Kindes weniger Basis-Drops + kein Premium.
+      // Niveau-Abstufung: in Biomen UNTER der Schulstufe weniger Basis-Drops + kein Premium.
       const biomId = getAktivesBiom(profile.id);
       const delta = baselineMaxIndex(profile.alter) - BIOME_REIHENFOLGE.indexOf(biomId);
       const unterNiveau = delta > 0;
       const biomFaktor = unterNiveau ? Math.max(0.2, 1 - 0.35 * delta) : 1;
-      const gegeben = verteileBelohnung(aufgabe.stufe, maxStufe, reward.item, biomFaktor, !unterNiveau);
+      const gegeben = verteileBelohnung(aufgabe.stufe, maxStufe, reihe.reward.item, biomFaktor, !unterNiveau);
       let neuesBiom = null;
       if (aufgabe.stufe === maxStufe) {
         neuesBiom = schalteNaechstesBiomFrei(profile.id, biomId);
       }
-      zeigeErfolg(modal, gegeben, istKleinkind(profile), neuesBiom);
+      zeigeErfolg(modal, gegeben, istKleinkind(profile), neuesBiom, onWeiter);
       return;
     }
-    fehlversuche++;
-    if (fehlversuche >= MAX_FEHLVERSUCHE) {
+    reihe.fehlversuche++;
+    setzeAktiveReihe(profile.id, reihe);   // Versuchsstand persistieren (Mitten-drin-Verlassen)
+    if (reihe.fehlversuche >= MAX_FEHLVERSUCHE) {
       const zeit_ms = performance.now() - startZeit;
       rapportiereErgebnis(profile.id, aufgabe.aufgabentyp, false, zeit_ms);
-      zeigeLoesung(aufgabe, modal, istKleinkind(profile));
+      zeigeLoesung(aufgabe, modal, istKleinkind(profile), onWeiter);
       return;
     }
     feedbackZeigen('Versuch es nochmal!', 'fehler');
@@ -264,7 +296,7 @@ function starteAufgabe(aufgabe, mechanik, reward, profile, modal, inhalt, maxStu
   } else {
     const legeBereich = inhalt.querySelector('.aufgabe__legebereich');
     const sollZahl = parseInt(legeBereich.dataset.soll, 10);
-    const stand = rendereLegehaus(sollZahl, legeBereich, (aktuell, gesamt) => {
+    rendereLegehaus(sollZahl, legeBereich, (aktuell, gesamt) => {
       if (aktuell === gesamt) {
         const optionen = inhalt.querySelector('.aufgabe__optionen');
         if (optionen.hidden) {
@@ -289,13 +321,12 @@ const ITEM_INFO = {
   diamant: { e: '💎', l: 'Diamant' },
 };
 
-function zeigeErfolg(modal, gegeben = [], istKlein = false, neuesBiom = null) {
+function zeigeErfolg(modal, gegeben = [], istKlein = false, neuesBiom = null, onWeiter = null) {
   const unlockHtml = neuesBiom
     ? `<div class="feier__unlock">🗺️ Neues Land freigeschaltet! Schau auf der Karte (🗺️).</div>`
     : '';
   let inner;
   if (!gegeben.length) {
-    // Nichts gefallen -> gefeierte Gratulation (mit Animation).
     inner = `
       <div class="modal modal--erfolg">
         <div class="modal__emoji feier__huepf">🎉</div>
@@ -326,10 +357,10 @@ function zeigeErfolg(modal, gegeben = [], istKlein = false, neuesBiom = null) {
     sprich('Richtig! Super gemacht!');
     weiter.classList.add('modal__close--puls');
   }
-  weiter.addEventListener('click', () => modal.schliessen());
+  weiter.addEventListener('click', onWeiter ?? (() => modal.schliessen()));
 }
 
-function zeigeLoesung(aufgabe, modal, istKlein = false) {
+function zeigeLoesung(aufgabe, modal, istKlein = false, onWeiter = null) {
   modal.inhalt.querySelector('.aufgabe__inhalt').innerHTML = `
     <div class="aufgabe__loesung">
       <div class="aufgabe__text">${aufgabe.text}</div>
@@ -343,5 +374,24 @@ function zeigeLoesung(aufgabe, modal, istKlein = false) {
     sprich(`Die Lösung ist ${aufgabe.ergebnis}. Tippe auf Weiter.`);
     weiter.classList.add('modal__close--puls');
   }
-  weiter.addEventListener('click', () => modal.schliessen());
+  weiter.addEventListener('click', onWeiter ?? (() => modal.schliessen()));
+}
+
+// Abschluss-Feier am Ende einer Reihe (kein Extra-Material — Belohnungs-Neutralität).
+function zeigeReiheGeschafft(modal, istKlein = false) {
+  modal.inhalt.innerHTML = `
+    <div class="modal modal--erfolg">
+      <div class="modal__emoji feier__huepf">🏆</div>
+      <div class="feier__konfetti">✨🎊⭐🎉✨</div>
+      <div class="modal__titel">REIHE GESCHAFFT!</div>
+      <p class="modal__text">Super durchgehalten!</p>
+      <button class="modal__close">Fertig</button>
+    </div>
+  `;
+  const fertig = modal.inhalt.querySelector('.modal__close');
+  if (istKlein) {
+    sprich('Geschafft! Super gemacht!');
+    fertig.classList.add('modal__close--puls');
+  }
+  fertig.addEventListener('click', () => modal.schliessen());
 }

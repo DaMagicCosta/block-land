@@ -1,4 +1,4 @@
-import { getCurrentProfile, setCurrentProfile, getAktivesBiom } from './state.js';
+import { getCurrentProfile, setCurrentProfile, getAktivesBiom, getAktiveReihe } from './state.js';
 import { loadAvatare, loadBiom } from './data.js';
 import { escapeHtml } from './utils.js';
 import { oeffneModal, schliesseAlleModals } from './modal.js';
@@ -19,6 +19,8 @@ export async function renderWelt(container) {
   }
 
   const aktivId = getAktivesBiom(profile.id);
+  const reihe = getAktiveReihe(profile.id);
+  const hatReihe = reihe && reihe.biom === aktivId;
   let biom, avatare;
   try {
     [biom, avatare] = await Promise.all([loadBiom(aktivId), loadAvatare()]);
@@ -62,6 +64,7 @@ export async function renderWelt(container) {
         <div>
           <div class="welt__welt-name">${escapeHtml(profile.weltName)}</div>
           <div class="welt__profil-name">${escapeHtml(profile.name)} · ${escapeHtml(biom.name)}</div>
+          ${hatReihe ? `<button class="welt__weiter" id="welt-weiter">▶ Weitermachen — Frage ${reihe.position}/${reihe.laenge}</button>` : ''}
         </div>
         ${rendereInventarHeader()}
         <button class="welt__karte-btn" id="welt-karte" title="Land wechseln">🗺️</button>
@@ -83,6 +86,11 @@ export async function renderWelt(container) {
   container.querySelector('#welt-rezeptbuch').addEventListener('click', () => oeffneRezeptbuch());
   container.querySelector('#welt-eltern').addEventListener('click', () => oeffneElternBereich());
   container.querySelector('#welt-karte').addEventListener('click', () => { location.hash = 'karte'; });
+
+  const weiterBtn = container.querySelector('#welt-weiter');
+  if (weiterBtn) {
+    weiterBtn.addEventListener('click', () => oeffneAufgabe(null, { onClose: () => renderWelt(container) }));
+  }
 
   container.querySelectorAll('.welt__tile.is-interaktiv').forEach(el => {
     el.addEventListener('click', () => {
@@ -110,7 +118,7 @@ export async function renderWelt(container) {
         return;
       }
       if (!typ.reward) return;  // Sicherheitsnetz: interaktive Tiles ohne Reward ignorieren
-      oeffneAufgabe(typ.reward);
+      oeffneAufgabe(typ.reward, { onClose: () => renderWelt(container) });
     });
   });
 

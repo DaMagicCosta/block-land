@@ -97,6 +97,7 @@ export function addProfile({ name, weltName, avatar, alter, kindPin = null }) {
     inventar: {},
     gutscheine: [],
     verlauf: {},                 // Tages-Verlauf pro Rechenart (Statistik-Tab)
+    aktiveReihe: null,           // laufende Übungsreihe (Wiedereinstieg) oder null
     schwierigkeit: { plus: 2 },
     statistik: { plus: { gesamt: 0, richtig: 0 } },
     biome: { aktiv: null, autoFrei: [], elternFrei: [], elternGesperrt: [] },
@@ -162,6 +163,18 @@ export function trackeAufgabe(profileId, aufgabentyp, war_richtig, zeit_ms = 0) 
 
 export function getVerlauf(profileId) {
   return structuredClone(state.profiles[profileId]?.verlauf ?? {});
+}
+
+// --- Übungsreihe (Wiedereinstieg) ---
+export function getAktiveReihe(profileId) {
+  const r = state.profiles[profileId]?.aktiveReihe;
+  return r ? structuredClone(r) : null;
+}
+
+export function setzeAktiveReihe(profileId, reihe) {
+  if (!state.profiles[profileId]) return;
+  state.profiles[profileId].aktiveReihe = reihe ? structuredClone(reihe) : null;
+  save(state);
 }
 
 export function getRezepte() {
