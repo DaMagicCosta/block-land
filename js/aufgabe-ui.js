@@ -119,18 +119,16 @@ function rendereFrageInModal(modal, reihe, profile, maxStufe, onWeiter) {
     : waehleMechanik(profile.id, aufgabe.aufgabentyp);
 
   modal.inhalt.innerHTML = `
-    <div class="modal modal--aufgabe">
-      ${fortschrittHtml(reihe.position, reihe.laenge)}
-      <div class="aufgabe__vorlesen"${istKlein ? ' hidden' : ''}>
-        <div class="aufgabe__mikro">🎤</div>
-        <div class="aufgabe__vorlesen-text">
-          <div class="aufgabe__vorlesen-label">Lies laut vor:</div>
-          <div class="aufgabe__vorlesen-aufgabe">${escapeHtml(aufgabe.vorlese_text)}</div>
-        </div>
-        <button class="aufgabe__gelesen">✓ Gelesen</button>
+    ${fortschrittHtml(reihe.position, reihe.laenge)}
+    <div class="aufgabe__vorlesen"${istKlein ? ' hidden' : ''}>
+      <div class="aufgabe__mikro">🎤</div>
+      <div class="aufgabe__vorlesen-text">
+        <div class="aufgabe__vorlesen-label">Lies laut vor:</div>
+        <div class="aufgabe__vorlesen-aufgabe">${escapeHtml(aufgabe.vorlese_text)}</div>
       </div>
-      <div class="aufgabe__inhalt"${istKlein ? '' : ' hidden'}></div>
+      <button class="aufgabe__gelesen">✓ Gelesen</button>
     </div>
+    <div class="aufgabe__inhalt"${istKlein ? '' : ' hidden'}></div>
   `;
 
   const inhalt = modal.inhalt.querySelector('.aufgabe__inhalt');
