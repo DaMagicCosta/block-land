@@ -154,9 +154,31 @@
 .trainer__abschluss-emoji { font-size: 64px; }
 .trainer__abschluss-text { color: var(--color-text); font-family: var(--font-mono); }
 
+/* Aufsage-Modus */
+.trainer__aufsagen-liste { display: flex; flex-direction: column; gap: var(--space-xs); }
+.trainer__zeile--aktiv {
+  font-size: 26px;
+  background: var(--color-surface);
+  outline: 2px solid var(--color-action);
+}
+.trainer__erg--verdeckt { color: var(--color-text-dim); }
+.trainer__aufsagen-knoepfe { display: flex; gap: var(--space-sm); }
+.trainer__aufsagen-knoepfe button { flex: 1; }
+.trainer__testen {
+  background: var(--color-action);
+  color: var(--color-bg);
+  border: 0;
+  padding: var(--space-md);
+  font-family: var(--font-mono);
+  font-weight: bold;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
 @media (max-width: 480px) {
   .trainer__aufgabe { font-size: 32px; }
   .trainer__antwort { font-size: 22px; padding: var(--space-sm); }
   .trainer__reihe { font-size: 18px; }
   .trainer__zeile { font-size: 18px; }
+  .trainer__zeile--aktiv { font-size: 22px; }
 }

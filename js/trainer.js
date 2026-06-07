@@ -4,6 +4,7 @@
 
 import { oeffneModal } from './modal.js';
 import { verteileBelohnung } from './belohnung.js';
+import { baueReihe } from './aufsagen-logik.js';
 
 const MAX_FEHLVERSUCHE = 2;
 
@@ -56,19 +57,21 @@ function zeigeReihenAuswahl(wurzel, modal, reward) {
   });
 }
 
-// --- Schritt 2: Lern-Stufe (Vorlesen / Eintragen) ---
+// --- Schritt 2: Lern-Stufe (Vorlesen / Aufsagen / Eintragen) ---
 function zeigeLernStufe(wurzel, modal, reward, reihe) {
   let modus = 'vorlesen';
   wurzel.innerHTML = `
     <div class="trainer__kopf">Die ${reihe}er-Reihe</div>
     <div class="trainer__umschalter">
       <button data-m="vorlesen" class="aktiv">🔊 Vorlesen</button>
+      <button data-m="aufsagen">🗣️ Aufsagen</button>
       <button data-m="eintragen">✏️ Eintragen</button>
     </div>
     <div class="trainer__liste"></div>
     <button class="trainer__weiter">Jetzt abfragen →</button>
   `;
   const liste = wurzel.querySelector('.trainer__liste');
+  const weiterBtn = wurzel.querySelector('.trainer__weiter');
 
   function baue() {
     liste.innerHTML = '';
@@ -96,17 +99,120 @@ function zeigeLernStufe(wurzel, modal, reward, reihe) {
     }
   }
 
+  function aktualisiere() {
+    if (modus === 'aufsagen') {
+      weiterBtn.hidden = true;
+      rendereAufsagen(wurzel, liste, modal, reward, reihe);
+    } else {
+      weiterBtn.hidden = false;
+      baue();
+    }
+  }
+
   wurzel.querySelectorAll('.trainer__umschalter button').forEach(b => {
     b.addEventListener('click', () => {
       modus = b.dataset.m;
       wurzel.querySelectorAll('.trainer__umschalter button')
         .forEach(x => x.classList.toggle('aktiv', x === b));
-      baue();
+      aktualisiere();
     });
   });
-  wurzel.querySelector('.trainer__weiter')
-    .addEventListener('click', () => starteQuiz(wurzel, modal, reward, reihe));
-  baue();
+  weiterBtn.addEventListener('click', () => starteQuiz(wurzel, modal, reward, reihe));
+  aktualisiere();
+}
+
+// --- Schritt 2b: Aufsage-Modus (Mitsprechen + Auswendig) ---
+// Selbstbestimmt: Kind tippt „Weiter →"; die aktuelle Zeile ist groß markiert und wird
+// gesprochen (Mitsprechen) bzw. auf „Aufdecken" enthüllt+gesprochen (Auswendig = Hilfe).
+// „Ich kann's! Jetzt testen →" führt ins bestehende belohnte Quiz. Kein eigener Reward.
+function rendereAufsagen(wurzel, container, modal, reward, reihe) {
+  const schritte = baueReihe(reihe);
+  let stufe = 'mitsprechen';   // 'mitsprechen' | 'auswendig'
+  let idx = 0;                 // aktueller Schritt; === schritte.length ⇒ geschafft
+  let aufgedeckt = false;      // Auswendig: aktuelle Zeile aufgedeckt?
+
+  function sprichAktuell() {
+    if (idx < schritte.length) sprich(schritte[idx].vorlese);
+  }
+
+  function zeileHtml(s, i) {
+    const istAktiv = idx < schritte.length && i === idx;
+    let erg;
+    if (stufe === 'mitsprechen' || (istAktiv && aufgedeckt)) {
+      erg = `<span class="trainer__erg">${s.ergebnis}</span>`;
+    } else {
+      erg = `<span class="trainer__erg trainer__erg--verdeckt">?</span>`;
+    }
+    return `<div class="trainer__zeile${istAktiv ? ' trainer__zeile--aktiv' : ''}"><span>${s.i} · ${reihe} =</span>${erg}</div>`;
+  }
+
+  function steuerHtml() {
+    const geschafft = idx >= schritte.length;
+    if (geschafft) {
+      const knopf = stufe === 'mitsprechen'
+        ? '<button class="trainer__weiter" data-auswendig>🧠 Auswendig probieren</button>'
+        : '<button class="trainer__fertig" data-nochmal>🔁 Nochmal</button>';
+      return `<div class="trainer__tipp">🎉 Geschafft!</div><div class="trainer__aufsagen-knoepfe">${knopf}</div>`;
+    }
+    if (stufe === 'mitsprechen') {
+      return `<div class="trainer__aufsagen-knoepfe">
+        <button class="trainer__fertig" data-nochmal-laut>🔊 Nochmal</button>
+        <button class="trainer__weiter" data-weiter>Weiter →</button>
+      </div>`;
+    }
+    if (!aufgedeckt) {
+      return `<div class="trainer__aufsagen-knoepfe"><button class="trainer__weiter" data-aufdecken>Aufdecken</button></div>`;
+    }
+    return `<div class="trainer__aufsagen-knoepfe"><button class="trainer__weiter" data-weiter>Weiter →</button></div>`;
+  }
+
+  function render() {
+    container.innerHTML = `
+      <div class="trainer__umschalter">
+        <button data-s="mitsprechen" class="${stufe === 'mitsprechen' ? 'aktiv' : ''}">① Mitsprechen</button>
+        <button data-s="auswendig" class="${stufe === 'auswendig' ? 'aktiv' : ''}">② Auswendig</button>
+      </div>
+      <div class="trainer__aufsagen-liste">${schritte.map(zeileHtml).join('')}</div>
+      ${steuerHtml()}
+      <button class="trainer__testen" data-testen>Ich kann's! Jetzt testen →</button>
+    `;
+    verdrahte();
+  }
+
+  function setzeStufe(neu) {
+    stufe = neu; idx = 0; aufgedeckt = false;
+    render();
+    if (stufe === 'mitsprechen') sprichAktuell();
+  }
+
+  function verdrahte() {
+    container.querySelectorAll('.trainer__umschalter button').forEach(b =>
+      b.addEventListener('click', () => { if (b.dataset.s !== stufe) setzeStufe(b.dataset.s); }));
+
+    const weiter = container.querySelector('[data-weiter]');
+    if (weiter) weiter.addEventListener('click', () => {
+      idx++; aufgedeckt = false; render();
+      if (stufe === 'mitsprechen') sprichAktuell();
+    });
+
+    const nochmalLaut = container.querySelector('[data-nochmal-laut]');
+    if (nochmalLaut) nochmalLaut.addEventListener('click', sprichAktuell);
+
+    const aufdecken = container.querySelector('[data-aufdecken]');
+    if (aufdecken) aufdecken.addEventListener('click', () => { aufgedeckt = true; sprichAktuell(); render(); });
+
+    const auswendig = container.querySelector('[data-auswendig]');
+    if (auswendig) auswendig.addEventListener('click', () => setzeStufe('auswendig'));
+
+    const nochmal = container.querySelector('[data-nochmal]');
+    if (nochmal) nochmal.addEventListener('click', () => { idx = 0; aufgedeckt = false; render(); });
+
+    const testen = container.querySelector('[data-testen]');
+    if (testen) testen.addEventListener('click', () => starteQuiz(wurzel, modal, reward, reihe));
+  }
+
+  render();
+  sprichAktuell();   // erste Zeile (Mitsprechen) gleich vorsprechen
 }
 
 // --- Schritt 3: Quiz ---

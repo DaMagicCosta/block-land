@@ -8,6 +8,10 @@ import { oeffneModal, schliesseAlleModals } from './modal.js';
 import { aktuelleStufe as burgStufeAus } from './burg-logik.js';
 import { aktuelleStufe as aufgabenStufe } from './adaptiv.js';
 import { rendereBurgSvg } from './burg.js';
+import { oeffneTrainer } from './trainer.js';
+
+// Belohnung fürs Trainer-Quiz, wenn der Trainer von der Karte (ohne Biom-Tile) gestartet wird.
+const TRAINER_REWARD = { item: 'holz', emoji: '🪵', label: 'Holz' };
 
 // Stilisierte Landkarte im Hochformat (Pixel-/Minecraft-Anmutung). viewBox 100×150,
 // per CSS aufs Feld gestreckt (preserveAspectRatio="none"). Reise von unten (Wiese) nach
@@ -31,7 +35,7 @@ function kartenSzene() {
       <ellipse cx="30" cy="64" rx="24" ry="15" fill="#33333d"/>
       <ellipse cx="68" cy="32" rx="26" ry="17" fill="#5b4d3e"/>
       <!-- Wiese: Blumen -->
-      <circle cx="17" cy="136" r="2" fill="#ffd166"/><circle cx="37" cy="138" r="2" fill="#ef89b4"/><circle cx="28" cy="124" r="1.6" fill="#ffd166"/>
+      <circle cx="47" cy="134" r="2" fill="#ffd166"/><circle cx="37" cy="138" r="2" fill="#ef89b4"/><circle cx="28" cy="124" r="1.6" fill="#ffd166"/>
       <!-- Wald: blockige Bäume -->
       <g fill="#1f3a1f"><polygon points="60,100 64,90 68,100"/><polygon points="74,98 78,88 82,98"/></g>
       <rect x="63" y="100" width="2" height="4" fill="#5a3a22"/><rect x="77" y="98" width="2" height="4" fill="#5a3a22"/>
@@ -116,6 +120,10 @@ export async function renderKarte(container) {
           ${rendereBurgSvg(burgStufe)}
           <span class="karte__burg-label">Meine Burg</span>
         </button>
+        <button class="karte__trainer" id="karte-trainer" style="left:15%;top:90%">
+          <span class="karte__trainer-icon">🧮</span>
+          <span class="karte__trainer-label">Rechen-Trainer</span>
+        </button>
         <div class="karte__figur" id="karte-figur" style="left:${aktivPos.x}%;top:${aktivPos.y}%"><span class="karte__figur-emoji">${avatarEmoji}</span></div>
       </div>
       <div class="karte__fade" id="karte-fade"></div>
@@ -124,6 +132,7 @@ export async function renderKarte(container) {
 
   container.querySelector('#karte-back').addEventListener('click', () => { location.hash = 'welt'; });
   container.querySelector('#karte-burg').addEventListener('click', () => { location.hash = 'burg'; });
+  container.querySelector('#karte-trainer').addEventListener('click', () => oeffneTrainer(TRAINER_REWARD));
 
   const figur = container.querySelector('#karte-figur');
   const fade = container.querySelector('#karte-fade');
