@@ -70,8 +70,8 @@
 }
 
 @keyframes fahne-glow {
-  0%, 100% { filter: drop-shadow(0 0 0 rgba(240, 168, 48, 0)); }
-  50%      { filter: drop-shadow(0 0 4px rgba(240, 168, 48, 0.9)); }
+  0%, 100% { filter: drop-shadow(0 0 3px rgba(240, 168, 48, 0.55)); }
+  50%      { filter: drop-shadow(0 0 10px rgba(240, 168, 48, 1)); }
 }
 
 @keyframes sw-wehen { 0%,100% { transform: rotate(-2deg) skewX(-4deg); } 50% { transform: rotate(2deg) skewX(6deg); } }
