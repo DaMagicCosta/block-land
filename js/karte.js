@@ -120,7 +120,7 @@ export async function renderKarte(container) {
           ${rendereBurgSvg(burgStufe)}
           <span class="karte__burg-label">Meine Burg</span>
         </button>
-        <button class="karte__trainer" id="karte-trainer" style="left:15%;top:72%">
+        <button class="karte__trainer" id="karte-trainer" style="left:15%;top:90%">
           <span class="karte__trainer-icon">🧮</span>
           <span class="karte__trainer-label">Rechen-Trainer</span>
         </button>
