@@ -1,6 +1,6 @@
 // Übersichts-Karte: zeigt die Biome als Stationen, Auswahl setzt das aktive Biom.
 // Phase 2: illustrierte SVG-Szene (Wiese/Wald/Höhle/Berg + Pfad) mit Marker-Overlay.
-import { getCurrentProfile, getAktivesBiom, setAktivesBiom, getBiomFreigabe, getGesamtErfolge } from './state.js';
+import { getCurrentProfile, getAktivesBiom, setAktivesBiom, getBiomFreigabe, getGesamtErfolge, getOffeneReihen } from './state.js';
 import { loadBiomManifest, loadAvatare, loadAufgabenPool } from './data.js';
 import { istFrei, naechstesBiom } from './biome-logik.js';
 import { escapeHtml } from './utils.js';
@@ -61,6 +61,7 @@ export async function renderKarte(container) {
 
   const freigabe = getBiomFreigabe(profile.id);
   const aktiv = getAktivesBiom(profile.id);
+  const offene = getOffeneReihen(profile.id);
   const avatarEmoji = (avatare.find(a => a.id === profile.avatar) || {}).emoji || '🧑';
   const aktivPos = manifest[aktiv]?.kartenposition || { x: 50, y: 50 };
   const burgStufe = burgStufeAus(getGesamtErfolge(profile.id));
@@ -91,7 +92,8 @@ export async function renderKarte(container) {
   const marker = Object.entries(manifest).map(([id, b]) => {
     const frei = istFrei(id, freigabe);
     const istAktiv = id === aktiv;
-    const klassen = ['karte__biom', `karte__biom--${id}`, frei ? '' : 'karte__biom--gesperrt', istAktiv ? 'karte__biom--aktiv' : ''].filter(Boolean).join(' ');
+    const offenHier = frei && offene.includes(id);
+    const klassen = ['karte__biom', `karte__biom--${id}`, frei ? '' : 'karte__biom--gesperrt', istAktiv ? 'karte__biom--aktiv' : '', offenHier ? 'karte__biom--offen' : ''].filter(Boolean).join(' ');
     return `
       <button class="${klassen}" data-biom="${escapeHtml(id)}" style="left:${b.kartenposition.x}%;top:${b.kartenposition.y}%"
               data-frei="${frei ? '1' : '0'}">
