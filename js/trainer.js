@@ -5,13 +5,21 @@
 import { oeffneModal } from './modal.js';
 import { verteileBelohnung } from './belohnung.js';
 import { baueReihe } from './aufsagen-logik.js';
+import { protokolliereAufsagen, getCurrentProfile } from './state.js';
+import { kappeLuecke, formatDauer, neuerEintrag, INAKTIV_MS } from './aufsage-protokoll-logik.js';
+import { tagesSchluessel } from './statistik-logik.js';
 
 const MAX_FEHLVERSUCHE = 2;
+
+// Finalisierer der laufenden Aufsage-Stufe (gesetzt im Aufsage-Modus); von Modal-Close
+// und Lern-Stufen-Tab-Wechsel aufgerufen, damit Zeit/Durchgänge nicht verloren gehen.
+let aufsagenFinalisierer = null;
 
 export function oeffneTrainer(reward) {
   const modal = oeffneModal({
     klassen: 'modal-backdrop--trainer',
     inhaltHtml: '<div class="modal modal--trainer"></div>',
+    onClose: () => { if (aufsagenFinalisierer) { aufsagenFinalisierer(); aufsagenFinalisierer = null; } },
   });
   if (!modal) return;
   zeigeReihenAuswahl(modal.inhalt, modal, reward);
@@ -104,6 +112,7 @@ function zeigeLernStufe(wurzel, modal, reward, reihe) {
       weiterBtn.hidden = true;
       rendereAufsagen(wurzel, liste, modal, reward, reihe);
     } else {
+      if (aufsagenFinalisierer) { aufsagenFinalisierer(); aufsagenFinalisierer = null; }
       weiterBtn.hidden = false;
       baue();
     }
@@ -125,11 +134,59 @@ function zeigeLernStufe(wurzel, modal, reward, reihe) {
 // Selbstbestimmt: Kind tippt „Weiter →"; die aktuelle Zeile ist groß markiert und wird
 // gesprochen (Mitsprechen) bzw. auf „Aufdecken" enthüllt+gesprochen (Auswendig = Hilfe).
 // „Ich kann's! Jetzt testen →" führt ins bestehende belohnte Quiz. Kein eigener Reward.
+// Misst pro Stufe Durchgänge + aktive Zeit (Idle-Cap), finalisiert ins aufsagenProtokoll.
 function rendereAufsagen(wurzel, container, modal, reward, reihe) {
   const schritte = baueReihe(reihe);
+  const profileId = getCurrentProfile()?.id ?? null;
   let stufe = 'mitsprechen';   // 'mitsprechen' | 'auswendig'
   let idx = 0;                 // aktueller Schritt; === schritte.length ⇒ geschafft
   let aufgedeckt = false;      // Auswendig: aktuelle Zeile aufgedeckt?
+
+  // Mess-State (pro Stufe)
+  let durchgaenge = 0;
+  let aktiveZeitMs = 0;
+  let letzteAktionZeit = performance.now();
+  let inaktivTimer = null;
+
+  function armiereInaktivTimer() {
+    clearTimeout(inaktivTimer);
+    inaktivTimer = setTimeout(loeseNickerchenAus, INAKTIV_MS);
+  }
+
+  // Bei jeder Kind-Aktion: Denk-/Hänge-Zeit bis hierher (gekappt) anrechnen, Timer neu setzen.
+  function registriereAktion() {
+    const jetzt = performance.now();
+    aktiveZeitMs += kappeLuecke(jetzt - letzteAktionZeit);
+    letzteAktionZeit = jetzt;
+    armiereInaktivTimer();
+  }
+
+  function betreteStufe(neu) {
+    stufe = neu; idx = 0; aufgedeckt = false;
+    durchgaenge = 0; aktiveZeitMs = 0; letzteAktionZeit = performance.now();
+    aufsagenFinalisierer = verlasseStufe;   // solange wir im Aufsagen sind: finalisierbar
+    armiereInaktivTimer();
+    render();
+    if (stufe === 'mitsprechen') sprichAktuell();
+  }
+
+  // Idempotent: schreibt nur bei ≥1 vollem Durchgang, setzt danach zurück.
+  function verlasseStufe() {
+    clearTimeout(inaktivTimer);
+    if (profileId && durchgaenge >= 1) {
+      protokolliereAufsagen(profileId, neuerEintrag({
+        datum: tagesSchluessel(new Date()),
+        reihe, stufe, durchgaenge, zeit_ms: aktiveZeitMs,
+      }));
+    }
+    durchgaenge = 0; aktiveZeitMs = 0;
+  }
+
+  function loeseNickerchenAus() {
+    verlasseStufe();              // ohne registriereAktion: Weglauf-Zeit zählt NICHT
+    aufsagenFinalisierer = null;
+    zeigeNickerchen();
+  }
 
   function sprichAktuell() {
     if (idx < schritte.length) sprich(schritte[idx].vorlese);
@@ -146,13 +203,24 @@ function rendereAufsagen(wurzel, container, modal, reward, reihe) {
     return `<div class="trainer__zeile${istAktiv ? ' trainer__zeile--aktiv' : ''}"><span>${s.i} · ${reihe} =</span>${erg}</div>`;
   }
 
+  function zaehlerHtml() {
+    return `<div class="trainer__aufsagen-zaehler">🔁 ×${durchgaenge} · ⏱ ${formatDauer(aktiveZeitMs)}</div>`;
+  }
+
   function steuerHtml() {
     const geschafft = idx >= schritte.length;
     if (geschafft) {
-      const knopf = stufe === 'mitsprechen'
-        ? '<button class="trainer__weiter" data-auswendig>🧠 Auswendig probieren</button>'
-        : '<button class="trainer__fertig" data-nochmal>🔁 Nochmal</button>';
-      return `<div class="trainer__tipp">🎉 Geschafft!</div><div class="trainer__aufsagen-knoepfe">${knopf}</div>`;
+      if (stufe === 'mitsprechen') {
+        return `<div class="trainer__tipp">🎉 Geschafft!</div>
+          <div class="trainer__aufsagen-knoepfe">
+            <button class="trainer__fertig" data-nochmal-aufsagen>🔁 Nochmal aufsagen</button>
+            <button class="trainer__weiter" data-auswendig>🧠 Auswendig probieren</button>
+          </div>`;
+      }
+      return `<div class="trainer__tipp">🎉 Geschafft!</div>
+        <div class="trainer__aufsagen-knoepfe">
+          <button class="trainer__fertig" data-nochmal>🔁 Nochmal</button>
+        </div>`;
     }
     if (stufe === 'mitsprechen') {
       return `<div class="trainer__aufsagen-knoepfe">
@@ -172,6 +240,7 @@ function rendereAufsagen(wurzel, container, modal, reward, reihe) {
         <button data-s="mitsprechen" class="${stufe === 'mitsprechen' ? 'aktiv' : ''}">① Mitsprechen</button>
         <button data-s="auswendig" class="${stufe === 'auswendig' ? 'aktiv' : ''}">② Auswendig</button>
       </div>
+      ${zaehlerHtml()}
       <div class="trainer__aufsagen-liste">${schritte.map(zeileHtml).join('')}</div>
       ${steuerHtml()}
       <button class="trainer__testen" data-testen>Ich kann's! Jetzt testen →</button>
@@ -179,40 +248,60 @@ function rendereAufsagen(wurzel, container, modal, reward, reihe) {
     verdrahte();
   }
 
-  function setzeStufe(neu) {
-    stufe = neu; idx = 0; aufgedeckt = false;
-    render();
-    if (stufe === 'mitsprechen') sprichAktuell();
+  function zeigeNickerchen() {
+    container.innerHTML = `
+      <div class="trainer__nickerchen">
+        <div class="trainer__nickerchen-emoji">😴</div>
+        <div class="trainer__kopf">Block-Land macht eine Pause</div>
+        <p class="trainer__nickerchen-text">Geh kurz raus und schau in die Ferne — dann üben wir weiter!</p>
+        <div class="trainer__aufsagen-knoepfe">
+          <button class="trainer__weiter" data-weiter-ueben>Weiter üben</button>
+          <button class="trainer__fertig" data-fertig>Fertig</button>
+        </div>
+      </div>
+    `;
+    const w = container.querySelector('[data-weiter-ueben]');
+    if (w) w.addEventListener('click', () => betreteStufe(stufe));
+    const f = container.querySelector('[data-fertig]');
+    if (f) f.addEventListener('click', () => modal.schliessen());
   }
 
   function verdrahte() {
     container.querySelectorAll('.trainer__umschalter button').forEach(b =>
-      b.addEventListener('click', () => { if (b.dataset.s !== stufe) setzeStufe(b.dataset.s); }));
+      b.addEventListener('click', () => {
+        if (b.dataset.s !== stufe) { registriereAktion(); verlasseStufe(); betreteStufe(b.dataset.s); }
+      }));
 
     const weiter = container.querySelector('[data-weiter]');
     if (weiter) weiter.addEventListener('click', () => {
-      idx++; aufgedeckt = false; render();
-      if (stufe === 'mitsprechen') sprichAktuell();
+      registriereAktion();
+      idx++;
+      if (idx >= schritte.length) durchgaenge++;   // ein voller Durchgang
+      aufgedeckt = false;
+      render();
+      if (stufe === 'mitsprechen' && idx < schritte.length) sprichAktuell();
     });
 
     const nochmalLaut = container.querySelector('[data-nochmal-laut]');
-    if (nochmalLaut) nochmalLaut.addEventListener('click', sprichAktuell);
+    if (nochmalLaut) nochmalLaut.addEventListener('click', () => { registriereAktion(); sprichAktuell(); });
 
     const aufdecken = container.querySelector('[data-aufdecken]');
-    if (aufdecken) aufdecken.addEventListener('click', () => { aufgedeckt = true; sprichAktuell(); render(); });
+    if (aufdecken) aufdecken.addEventListener('click', () => { registriereAktion(); aufgedeckt = true; sprichAktuell(); render(); });
 
     const auswendig = container.querySelector('[data-auswendig]');
-    if (auswendig) auswendig.addEventListener('click', () => setzeStufe('auswendig'));
+    if (auswendig) auswendig.addEventListener('click', () => { registriereAktion(); verlasseStufe(); betreteStufe('auswendig'); });
 
     const nochmal = container.querySelector('[data-nochmal]');
-    if (nochmal) nochmal.addEventListener('click', () => { idx = 0; aufgedeckt = false; render(); });
+    if (nochmal) nochmal.addEventListener('click', () => { registriereAktion(); idx = 0; aufgedeckt = false; render(); });
+
+    const nochmalAufsagen = container.querySelector('[data-nochmal-aufsagen]');
+    if (nochmalAufsagen) nochmalAufsagen.addEventListener('click', () => { registriereAktion(); idx = 0; aufgedeckt = false; render(); sprichAktuell(); });
 
     const testen = container.querySelector('[data-testen]');
-    if (testen) testen.addEventListener('click', () => starteQuiz(wurzel, modal, reward, reihe));
+    if (testen) testen.addEventListener('click', () => { registriereAktion(); verlasseStufe(); aufsagenFinalisierer = null; starteQuiz(wurzel, modal, reward, reihe); });
   }
 
-  render();
-  sprichAktuell();   // erste Zeile (Mitsprechen) gleich vorsprechen
+  betreteStufe('mitsprechen');
 }
 
 // --- Schritt 3: Quiz ---

@@ -1,6 +1,7 @@
 // Statistik-Tab: Übersicht aller Kinder + Detailansicht pro Kind mit Tages-/Wochen-Verlauf.
 // Render-Modul (DOM). Aggregation/Reihen kommen aus statistik-logik.js.
-import { getProfiles, getSchwierigkeit, getVerlauf, getBiomFreigabe } from './state.js';
+import { getProfiles, getSchwierigkeit, getVerlauf, getBiomFreigabe, getAufsagenProtokoll } from './state.js';
+import { stufeLabel, formatDauer } from './aufsage-protokoll-logik.js';
 import { freieBiome } from './biome-logik.js';
 import { summen, quoteFarbe, verlaufTage, verlaufWochen } from './statistik-logik.js';
 import { escapeHtml } from './utils.js';
@@ -38,6 +39,25 @@ const LEGENDE = `
     <span><i class="stat-punkt stat-punkt--mittel"></i>50–79%</span>
     <span><i class="stat-punkt stat-punkt--schwach"></i>&lt;50%</span>
   </div>`;
+
+// Aufsage-Protokoll (Mal-Reihen): jüngste Einträge als schlichte Liste.
+function aufsagenProtokollHtml(profileId) {
+  const log = getAufsagenProtokoll(profileId).slice(0, 20);
+  if (!log.length) {
+    return '<div class="eltern__leer">Noch kein Aufsagen protokolliert.</div>';
+  }
+  const zeilen = log.map(e => {
+    const d = e.datum ? `${e.datum.slice(8, 10)}.${e.datum.slice(5, 7)}.` : '';
+    return `<li class="stat-aufsagen__zeile">
+      <span class="stat-aufsagen__reihe">${escapeHtml(String(e.reihe))}er</span>
+      <span class="stat-aufsagen__stufe">${escapeHtml(stufeLabel(e.stufe))}</span>
+      <span class="stat-aufsagen__wdh">🔁 ×${e.durchgaenge}</span>
+      <span class="stat-aufsagen__zeit">⏱ ${escapeHtml(formatDauer(e.zeit_ms))}</span>
+      <span class="stat-aufsagen__datum">${escapeHtml(d)}</span>
+    </li>`;
+  }).join('');
+  return `<ul class="stat-aufsagen">${zeilen}</ul>`;
+}
 
 export function tabStatistik(container, neuRendern) {
   const view = { kindId: null, fenster: 'woche', filter: 'alle' };
@@ -132,6 +152,9 @@ export function tabStatistik(container, neuRendern) {
         <div class="stat-chips">${chips}</div>
         ${diagrammHtml(reihe)}
         ${LEGENDE}
+
+        <div class="stat-detail__abschnitt">🗣️ Aufsagen-Protokoll</div>
+        ${aufsagenProtokollHtml(p.id)}
       </div>`;
 
     container.querySelector('[data-zurueck]').addEventListener('click', () => { view.kindId = null; render(); });
