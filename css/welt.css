@@ -190,3 +190,19 @@
   font-size: 20px; line-height: 1; padding: var(--space-xs) var(--space-sm); cursor: pointer;
 }
 .welt__karte-btn:hover { border-color: var(--color-action); }
+
+/* Übungsreihe: Weitermachen-Knopf (Wiedereinstieg) */
+.welt__weiter {
+  display: block;
+  margin-top: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  background: var(--color-action);
+  color: #1a1a1a;
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-base);
+  font-weight: 700;
+  cursor: pointer;
+  animation: fortschritt-puls 1.4s ease-in-out infinite;
+}
+.welt__weiter:hover { filter: brightness(1.08); }

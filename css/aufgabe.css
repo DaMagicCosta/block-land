@@ -212,3 +212,28 @@
 .aufgabe__hoeren:hover { border-color: var(--color-action); }
 
 .feier__unlock { color: var(--color-success); font-family: var(--font-mono); font-size: var(--font-size-sm); margin: var(--space-sm) 0; }
+
+/* Übungsreihe: Fortschrittspunkte im Aufgaben-Kopf */
+.aufgabe__fortschritt {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-md);
+}
+.aufgabe__fortschritt-punkt {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--color-border);
+}
+.aufgabe__fortschritt-punkt--voll { background: var(--color-success); }
+.aufgabe__fortschritt-punkt--aktuell {
+  background: var(--color-action);
+  animation: fortschritt-puls 1s ease-in-out infinite;
+}
+.aufgabe__fortschritt-punkt--leer { background: var(--color-border); }
+
+@keyframes fortschritt-puls {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.4); }
+}
