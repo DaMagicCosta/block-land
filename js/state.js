@@ -1,6 +1,7 @@
 import { istFrei, freieBiome, naechstesBiom, hoechstesFreies } from './biome-logik.js';
 import { gruppiereGutscheine, entferneAusStapel } from './gutschein-logik.js';
 import { aktualisiereVerlauf } from './statistik-logik.js';
+import { fuegeEintragHinzu } from './aufsage-protokoll-logik.js';
 import { offeneBiome } from './reihe-logik.js';
 
 const STORAGE_KEY = 'block-land-state-v1';
@@ -98,6 +99,7 @@ export function addProfile({ name, weltName, avatar, alter, kindPin = null }) {
     inventar: {},
     gutscheine: [],
     verlauf: {},                 // Tages-Verlauf pro Rechenart (Statistik-Tab)
+    aufsagenProtokoll: [],       // Ereignis-Log Mal-Reihen-Aufsagen (Zeit + Durchgänge je Stufe)
     aktiveReihen: {},            // laufende Übungsreihen pro Biom (Wiedereinstieg)
     schwierigkeit: { plus: 2 },
     statistik: { plus: { gesamt: 0, richtig: 0 } },
@@ -164,6 +166,20 @@ export function trackeAufgabe(profileId, aufgabentyp, war_richtig, zeit_ms = 0) 
 
 export function getVerlauf(profileId) {
   return structuredClone(state.profiles[profileId]?.verlauf ?? {});
+}
+
+// --- Aufsage-Protokoll (Mal-Reihen) ---
+// Eigenes Profil-Feld (NICHT unter statistik, sonst zählt summen() es als Pseudo-Rechenart).
+// Defensive Init für Altprofile ohne das Feld.
+export function protokolliereAufsagen(profileId, eintrag) {
+  const p = state.profiles[profileId];
+  if (!p) return;
+  p.aufsagenProtokoll = fuegeEintragHinzu(p.aufsagenProtokoll ?? [], eintrag, 50);
+  save(state);
+}
+
+export function getAufsagenProtokoll(profileId) {
+  return structuredClone(state.profiles[profileId]?.aufsagenProtokoll ?? []);
 }
 
 // --- Übungsreihe (Wiedereinstieg) ---
