@@ -175,8 +175,24 @@
   cursor: pointer;
 }
 
+/* Aufsage: Live-Zähler + Inaktivitäts-Nickerchen */
+.trainer__aufsagen-zaehler {
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-dim);
+  margin: var(--space-xs) 0 var(--space-sm);
+}
+.trainer__nickerchen {
+  display: flex; flex-direction: column; align-items: center; gap: var(--space-md);
+  text-align: center; padding: var(--space-md) 0;
+}
+.trainer__nickerchen-emoji { font-size: 64px; }
+.trainer__nickerchen-text { color: var(--color-text-dim); font-size: var(--font-size-sm); }
+
 @media (max-width: 480px) {
   .trainer__aufgabe { font-size: 32px; }
+  .trainer__nickerchen-emoji { font-size: 52px; }
   .trainer__antwort { font-size: 22px; padding: var(--space-sm); }
   .trainer__reihe { font-size: 18px; }
   .trainer__zeile { font-size: 18px; }
