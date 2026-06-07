@@ -25,15 +25,19 @@
   font-weight: 600; color: var(--color-text); margin: var(--space-md) 0 var(--space-sm);
 }
 
-.stat-tabelle { display: flex; flex-direction: column; gap: var(--space-xs); }
-.stat-zeile {
-  display: grid; grid-template-columns: 1.4fr 1fr 1fr 1.3fr 1.2fr;
-  gap: var(--space-xs); align-items: center;
-  padding: var(--space-sm); background: var(--color-surface);
-  border-radius: var(--radius-sm); font-size: 14px;
+.stat-tabelle {
+  width: 100%; border-collapse: collapse; font-size: 14px;
+  background: var(--color-surface); border-radius: var(--radius-sm); overflow: hidden;
 }
-.stat-zeile__typ { font-weight: 600; }
-.stat-zeile__wert { color: var(--color-text-dim); }
+.stat-tabelle th, .stat-tabelle td { padding: var(--space-sm); text-align: right; }
+.stat-tabelle th:first-child, .stat-tabelle td:first-child { text-align: left; }
+.stat-tabelle thead th {
+  color: var(--color-text-dim); font-weight: 600; font-size: 12px;
+  border-bottom: 1px solid var(--color-border);
+}
+.stat-tabelle tbody td { color: var(--color-text-dim); border-bottom: 1px solid var(--color-border); }
+.stat-tabelle tbody tr:last-child td { border-bottom: none; }
+.stat-tabelle__typ { color: var(--color-text); font-weight: 600; }
 .stat-biome { margin-top: var(--space-sm); color: var(--color-text-dim); font-size: 13px; }
 
 .stat-fenster, .stat-chips { display: flex; flex-wrap: wrap; gap: var(--space-xs); margin-bottom: var(--space-sm); }
@@ -66,8 +70,9 @@
 .stat-punkt--schwach { background: var(--color-danger); }
 
 @media (max-width: 480px) {
-  .stat-zeile { grid-template-columns: 1.2fr 1fr 1fr; row-gap: 2px; }
-  .stat-zeile__typ { grid-column: 1 / -1; }
+  .stat-tabelle { font-size: 12px; }
+  .stat-tabelle th, .stat-tabelle td { padding: var(--space-xs); }
+  .stat-tabelle thead th { font-size: 11px; }
   .stat-diagramm { height: 120px; }
   .stat-balken__label { font-size: 10px; }
 }

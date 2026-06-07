@@ -83,15 +83,24 @@ export function tabStatistik(container, neuRendern) {
     if (!p) { view.kindId = null; render(); return; }
 
     const s = summen(p.statistik ?? {});
-    const zeilen = s.proTyp.length
-      ? s.proTyp.map(t => `
-          <div class="stat-zeile">
-            <span class="stat-zeile__typ">${escapeHtml(TYP_LABEL[t.typ] ?? t.typ)}</span>
-            <span class="stat-zeile__wert">${t.richtig}/${t.gesamt}</span>
-            <span class="stat-zeile__wert">${prozent(t.quote)}</span>
-            <span class="stat-zeile__wert">⌀ ${(t.zeitSchnittMs / 1000).toFixed(1)}s</span>
-            <span class="stat-zeile__wert">Stufe ${getSchwierigkeit(p.id, t.typ)}</span>
-          </div>`).join('')
+    const tabelle = s.proTyp.length
+      ? `<table class="stat-tabelle">
+          <thead>
+            <tr>
+              <th>Rechenart</th><th>Richtig</th><th>Quote</th><th>⌀ Zeit</th><th>Stufe</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${s.proTyp.map(t => `
+              <tr>
+                <td class="stat-tabelle__typ">${escapeHtml(TYP_LABEL[t.typ] ?? t.typ)}</td>
+                <td>${t.richtig}/${t.gesamt}</td>
+                <td>${prozent(t.quote)}</td>
+                <td>${(t.zeitSchnittMs / 1000).toFixed(1)}s</td>
+                <td>${getSchwierigkeit(p.id, t.typ)}</td>
+              </tr>`).join('')}
+          </tbody>
+        </table>`
       : '<div class="eltern__leer">Noch keine Aufgaben gelöst.</div>';
 
     const frei = freieBiome(getBiomFreigabe(p.id))
@@ -112,7 +121,7 @@ export function tabStatistik(container, neuRendern) {
         <div class="stat-detail__kopf"><span>${avatar}</span> ${escapeHtml(p.name)}</div>
 
         <div class="stat-detail__abschnitt">📊 Gelöst je Rechenart</div>
-        <div class="stat-tabelle">${zeilen}</div>
+        ${tabelle}
         <div class="stat-biome">Freigeschaltet: ${escapeHtml(frei)}</div>
 
         <div class="stat-detail__abschnitt">📈 Verlauf</div>
