@@ -62,6 +62,19 @@
 .karte__biom--gesperrt { opacity: .6; filter: grayscale(.7); }
 .karte__biom--gesperrt .karte__fahne { animation: none; }
 
+/* Offene Reihe: der runde Mast-Knauf ganz oben schwillt an/ab und leuchtet —
+   gut sichtbarer, ruhiger Hinweis, ohne die Fahne selbst zu verändern. */
+.karte__biom--offen .karte__mast::before {
+  animation: mast-knauf 2.4s ease-in-out infinite;
+}
+
+/* Warm-dunkler Konturring (Dunkelbraun, passend zu Mast/Knauf) macht den Knauf auch auf
+   hellem Grund sichtbar (Schneegipfel beim Mal-Land); Glow in Orange, damit er auf Weiß nicht untergeht. */
+@keyframes mast-knauf {
+  0%, 100% { transform: scale(1);    box-shadow: 0 0 0 1.5px rgba(74,51,24,0.6), 0 0 4px 1px rgba(240,168,48,0.6); }
+  50%      { transform: scale(1.45); box-shadow: 0 0 0 1.5px rgba(74,51,24,0.6), 0 0 11px 4px rgba(240,168,48,1); }
+}
+
 @keyframes sw-wehen { 0%,100% { transform: rotate(-2deg) skewX(-4deg); } 50% { transform: rotate(2deg) skewX(6deg); } }
 
 @media (max-width: 480px) {

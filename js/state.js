@@ -1,6 +1,7 @@
 import { istFrei, freieBiome, naechstesBiom, hoechstesFreies } from './biome-logik.js';
 import { gruppiereGutscheine, entferneAusStapel } from './gutschein-logik.js';
 import { aktualisiereVerlauf } from './statistik-logik.js';
+import { offeneBiome } from './reihe-logik.js';
 
 const STORAGE_KEY = 'block-land-state-v1';
 
@@ -180,6 +181,11 @@ export function setzeAktiveReihe(profileId, biom, reihe) {
   if (reihe) p.aktiveReihen[biom] = structuredClone(reihe);
   else delete p.aktiveReihen[biom];
   save(state);
+}
+
+// Biom-Ids mit offener Reihe (für Karten-Flaggen + Welt-Hinweispunkt).
+export function getOffeneReihen(profileId) {
+  return offeneBiome(state.profiles[profileId]?.aktiveReihen ?? {});
 }
 
 export function getRezepte() {

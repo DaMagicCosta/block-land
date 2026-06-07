@@ -1,4 +1,4 @@
-import { getCurrentProfile, setCurrentProfile, getAktivesBiom, getAktiveReihe } from './state.js';
+import { getCurrentProfile, setCurrentProfile, getAktivesBiom, getAktiveReihe, getOffeneReihen } from './state.js';
 import { loadAvatare, loadBiom } from './data.js';
 import { escapeHtml } from './utils.js';
 import { oeffneModal, schliesseAlleModals } from './modal.js';
@@ -21,6 +21,8 @@ export async function renderWelt(container) {
   const aktivId = getAktivesBiom(profile.id);
   const reihe = getAktiveReihe(profile.id, aktivId);
   const hatReihe = !!reihe;
+  const offeneAndere = getOffeneReihen(profile.id).filter(b => b !== aktivId);
+  const hatHinweis = offeneAndere.length > 0;
   let biom, avatare;
   try {
     [biom, avatare] = await Promise.all([loadBiom(aktivId), loadAvatare()]);
@@ -67,7 +69,7 @@ export async function renderWelt(container) {
           ${hatReihe ? `<button class="welt__weiter" id="welt-weiter">▶ Weitermachen — Frage ${reihe.position}/${reihe.laenge}</button>` : ''}
         </div>
         ${rendereInventarHeader()}
-        <button class="welt__karte-btn" id="welt-karte" title="Land wechseln">🗺️</button>
+        <button class="welt__karte-btn${hatHinweis ? ' welt__karte-btn--hinweis' : ''}" id="welt-karte" title="Land wechseln">🗺️</button>
         <button class="welt__rezeptbuch" id="welt-rezeptbuch" title="Werkstatt / Rezeptbuch">📖</button>
         <button class="welt__eltern" id="welt-eltern" title="Eltern-Bereich">⚙️</button>
         <button class="welt__back" id="welt-back">Profil wechseln</button>
