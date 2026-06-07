@@ -35,7 +35,7 @@ function kartenSzene() {
       <ellipse cx="30" cy="64" rx="24" ry="15" fill="#33333d"/>
       <ellipse cx="68" cy="32" rx="26" ry="17" fill="#5b4d3e"/>
       <!-- Wiese: Blumen -->
-      <circle cx="17" cy="136" r="2" fill="#ffd166"/><circle cx="37" cy="138" r="2" fill="#ef89b4"/><circle cx="28" cy="124" r="1.6" fill="#ffd166"/>
+      <circle cx="47" cy="134" r="2" fill="#ffd166"/><circle cx="37" cy="138" r="2" fill="#ef89b4"/><circle cx="28" cy="124" r="1.6" fill="#ffd166"/>
       <!-- Wald: blockige Bäume -->
       <g fill="#1f3a1f"><polygon points="60,100 64,90 68,100"/><polygon points="74,98 78,88 82,98"/></g>
       <rect x="63" y="100" width="2" height="4" fill="#5a3a22"/><rect x="77" y="98" width="2" height="4" fill="#5a3a22"/>
