@@ -9,6 +9,7 @@ import {
   addProfile, deleteProfile, setzeKindPin,
   getBiomFreigabe, setBiomElternStatus,
 } from './state.js';
+import { tabStatistik } from './statistik.js';
 import { escapeHtml } from './utils.js';
 import { loadBiomManifest } from './data.js';
 import { istFrei } from './biome-logik.js';
@@ -16,7 +17,6 @@ import { istFrei } from './biome-logik.js';
 const ITEM_KEYS = ['holz', 'stein', 'blume', 'eisen', 'diamant'];
 const ITEM_EMOJI = { holz: '🪵', stein: '🪨', blume: '🌸', eisen: '⛏️', diamant: '💎' };
 const KATEGORIEN = ['Eltern-Zeit', 'Naschen & Essen', 'Bildschirm-Zeit', 'Erlebnisse'];
-const SELTENHEIT = [['selten', 'Selten'], ['sehr_selten', 'Sehr selten'], ['extrem', 'Extrem selten']];
 const ALTER = [['kindergarten', 'Kindergarten'], ['klasse-1', '1. Klasse'], ['klasse-2', '2. Klasse'], ['klasse-3', '3. Klasse']];
 const AVATARE = [['krieger', '🗡️'], ['bergmann', '⛏️'], ['magier', '🧙'], ['ninja', '🥷'], ['ritter', '🛡️'], ['schurke', '🦹'], ['tier', '🐺'], ['drache', '🐉']];
 
@@ -80,6 +80,7 @@ function dashboard(modal) {
         <button data-tab="gutscheine" class="${tab === 'gutscheine' ? 'aktiv' : ''}">🎟️ Gutscheine</button>
         <button data-tab="kinder" class="${tab === 'kinder' ? 'aktiv' : ''}">🧒 Kinder</button>
         <button data-tab="biome" class="${tab === 'biome' ? 'aktiv' : ''}">🗺️ Biome</button>
+        <button data-tab="statistik" class="${tab === 'statistik' ? 'aktiv' : ''}">📊 Statistik</button>
         <button data-tab="pin" class="${tab === 'pin' ? 'aktiv' : ''}">🔒 PIN</button>
       </div>
       <div class="eltern__inhalt"></div>
@@ -90,6 +91,7 @@ function dashboard(modal) {
     else if (tab === 'gutscheine') tabGutscheine(inhalt, render);
     else if (tab === 'kinder') tabKinder(inhalt, render);
     else if (tab === 'biome') tabBiome(inhalt, render);
+    else if (tab === 'statistik') tabStatistik(inhalt, render);
     else tabPin(inhalt);
     modal.inhalt.querySelectorAll('.eltern__tabs button').forEach(b => {
       b.addEventListener('click', () => { tab = b.dataset.tab; render(); });
