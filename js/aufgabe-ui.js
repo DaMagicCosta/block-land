@@ -194,8 +194,54 @@ function baueVisualisierung(aufgabe) {
   return `<div class="aufgabe__visualisierung">${rendereZehnerhaus(aufgabe.a, { farbe: 'success' })}<div class="aufgabe__plus">${operator}</div>${rendereZehnerhaus(aufgabe.b, { farbe: 'action' })}</div>`;
 }
 
+// Render für die rechnen10-Formen zerlegung/verliebte/rechnen (subitizing läuft über den mengen-Zweig).
+function baueRechnen10Inhalt(aufgabe, mechanik) {
+  const aufgabenText = `<div class="aufgabe__text">${escapeHtml(aufgabe.text)}</div>`;
+  const knoepfe = aufgabe.antwort_optionen.map(opt =>
+    `<button class="aufgabe__option" data-wert="${opt}">${opt}</button>`).join('');
+
+  // B-Mechanik: Legen. Zerlegung/Verliebte mit vorgefülltem teil_a; Rechnen wie plus/minus.
+  if (mechanik === 'B' && (aufgabe.form === 'zerlegung' || aufgabe.form === 'verliebte')) {
+    return `
+      ${aufgabenText}
+      <div class="aufgabe__legebereich" data-soll="${aufgabe.ganze}" data-start="${aufgabe.teil_a}"></div>
+      <div class="aufgabe__optionen" hidden></div>
+      <div class="aufgabe__feedback" hidden></div>
+    `;
+  }
+  if (mechanik === 'B' && aufgabe.form === 'rechnen') {
+    return `
+      ${aufgabenText}
+      <div class="aufgabe__legebereich" data-soll="${aufgabe.ergebnis}"></div>
+      <div class="aufgabe__optionen" hidden></div>
+      <div class="aufgabe__feedback" hidden></div>
+    `;
+  }
+
+  // A-Mechanik: passende Anschauung je Form.
+  return `
+    ${aufgabenText}
+    ${baueRechnen10Visualisierung(aufgabe)}
+    <div class="aufgabe__optionen">${knoepfe}</div>
+    <div class="aufgabe__feedback" hidden></div>
+  `;
+}
+
+function baueRechnen10Visualisierung(aufgabe) {
+  if (aufgabe.form === 'zerlegung') {
+    return `<div class="aufgabe__visualisierung">${rendereStatischesFeld(aufgabe.ganze, aufgabe.teil_a)}</div>`;
+  }
+  if (aufgabe.form === 'verliebte') {
+    return `<div class="aufgabe__visualisierung">${rendereStatischesFeld(10, aufgabe.teil_a)}</div>`;
+  }
+  if (aufgabe.form === 'rechnen') {
+    return `<div class="aufgabe__visualisierung">${rendereZehnerhaus(aufgabe.a, { farbe: 'success' })}<div class="aufgabe__plus">${aufgabe.operator}</div>${rendereZehnerhaus(aufgabe.b, { farbe: 'action' })}</div>`;
+  }
+  return '';
+}
+
 function baueAufgabeInhalt(aufgabe, mechanik) {
-  if (aufgabe.aufgabentyp === 'mengen') {
+  if (aufgabe.aufgabentyp === 'mengen' || aufgabe.form === 'subitizing') {
     const wuerfel = rendereZehnerhaus(aufgabe.ziel, { farbe: 'success' });
     const knoepfe = aufgabe.antwort_optionen.map(opt =>
       `<button class="aufgabe__option" data-wert="${opt}">${opt}</button>`
@@ -206,6 +252,9 @@ function baueAufgabeInhalt(aufgabe, mechanik) {
       <div class="aufgabe__optionen">${knoepfe}</div>
       <div class="aufgabe__feedback" hidden></div>
     `;
+  }
+  if (aufgabe.aufgabentyp === 'rechnen10') {
+    return baueRechnen10Inhalt(aufgabe, mechanik);
   }
   const aufgabenText = `<div class="aufgabe__text">${aufgabe.text}</div>`;
 
@@ -298,6 +347,7 @@ function starteAufgabe(reihe, mechanik, profile, modal, inhalt, maxStufe, onWeit
   } else {
     const legeBereich = inhalt.querySelector('.aufgabe__legebereich');
     const sollZahl = parseInt(legeBereich.dataset.soll, 10);
+    const startGefuellt = parseInt(legeBereich.dataset.start ?? '0', 10) || 0;
     rendereLegehaus(sollZahl, legeBereich, (aktuell, gesamt) => {
       if (aktuell === gesamt) {
         const optionen = inhalt.querySelector('.aufgabe__optionen');
@@ -311,7 +361,7 @@ function starteAufgabe(reihe, mechanik, profile, modal, inhalt, maxStufe, onWeit
           });
         }
       }
-    });
+    }, { startGefuellt });
   }
 }
 
