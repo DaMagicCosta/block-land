@@ -1,0 +1,22 @@
+{
+  "name": "Würfel-Teich", "spalten": 12, "zeilen": 8,
+  "tile_typen": {
+    "g": { "label": "Ufer", "emoji": "🌿", "interaktiv": false, "klasse": "tile--teich-ufer" },
+    "w": { "label": "Wasser", "emoji": "💧", "interaktiv": false, "klasse": "tile--teich-wasser" },
+    ".": { "label": "Steg", "emoji": "", "interaktiv": false, "klasse": "tile--teich-ufer" },
+    "r": { "label": "Schilf", "emoji": "🌾", "interaktiv": true, "klasse": "tile--teich-schilf", "reward": { "item": "holz", "emoji": "🪵", "label": "Holz" } },
+    "s": { "label": "Kiesel", "emoji": "🪨", "interaktiv": true, "klasse": "tile--teich-kiesel", "reward": { "item": "stein", "emoji": "🪨", "label": "Stein" } },
+    "l": { "label": "Seerose", "emoji": "🪷", "interaktiv": true, "klasse": "tile--teich-seerose", "reward": { "item": "blume", "emoji": "🌸", "label": "Blume" } }
+  },
+  "spielfigur_start": { "spalte": 6, "zeile": 4 },
+  "layout": [
+    "grgggslgggsg",
+    "gwwgggggrwwg",
+    "gwwgglgggwwg",
+    "ggggg.gggwsg",
+    "grgggggrgggg",
+    "ggwwgglggwwg",
+    "gswwgggggwlg",
+    "gggrgggsgggg"
+  ]
+}

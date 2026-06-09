@@ -55,29 +55,33 @@ function rendereWuerfel(augen, farbVar) {
 }
 
 // B-Mechanik: leeres Zähl-Raster, Punkte werden durch Klick gefüllt.
-// Gibt eine Funktion zurück, die den aktuellen Stand abfragt.
-export function rendereLegehaus(soll_zahl, container, onChange) {
-  const vollHaeuser = Math.floor(soll_zahl / 10);
-  const rest = soll_zahl % 10;
-  const gesamt_punkte = vollHaeuser * 10 + rest;
-
-  let aktuell = 0;
+// `startGefuellt` = bereits gesetzte (bekannte) Punkte, die nicht zurückgenommen werden können.
+export function rendereLegehaus(soll_zahl, container, onChange, { startGefuellt = 0 } = {}) {
+  const gesamt_punkte = soll_zahl;
+  let aktuell = startGefuellt;
 
   function aktualisiereAnzeige() {
     container.querySelectorAll('.wuerfelhaus__punkt').forEach((el, idx) => {
+      const istBekannt = idx < startGefuellt;
       const istGefuellt = idx < aktuell;
-      el.style.background = istGefuellt ? 'var(--color-action)' : 'transparent';
-      el.style.border = istGefuellt ? 'none' : '1px dashed var(--color-border)';
+      if (istBekannt) {
+        el.style.background = 'var(--color-success)';
+        el.style.border = 'none';
+      } else if (istGefuellt) {
+        el.style.background = 'var(--color-action)';
+        el.style.border = 'none';
+      } else {
+        el.style.background = 'transparent';
+        el.style.border = '1px dashed var(--color-border)';
+      }
     });
     if (onChange) onChange(aktuell, gesamt_punkte);
   }
 
-  // Aufbau: gesamt_punkte leere Plätze
   const punkte = [];
   for (let i = 0; i < gesamt_punkte; i++) {
     punkte.push(`<div class="wuerfelhaus__punkt" data-punkt-idx="${i}" style="background:transparent;border:1px dashed var(--color-border)"></div>`);
   }
-  // In 10er-Häuser gruppieren
   const haus_html = [];
   for (let h = 0; h < Math.ceil(gesamt_punkte / 10); h++) {
     const start = h * 10;
@@ -86,7 +90,7 @@ export function rendereLegehaus(soll_zahl, container, onChange) {
   }
   container.innerHTML = `
     <div class="wuerfelhaus wuerfelhaus--lege">
-      <div class="wuerfelhaus__zahl"><span class="wuerfelhaus__counter">0</span> / ${soll_zahl}</div>
+      <div class="wuerfelhaus__zahl"><span class="wuerfelhaus__counter">${aktuell}</span> / ${soll_zahl}</div>
       <div class="wuerfelhaus__haeuser">${haus_html.join('')}</div>
     </div>
   `;
@@ -94,16 +98,37 @@ export function rendereLegehaus(soll_zahl, container, onChange) {
   container.querySelectorAll('.wuerfelhaus__punkt').forEach((el) => {
     el.addEventListener('click', () => {
       const idx = parseInt(el.dataset.punktIdx, 10);
-      // Klick auf nächsten leeren Punkt: füllt bis dorthin auf. Klick auf gefüllten: zieht zurück.
-      aktuell = idx < aktuell ? idx : idx + 1;
+      const neu = idx < aktuell ? idx : idx + 1;
+      aktuell = Math.max(startGefuellt, neu);
       aktualisiereAnzeige();
       const counter = container.querySelector('.wuerfelhaus__counter');
       if (counter) counter.textContent = String(aktuell);
     });
   });
 
+  aktualisiereAnzeige();
   return {
     getStand: () => aktuell,
     istKomplett: () => aktuell === gesamt_punkte,
   };
+}
+
+// Statisches Punktefeld (in 10er-Häuser gruppiert): erste `gefuellt` Punkte farbig,
+// Rest blass/gestrichelt. Für die A-Mechanik der Zerlegungs-/Verliebte-Formen.
+export function rendereStatischesFeld(gesamt, gefuellt, options = {}) {
+  const { farbe = 'success' } = options;
+  const farbVar = farbe === 'action' ? 'var(--color-action)' : 'var(--color-success)';
+  const punkte = [];
+  for (let i = 0; i < gesamt; i++) {
+    const an = i < gefuellt;
+    const stil = an
+      ? `background:${farbVar}`
+      : 'background:transparent;border:1px dashed var(--color-border)';
+    punkte.push(`<div class="wuerfelhaus__punkt" style="${stil}"></div>`);
+  }
+  const haeuser = [];
+  for (let h = 0; h < Math.ceil(gesamt / 10); h++) {
+    haeuser.push(`<div class="wuerfelhaus__haus">${punkte.slice(h * 10, h * 10 + 10).join('')}</div>`);
+  }
+  return `<div class="wuerfelhaus wuerfelhaus--statisch"><div class="wuerfelhaus__haeuser">${haeuser.join('')}</div></div>`;
 }
