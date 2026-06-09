@@ -10,10 +10,11 @@
   position: relative; width: 100%; border-radius: var(--radius-md);
   border: 2px solid var(--color-border); overflow: hidden;
 }
-/* Szene im festen Karten-Seitenverhältnis (2:3) → keine Verzerrung, 5 Biome gleichmäßig verteilt.
-   Ist die Szene höher als der Screen, scrollt die Seite ein Stück. */
+/* Szene im Karten-Seitenverhältnis (2:3) als Untergrenze; am hohen Handy-Screen füllt min-height
+   nach unten auf (statt freiem Bereich), die Seite scrollt dann ein Stück. */
 .karte__szene {
   position: relative; width: 100%; aspect-ratio: 100 / 150;
+  min-height: 84vh;
 }
 /* Fortschritt zum nächsten (gesperrten) Land — macht das Ziel und den Weg sichtbar. */
 .karte__fortschritt {

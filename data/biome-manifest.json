@@ -1,7 +1,7 @@
 {
-  "mengen": { "name": "Mengen-Wiese", "icon": "🟢", "aufgabentyp": "mengen", "atmosphaere": "wiese", "kartenposition": { "x": 28, "y": 86 } },
-  "rechnen10": { "name": "Würfel-Teich", "icon": "🦆", "aufgabentyp": "rechnen10", "atmosphaere": "teich", "kartenposition": { "x": 52, "y": 69 } },
-  "plus":   { "name": "Plus-Wald",    "icon": "🌳", "aufgabentyp": "plus",   "atmosphaere": "wald",  "kartenposition": { "x": 70, "y": 52 } },
-  "minus":  { "name": "Minus-Höhle",  "icon": "🪨", "aufgabentyp": "minus",  "atmosphaere": "hoehle","kartenposition": { "x": 30, "y": 36 } },
-  "mal":    { "name": "Mal-Berg",     "icon": "⛏️", "aufgabentyp": "mal",    "atmosphaere": "berg",  "kartenposition": { "x": 68, "y": 19 } }
+  "mengen": { "name": "Mengen-Wiese", "icon": "🟢", "aufgabentyp": "mengen", "atmosphaere": "wiese", "kartenposition": { "x": 24, "y": 89 } },
+  "rechnen10": { "name": "Würfel-Teich", "icon": "🦆", "aufgabentyp": "rechnen10", "atmosphaere": "teich", "kartenposition": { "x": 52, "y": 70 } },
+  "plus":   { "name": "Plus-Wald",    "icon": "🌳", "aufgabentyp": "plus",   "atmosphaere": "wald",  "kartenposition": { "x": 77, "y": 52 } },
+  "minus":  { "name": "Minus-Höhle",  "icon": "🪨", "aufgabentyp": "minus",  "atmosphaere": "hoehle","kartenposition": { "x": 23, "y": 34 } },
+  "mal":    { "name": "Mal-Berg",     "icon": "⛏️", "aufgabentyp": "mal",    "atmosphaere": "berg",  "kartenposition": { "x": 73, "y": 16 } }
 }
