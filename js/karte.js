@@ -27,10 +27,16 @@ function kartenSzene() {
       </defs>
       <rect width="100" height="150" fill="url(#sw-himmel)"/>
       <!-- Pfad: Reise von unten nach oben (Klasse für die Figur-Wegfindung) -->
-      <path class="karte__pfad" d="M 28 132 C 46 122, 64 110, 70 98 C 77 84, 36 78, 30 64 C 23 50, 60 40, 68 30"
+      <path class="karte__pfad" d="M 28 132 C 40 126, 44 118, 50 112 C 57 106, 64 102, 70 98 C 77 84, 36 78, 30 64 C 23 50, 60 40, 68 30"
             fill="none" stroke="#d9c89a" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="2 5" opacity="0.8"/>
       <!-- Boden-Regionen -->
       <ellipse cx="28" cy="130" rx="26" ry="17" fill="#3f6e34"/>
+      <!-- Würfel-Teich: Wasser + Seerosen -->
+      <ellipse cx="50" cy="111" rx="20" ry="11" fill="#23566a"/>
+      <ellipse cx="50" cy="109" rx="15" ry="7" fill="#2f6e86" opacity="0.75"/>
+      <circle cx="43" cy="111" r="3" fill="#3f7a4a"/><circle cx="57" cy="113" r="2.5" fill="#3f7a4a"/><circle cx="52" cy="106" r="2" fill="#3f7a4a"/>
+      <circle cx="43" cy="110" r="1" fill="#ef89b4"/>
+      <path d="M 41 107 q 4 -2 8 0 M 49 114 q 4 -2 8 0" stroke="#bfe3ef" stroke-width="0.6" fill="none" opacity="0.55"/>
       <ellipse cx="70" cy="98" rx="24" ry="16" fill="#2c4f2a"/>
       <ellipse cx="30" cy="64" rx="24" ry="15" fill="#33333d"/>
       <ellipse cx="68" cy="32" rx="26" ry="17" fill="#5b4d3e"/>
@@ -114,17 +120,19 @@ export async function renderKarte(container) {
       </div>
       ${fortschrittHtml}
       <div class="karte__feld">
-        ${kartenSzene()}
-        ${marker}
-        <button class="karte__burg" id="karte-burg" style="left:83%;top:84%">
-          ${rendereBurgSvg(burgStufe)}
-          <span class="karte__burg-label">Meine Burg</span>
-        </button>
-        <button class="karte__trainer" id="karte-trainer" style="left:15%;top:90%">
-          <span class="karte__trainer-icon">🧮</span>
-          <span class="karte__trainer-label">Rechen-Trainer</span>
-        </button>
-        <div class="karte__figur" id="karte-figur" style="left:${aktivPos.x}%;top:${aktivPos.y}%"><span class="karte__figur-emoji">${avatarEmoji}</span></div>
+        <div class="karte__szene">
+          ${kartenSzene()}
+          ${marker}
+          <button class="karte__burg" id="karte-burg" style="left:83%;top:84%">
+            ${rendereBurgSvg(burgStufe)}
+            <span class="karte__burg-label">Meine Burg</span>
+          </button>
+          <button class="karte__trainer" id="karte-trainer" style="left:15%;top:90%">
+            <span class="karte__trainer-icon">🧮</span>
+            <span class="karte__trainer-label">Rechen-Trainer</span>
+          </button>
+          <div class="karte__figur" id="karte-figur" style="left:${aktivPos.x}%;top:${aktivPos.y}%"><span class="karte__figur-emoji">${avatarEmoji}</span></div>
+        </div>
       </div>
       <div class="karte__fade" id="karte-fade"></div>
     </div>

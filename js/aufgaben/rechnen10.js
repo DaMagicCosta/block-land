@@ -29,7 +29,7 @@ function zerlegung(cfg, dcfg) {
   return basis('zerlegung', cfg.nr, {
     ganze, teil_a, ergebnis,
     text: `${teil_a} + ⬚ = ${ganze}`,
-    vorlese_text: `${teil_a} und wie viel ist ${ganze}?`,
+    vorlese_text: `${teil_a} plus wie viel ist ${ganze}?`,
     antwort_optionen: optionenUm(ergebnis, dcfg),
   });
 }
@@ -40,7 +40,7 @@ function verliebte(cfg, dcfg) {
   return basis('verliebte', cfg.nr, {
     ganze: 10, teil_a, ergebnis,
     text: `${teil_a} + ⬚ = 10`,
-    vorlese_text: `${teil_a} und wie viel sind zehn?`,
+    vorlese_text: `${teil_a} plus wie viel ist zehn?`,
     antwort_optionen: optionenUm(ergebnis, dcfg),
   });
 }
