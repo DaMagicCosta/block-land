@@ -13,6 +13,7 @@
 .welt--plus   { background: linear-gradient(180deg, #1f3320, #14210f); }
 .welt--minus  { background: linear-gradient(180deg, #20202a, #131319); }
 .welt--mal    { background: linear-gradient(180deg, #2d2620, #3a2f22); }
+.welt--rechnen10 { background: linear-gradient(180deg, #16323a, #0f2027); }
 
 .welt__header {
   width: 100%;
@@ -77,6 +78,11 @@
 .tile--stein  { background: #3a5a3a; cursor: pointer; }
 .tile--blume  { background: #3a5a3a; cursor: pointer; }
 .tile--hoehle { background: #1f1f1f; cursor: pointer; }
+.tile--teich-ufer    { background: #2e4d52; }
+.tile--teich-wasser  { background: #1e3a44; }
+.tile--teich-schilf  { background: #2e4d52; cursor: pointer; }
+.tile--teich-kiesel  { background: #2e4d52; cursor: pointer; }
+.tile--teich-seerose { background: #2e4d52; cursor: pointer; }
 .tile--werkbank { background: #4a3f6a; cursor: pointer; }
 
 .welt__tile.is-interaktiv:hover { outline: 2px solid var(--color-action); z-index: 1; }
