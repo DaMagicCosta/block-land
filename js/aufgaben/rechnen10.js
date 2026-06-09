@@ -28,8 +28,8 @@ function zerlegung(cfg, dcfg) {
   const ergebnis = ganze - teil_a;
   return basis('zerlegung', cfg.nr, {
     ganze, teil_a, ergebnis,
-    text: `${ganze} = ${teil_a} + ⬚`,
-    vorlese_text: `${ganze} ist ${teil_a} und wie viel?`,
+    text: `${teil_a} + ⬚ = ${ganze}`,
+    vorlese_text: `${teil_a} und wie viel ist ${ganze}?`,
     antwort_optionen: optionenUm(ergebnis, dcfg),
   });
 }
