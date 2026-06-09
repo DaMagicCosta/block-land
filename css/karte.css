@@ -7,13 +7,13 @@
   border-radius: var(--radius-sm); padding: var(--space-xs) var(--space-sm); font-family: var(--font-mono); cursor: pointer;
 }
 .karte__feld {
-  position: relative; width: 100%; flex: 1; min-height: 240px; border-radius: var(--radius-md);
-  border: 2px solid var(--color-border); overflow-y: auto; overflow-x: hidden;
+  position: relative; width: 100%; border-radius: var(--radius-md);
+  border: 2px solid var(--color-border); overflow: hidden;
 }
-/* Höhere Szene als das Feld → vertikal scrollbar; entzerrt die 5 Biome (statt zu quetschen). */
+/* Szene im festen Karten-Seitenverhältnis (2:3) → keine Verzerrung, 5 Biome gleichmäßig verteilt.
+   Ist die Szene höher als der Screen, scrollt die Seite ein Stück. */
 .karte__szene {
-  position: relative; width: 100%;
-  height: 145vw; min-height: 540px; max-height: 920px;
+  position: relative; width: 100%; aspect-ratio: 100 / 150;
 }
 /* Fortschritt zum nächsten (gesperrten) Land — macht das Ziel und den Weg sichtbar. */
 .karte__fortschritt {

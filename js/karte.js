@@ -15,8 +15,8 @@ const TRAINER_REWARD = { item: 'holz', emoji: '🪵', label: 'Holz' };
 
 // Stilisierte Landkarte im Hochformat (Pixel-/Minecraft-Anmutung). viewBox 100×150,
 // per CSS aufs Feld gestreckt (preserveAspectRatio="none"). Reise von unten (Wiese) nach
-// oben (Berg), Länder im Zickzack verteilt. Die Biom-Marker (in %) liegen genau auf den
-// Regionen: Wiese ~(28,85), Wald ~(70,65), Höhle ~(30,43), Berg ~(68,19) in %.
+// oben (Berg), Länder im Zickzack + gleichmäßig verteilt. Marker (in %) liegen auf den Regionen:
+// Wiese (28,86), Teich (52,69), Wald (70,52), Höhle (30,36), Berg (68,19). Region-cy = y%·1,5.
 function kartenSzene() {
   return `
     <svg class="karte__svg" viewBox="0 0 100 150" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -26,33 +26,32 @@ function kartenSzene() {
         </linearGradient>
       </defs>
       <rect width="100" height="150" fill="url(#sw-himmel)"/>
-      <!-- Pfad: Reise von unten nach oben (Klasse für die Figur-Wegfindung) -->
-      <path class="karte__pfad" d="M 28 132 C 40 126, 44 118, 50 112 C 57 106, 64 102, 70 98 C 77 84, 36 78, 30 64 C 23 50, 60 40, 68 30"
+      <!-- Pfad: Reise von unten (Wiese) nach oben (Berg), durch alle fünf Länder -->
+      <path class="karte__pfad" d="M 28 138 C 36 130, 46 114, 52 104 C 58 96, 64 88, 70 78 C 78 66, 40 64, 30 54 C 22 44, 60 38, 68 28"
             fill="none" stroke="#d9c89a" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="2 5" opacity="0.8"/>
-      <!-- Boden-Regionen -->
-      <ellipse cx="28" cy="130" rx="26" ry="17" fill="#3f6e34"/>
+      <!-- Mengen-Wiese (unten) -->
+      <ellipse cx="28" cy="129" rx="26" ry="15" fill="#3f6e34"/>
+      <circle cx="15" cy="133" r="2" fill="#ffd166"/><circle cx="41" cy="135" r="2" fill="#ef89b4"/><circle cx="22" cy="122" r="1.6" fill="#ffd166"/>
       <!-- Würfel-Teich: Wasser + Seerosen -->
-      <ellipse cx="50" cy="111" rx="20" ry="11" fill="#23566a"/>
-      <ellipse cx="50" cy="109" rx="15" ry="7" fill="#2f6e86" opacity="0.75"/>
-      <circle cx="43" cy="111" r="3" fill="#3f7a4a"/><circle cx="57" cy="113" r="2.5" fill="#3f7a4a"/><circle cx="52" cy="106" r="2" fill="#3f7a4a"/>
-      <circle cx="43" cy="110" r="1" fill="#ef89b4"/>
-      <path d="M 41 107 q 4 -2 8 0 M 49 114 q 4 -2 8 0" stroke="#bfe3ef" stroke-width="0.6" fill="none" opacity="0.55"/>
-      <ellipse cx="70" cy="98" rx="24" ry="16" fill="#2c4f2a"/>
-      <ellipse cx="30" cy="64" rx="24" ry="15" fill="#33333d"/>
-      <ellipse cx="68" cy="32" rx="26" ry="17" fill="#5b4d3e"/>
-      <!-- Wiese: Blumen -->
-      <circle cx="47" cy="134" r="2" fill="#ffd166"/><circle cx="37" cy="138" r="2" fill="#ef89b4"/><circle cx="28" cy="124" r="1.6" fill="#ffd166"/>
-      <!-- Wald: blockige Bäume -->
-      <g fill="#1f3a1f"><polygon points="60,100 64,90 68,100"/><polygon points="74,98 78,88 82,98"/></g>
-      <rect x="63" y="100" width="2" height="4" fill="#5a3a22"/><rect x="77" y="98" width="2" height="4" fill="#5a3a22"/>
-      <!-- Höhle: Eingang + Felsen -->
-      <path d="M 24 70 a 6 7 0 0 1 12 0 z" fill="#15151b"/>
-      <rect x="38" y="64" width="6" height="6" rx="1" fill="#44444f"/><rect x="17" y="66" width="5" height="5" rx="1" fill="#44444f"/>
-      <!-- Berg mit Schneekappe -->
-      <polygon points="68,10 85,38 51,38" fill="#6b5a48"/>
-      <polygon points="68,10 75,22 61,22" fill="#e8eef2"/>
+      <ellipse cx="52" cy="104" rx="20" ry="11" fill="#23566a"/>
+      <ellipse cx="52" cy="102" rx="14" ry="6.5" fill="#2f6e86" opacity="0.75"/>
+      <circle cx="45" cy="105" r="3" fill="#3f7a4a"/><circle cx="59" cy="106" r="2.5" fill="#3f7a4a"/><circle cx="54" cy="99" r="2" fill="#3f7a4a"/>
+      <circle cx="45" cy="104" r="1" fill="#ef89b4"/>
+      <path d="M 43 100 q 4 -2 8 0 M 51 107 q 4 -2 8 0" stroke="#bfe3ef" stroke-width="0.6" fill="none" opacity="0.55"/>
+      <!-- Plus-Wald -->
+      <ellipse cx="70" cy="78" rx="24" ry="14" fill="#2c4f2a"/>
+      <g fill="#1f3a1f"><polygon points="60,80 64,70 68,80"/><polygon points="74,78 78,68 82,78"/></g>
+      <rect x="63" y="80" width="2" height="4" fill="#5a3a22"/><rect x="77" y="78" width="2" height="4" fill="#5a3a22"/>
+      <!-- Minus-Höhle -->
+      <ellipse cx="30" cy="54" rx="24" ry="14" fill="#33333d"/>
+      <path d="M 24 60 a 6 7 0 0 1 12 0 z" fill="#15151b"/>
+      <rect x="38" y="54" width="6" height="6" rx="1" fill="#44444f"/><rect x="17" y="56" width="5" height="5" rx="1" fill="#44444f"/>
+      <!-- Mal-Berg (oben) -->
+      <ellipse cx="68" cy="28" rx="26" ry="16" fill="#5b4d3e"/>
+      <polygon points="68,8 85,34 51,34" fill="#6b5a48"/>
+      <polygon points="68,8 75,20 61,20" fill="#e8eef2"/>
       <!-- Wolken -->
-      <g fill="#ffffff" opacity="0.15"><ellipse cx="30" cy="16" rx="9" ry="3.5"/><ellipse cx="78" cy="12" rx="10" ry="4"/></g>
+      <g fill="#ffffff" opacity="0.15"><ellipse cx="30" cy="14" rx="9" ry="3.5"/><ellipse cx="82" cy="50" rx="8" ry="3"/></g>
     </svg>`;
 }
 
