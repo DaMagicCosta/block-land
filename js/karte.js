@@ -16,7 +16,7 @@ const TRAINER_REWARD = { item: 'holz', emoji: '🪵', label: 'Holz' };
 // Stilisierte Landkarte im Hochformat (Pixel-/Minecraft-Anmutung). viewBox 100×150,
 // per CSS aufs Feld gestreckt (preserveAspectRatio="none"). Reise von unten (Wiese) nach
 // oben (Berg), Länder im Zickzack + gleichmäßig verteilt. Marker (in %) liegen auf den Regionen:
-// Wiese (28,86), Teich (52,69), Wald (70,52), Höhle (30,36), Berg (68,19). Region-cy = y%·1,5.
+// Wiese (24,89), Teich (52,70), Wald (77,52), Höhle (23,34), Berg (73,16). Region-cy = y%·1,5.
 function kartenSzene() {
   return `
     <svg class="karte__svg" viewBox="0 0 100 150" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -26,32 +26,32 @@ function kartenSzene() {
         </linearGradient>
       </defs>
       <rect width="100" height="150" fill="url(#sw-himmel)"/>
-      <!-- Pfad: Reise von unten (Wiese) nach oben (Berg), durch alle fünf Länder -->
-      <path class="karte__pfad" d="M 28 138 C 36 130, 46 114, 52 104 C 58 96, 64 88, 70 78 C 78 66, 40 64, 30 54 C 22 44, 60 38, 68 28"
+      <!-- Pfad: Reise von unten (Wiese) nach oben (Berg), durch alle fünf Länder, breiter Zickzack -->
+      <path class="karte__pfad" d="M 24 142 C 30 136, 44 114, 52 105 C 62 96, 70 88, 77 78 C 86 64, 36 60, 23 51 C 12 44, 64 34, 73 24"
             fill="none" stroke="#d9c89a" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="2 5" opacity="0.8"/>
-      <!-- Mengen-Wiese (unten) -->
-      <ellipse cx="28" cy="129" rx="26" ry="15" fill="#3f6e34"/>
-      <circle cx="15" cy="133" r="2" fill="#ffd166"/><circle cx="41" cy="135" r="2" fill="#ef89b4"/><circle cx="22" cy="122" r="1.6" fill="#ffd166"/>
-      <!-- Würfel-Teich: Wasser + Seerosen -->
-      <ellipse cx="52" cy="104" rx="20" ry="11" fill="#23566a"/>
-      <ellipse cx="52" cy="102" rx="14" ry="6.5" fill="#2f6e86" opacity="0.75"/>
-      <circle cx="45" cy="105" r="3" fill="#3f7a4a"/><circle cx="59" cy="106" r="2.5" fill="#3f7a4a"/><circle cx="54" cy="99" r="2" fill="#3f7a4a"/>
-      <circle cx="45" cy="104" r="1" fill="#ef89b4"/>
-      <path d="M 43 100 q 4 -2 8 0 M 51 107 q 4 -2 8 0" stroke="#bfe3ef" stroke-width="0.6" fill="none" opacity="0.55"/>
-      <!-- Plus-Wald -->
-      <ellipse cx="70" cy="78" rx="24" ry="14" fill="#2c4f2a"/>
-      <g fill="#1f3a1f"><polygon points="60,80 64,70 68,80"/><polygon points="74,78 78,68 82,78"/></g>
-      <rect x="63" y="80" width="2" height="4" fill="#5a3a22"/><rect x="77" y="78" width="2" height="4" fill="#5a3a22"/>
-      <!-- Minus-Höhle -->
-      <ellipse cx="30" cy="54" rx="24" ry="14" fill="#33333d"/>
-      <path d="M 24 60 a 6 7 0 0 1 12 0 z" fill="#15151b"/>
-      <rect x="38" y="54" width="6" height="6" rx="1" fill="#44444f"/><rect x="17" y="56" width="5" height="5" rx="1" fill="#44444f"/>
-      <!-- Mal-Berg (oben) -->
-      <ellipse cx="68" cy="28" rx="26" ry="16" fill="#5b4d3e"/>
-      <polygon points="68,8 85,34 51,34" fill="#6b5a48"/>
-      <polygon points="68,8 75,20 61,20" fill="#e8eef2"/>
+      <!-- Mengen-Wiese (unten links) -->
+      <ellipse cx="24" cy="133" rx="26" ry="15" fill="#3f6e34"/>
+      <circle cx="11" cy="137" r="2" fill="#ffd166"/><circle cx="37" cy="138" r="2" fill="#ef89b4"/><circle cx="18" cy="126" r="1.6" fill="#ffd166"/>
+      <!-- Würfel-Teich: Wasser + Seerosen (Mitte) -->
+      <ellipse cx="52" cy="105" rx="20" ry="11" fill="#23566a"/>
+      <ellipse cx="52" cy="103" rx="14" ry="6.5" fill="#2f6e86" opacity="0.75"/>
+      <circle cx="45" cy="106" r="3" fill="#3f7a4a"/><circle cx="59" cy="107" r="2.5" fill="#3f7a4a"/><circle cx="54" cy="100" r="2" fill="#3f7a4a"/>
+      <circle cx="45" cy="105" r="1" fill="#ef89b4"/>
+      <path d="M 43 101 q 4 -2 8 0 M 51 108 q 4 -2 8 0" stroke="#bfe3ef" stroke-width="0.6" fill="none" opacity="0.55"/>
+      <!-- Plus-Wald (rechts) -->
+      <ellipse cx="77" cy="78" rx="22" ry="14" fill="#2c4f2a"/>
+      <g fill="#1f3a1f"><polygon points="68,80 72,70 76,80"/><polygon points="81,78 85,68 89,78"/></g>
+      <rect x="71" y="80" width="2" height="4" fill="#5a3a22"/><rect x="84" y="78" width="2" height="4" fill="#5a3a22"/>
+      <!-- Minus-Höhle (links) -->
+      <ellipse cx="23" cy="51" rx="23" ry="14" fill="#33333d"/>
+      <path d="M 17 57 a 6 7 0 0 1 12 0 z" fill="#15151b"/>
+      <rect x="31" y="51" width="6" height="6" rx="1" fill="#44444f"/><rect x="10" y="53" width="5" height="5" rx="1" fill="#44444f"/>
+      <!-- Mal-Berg (oben rechts) -->
+      <ellipse cx="73" cy="24" rx="26" ry="16" fill="#5b4d3e"/>
+      <polygon points="73,5 90,31 56,31" fill="#6b5a48"/>
+      <polygon points="73,5 80,17 66,17" fill="#e8eef2"/>
       <!-- Wolken -->
-      <g fill="#ffffff" opacity="0.15"><ellipse cx="30" cy="14" rx="9" ry="3.5"/><ellipse cx="82" cy="50" rx="8" ry="3"/></g>
+      <g fill="#ffffff" opacity="0.15"><ellipse cx="28" cy="13" rx="9" ry="3.5"/><ellipse cx="44" cy="70" rx="7" ry="2.6"/></g>
     </svg>`;
 }
 
