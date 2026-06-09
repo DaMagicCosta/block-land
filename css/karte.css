@@ -8,7 +8,12 @@
 }
 .karte__feld {
   position: relative; width: 100%; flex: 1; min-height: 240px; border-radius: var(--radius-md);
-  border: 2px solid var(--color-border); overflow: hidden;
+  border: 2px solid var(--color-border); overflow-y: auto; overflow-x: hidden;
+}
+/* Höhere Szene als das Feld → vertikal scrollbar; entzerrt die 5 Biome (statt zu quetschen). */
+.karte__szene {
+  position: relative; width: 100%;
+  height: 145vw; min-height: 540px; max-height: 920px;
 }
 /* Fortschritt zum nächsten (gesperrten) Land — macht das Ziel und den Weg sichtbar. */
 .karte__fortschritt {
@@ -51,6 +56,7 @@
 .karte__biom--plus   .karte__fahne { --sw-banner: #2f6d2f; }
 .karte__biom--minus  .karte__fahne { --sw-banner: #4a4a58; }
 .karte__biom--mal    .karte__fahne { --sw-banner: #6b5a48; }
+.karte__biom--rechnen10 .karte__fahne { --sw-banner: #2f6d7a; }
 .karte__name {
   font-size: var(--font-size-sm); white-space: nowrap; color: #fff;
   background: rgba(0,0,0,.6); padding: 1px 7px; border-radius: 3px;
