@@ -1,9 +1,10 @@
 import { oeffneModal, schliesseAlleModals } from './modal.js';
-import { rendereZehnerhaus, rendereLegehaus } from './wuerfelhaus.js';
+import { rendereZehnerhaus, rendereLegehaus, rendereStatischesFeld } from './wuerfelhaus.js';
 import { generierePlusAufgabe } from './aufgaben/plus.js';
 import { generiereMalAufgabe } from './aufgaben/mal.js';
 import { generiereMengenAufgabe } from './aufgaben/mengen.js';
 import { generiereMinusAufgabe } from './aufgaben/minus.js';
+import { generiereRechnen10Aufgabe } from './aufgaben/rechnen10.js';
 import { rendereStellenwert } from './stellenwert.js';
 import { verteileBelohnung } from './belohnung.js';
 import { loadAufgabenPool, loadBiomManifest } from './data.js';
@@ -54,6 +55,7 @@ export async function oeffneAufgabe(reward, { onClose } = {}) {
     if (typ === 'mal') return generiereMalAufgabe(stufenConfig, pool.mal.distraktoren);
     if (typ === 'mengen') return generiereMengenAufgabe(stufenConfig, pool.mengen.distraktoren);
     if (typ === 'minus') return generiereMinusAufgabe(stufenConfig, pool.minus.distraktoren);
+    if (typ === 'rechnen10') return generiereRechnen10Aufgabe(stufenConfig, pool.rechnen10.distraktoren);
     return generierePlusAufgabe(stufenConfig, pool.plus.distraktoren);
   }
   function generiere() {
@@ -114,7 +116,7 @@ function rendereFrageInModal(modal, reihe, profile, maxStufe, onWeiter) {
   const aufgabe = reihe.aufgabe;
   const istKlein = istKleinkind(profile);
   const grosseZahl = aufgabe.a > 20 || aufgabe.b > 20;
-  const mechanik = (aufgabe.aufgabentyp === 'mengen' || grosseZahl)
+  const mechanik = (aufgabe.aufgabentyp === 'mengen' || aufgabe.form === 'subitizing' || grosseZahl)
     ? 'A'
     : waehleMechanik(profile.id, aufgabe.aufgabentyp);
 
