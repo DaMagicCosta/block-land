@@ -44,5 +44,15 @@
       { "nr": 4, "label": "Groß, beide zweistellig",   "a_min": 21, "a_max": 99, "b_min": 11, "b_max": 29 }
     ],
     "distraktoren": { "abstaende": [-10, 10, -1, 1, -2, 2] }
+  },
+  "rechnen10": {
+    "default_stufe": 1,
+    "stufen": [
+      { "nr": 1, "label": "Sehen (Subitizing)",        "ziel_min": 1, "ziel_max": 10 },
+      { "nr": 2, "label": "Zerlegen",                   "ganze_min": 4, "ganze_max": 10 },
+      { "nr": 3, "label": "Verliebte Zahlen zu 10",     "teil_min": 1, "teil_max": 9 },
+      { "nr": 4, "label": "Plus & Minus bis 10" }
+    ],
+    "distraktoren": { "anzahl": 4 }
   }
 }
