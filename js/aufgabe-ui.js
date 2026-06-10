@@ -158,7 +158,7 @@ function rendereFrageInModal(modal, reihe, profile, maxStufe, onWeiter) {
   const aufgabe = reihe.aufgabe;
   const istKlein = istKleinkind(profile);
   const grosseZahl = aufgabe.a > 20 || aufgabe.b > 20;
-  const mechanik = (aufgabe.aufgabentyp === 'mengen' || grosseZahl)
+  const mechanik = (aufgabe.aufgabentyp === 'mengen' || aufgabe.form === 'subitizing' || grosseZahl)
     ? 'A'
     : waehleMechanik(profile.id, aufgabe.aufgabentyp);
 
@@ -283,7 +283,9 @@ function baueRechnen10Visualisierung(aufgabe) {
 }
 
 function baueAufgabeInhalt(aufgabe, mechanik) {
-  if (aufgabe.aufgabentyp === 'mengen') {
+  // 'subitizing' wird nicht mehr erzeugt, aber alte (persistierte) Reihen sollen noch
+  // korrekt rendern + abschließbar bleiben (Rückwärts-Kompatibilität).
+  if (aufgabe.aufgabentyp === 'mengen' || aufgabe.form === 'subitizing') {
     const wuerfel = rendereZehnerhaus(aufgabe.ziel, { farbe: 'success' });
     const knoepfe = aufgabe.antwort_optionen.map(opt =>
       `<button class="aufgabe__option" data-wert="${opt}">${opt}</button>`
