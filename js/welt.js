@@ -2,7 +2,7 @@ import { getCurrentProfile, setCurrentProfile, getAktivesBiom, getAktiveReihe, g
 import { loadAvatare, loadBiom } from './data.js';
 import { escapeHtml } from './utils.js';
 import { oeffneModal, schliesseAlleModals } from './modal.js';
-import { oeffneAufgabe } from './aufgabe-ui.js';
+import { oeffneAufgabe, oeffneRechnen10Auswahl } from './aufgabe-ui.js';
 import { rendereInventarHeader } from './inventar.js';
 import { oeffneTrainer } from './trainer.js';
 import { oeffneRezeptbuch } from './werkstatt.js';
@@ -120,7 +120,8 @@ export async function renderWelt(container) {
         return;
       }
       if (!typ.reward) return;  // Sicherheitsnetz: interaktive Tiles ohne Reward ignorieren
-      oeffneAufgabe(typ.reward, { onClose: () => renderWelt(container) });
+      if (aktivId === 'rechnen10') oeffneRechnen10Auswahl(typ.reward, { onClose: () => renderWelt(container) });
+      else oeffneAufgabe(typ.reward, { onClose: () => renderWelt(container) });
     });
   });
 

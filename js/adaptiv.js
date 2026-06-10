@@ -37,7 +37,7 @@ export function aktuelleStufe(profileId, aufgabentyp) {
 // Wird nach jeder beantworteten Aufgabe aufgerufen.
 // war_richtig: boolean
 // zeit_ms: number — vom Anzeige der Aufgabe bis zur Antwort
-export function rapportiereErgebnis(profileId, aufgabentyp, war_richtig, zeit_ms) {
+export function rapportiereErgebnis(profileId, aufgabentyp, war_richtig, zeit_ms, { maxStufe = 4, adaptStufe = true } = {}) {
   trackeAufgabe(profileId, aufgabentyp, war_richtig, zeit_ms);
 
   const v = getVerlauf(profileId, aufgabentyp);
@@ -52,9 +52,11 @@ export function rapportiereErgebnis(profileId, aufgabentyp, war_richtig, zeit_ms
     v.erfolg_serie = 0;
   }
 
-  // Stufe anpassen
+  if (!adaptStufe) return;   // Gezieltes Üben: Stufe (Art) bleibt fix.
+
+  // Stufe anpassen (Obergrenze = echte Stufenzahl der Rechenart).
   const aktuell = getSchwierigkeit(profileId, aufgabentyp);
-  if (v.erfolg_serie >= ERFOLG_SERIE_FUER_HOEHER && aktuell < 4) {
+  if (v.erfolg_serie >= ERFOLG_SERIE_FUER_HOEHER && aktuell < maxStufe) {
     setSchwierigkeit(profileId, aufgabentyp, aktuell + 1);
     v.erfolg_serie = 0;
   } else if (v.fehler_serie >= 2 && aktuell > 1) {

@@ -33,7 +33,43 @@ function istKleinkind(profile) {
   return profile.alter === 'kindergarten' || profile.alter === 'klasse-1';
 }
 
-export async function oeffneAufgabe(reward, { onClose } = {}) {
+// Würfel-Teich: Auswahl beim Betreten — Querbeet (adaptiv) oder gezielt eine Art.
+// Läuft schon eine Reihe im Teich, wird sie direkt fortgesetzt (gleiche Art, keine Auswahl).
+const RECHNEN10_ARTEN = [
+  { label: '🎲 Querbeet', festeStufe: null },
+  { label: '① Zerlegen', festeStufe: 1 },
+  { label: '② Verliebte Zahlen', festeStufe: 2 },
+  { label: '③ Plus & Minus', festeStufe: 3 },
+];
+
+export function oeffneRechnen10Auswahl(reward, { onClose } = {}) {
+  const profile = getCurrentProfile();
+  if (!profile) return;
+  if (getAktiveReihe(profile.id, 'rechnen10')) { oeffneAufgabe(reward, { onClose }); return; }
+
+  const knoepfe = RECHNEN10_ARTEN.map((a, i) =>
+    `<button class="rechnen10-auswahl__knopf" data-idx="${i}">${a.label}</button>`).join('');
+  let gewaehlt = false;
+  const modal = oeffneModal({
+    klassen: 'modal-backdrop--aufgabe',
+    inhaltHtml: `<div class="modal modal--aufgabe"><div class="rechnen10-auswahl">
+      <div class="aufgabe__text">Was möchtest du üben?</div>
+      <div class="rechnen10-auswahl__knoepfe">${knoepfe}</div>
+    </div></div>`,
+    onClose: () => { if (!gewaehlt && onClose) onClose(); },
+  });
+  if (!modal) return;
+  modal.inhalt.querySelectorAll('[data-idx]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const wahl = RECHNEN10_ARTEN[parseInt(btn.dataset.idx, 10)];
+      gewaehlt = true;
+      modal.schliessen();
+      oeffneAufgabe(reward, { onClose, festeStufe: wahl.festeStufe });
+    });
+  });
+}
+
+export async function oeffneAufgabe(reward, { onClose, festeStufe = null } = {}) {
   const profile = getCurrentProfile();
   if (!profile) return;
 
@@ -48,9 +84,10 @@ export async function oeffneAufgabe(reward, { onClose } = {}) {
   const aktivBiom = getAktivesBiom(profile.id);
   const typ = manifest[aktivBiom]?.aufgabentyp ?? 'plus';
   const maxStufe = pool[typ].stufen.length;
+  let aktiveFesteStufe = festeStufe;
 
   function einmalGenerieren() {
-    const stufe_nr = aktuelleStufe(profile.id, typ);
+    const stufe_nr = aktiveFesteStufe ?? aktuelleStufe(profile.id, typ);
     const stufenConfig = pool[typ].stufen.find(s => s.nr === stufe_nr) ?? pool[typ].stufen[0];
     if (typ === 'mal') return generiereMalAufgabe(stufenConfig, pool.mal.distraktoren);
     if (typ === 'mengen') return generiereMengenAufgabe(stufenConfig, pool.mengen.distraktoren);
@@ -76,8 +113,11 @@ export async function oeffneAufgabe(reward, { onClose } = {}) {
       position: 1,
       aufgabe: generiere(),
       fehlversuche: 0,
+      festeStufe: aktiveFesteStufe,
     };
     setzeAktiveReihe(profile.id, reihe.biom, reihe);
+  } else {
+    aktiveFesteStufe = reihe.festeStufe ?? null;
   }
 
   const modal = oeffneModal({
@@ -116,7 +156,7 @@ function rendereFrageInModal(modal, reihe, profile, maxStufe, onWeiter) {
   const aufgabe = reihe.aufgabe;
   const istKlein = istKleinkind(profile);
   const grosseZahl = aufgabe.a > 20 || aufgabe.b > 20;
-  const mechanik = (aufgabe.aufgabentyp === 'mengen' || aufgabe.form === 'subitizing' || grosseZahl)
+  const mechanik = (aufgabe.aufgabentyp === 'mengen' || grosseZahl)
     ? 'A'
     : waehleMechanik(profile.id, aufgabe.aufgabentyp);
 
@@ -241,7 +281,7 @@ function baueRechnen10Visualisierung(aufgabe) {
 }
 
 function baueAufgabeInhalt(aufgabe, mechanik) {
-  if (aufgabe.aufgabentyp === 'mengen' || aufgabe.form === 'subitizing') {
+  if (aufgabe.aufgabentyp === 'mengen') {
     const wuerfel = rendereZehnerhaus(aufgabe.ziel, { farbe: 'success' });
     const knoepfe = aufgabe.antwort_optionen.map(opt =>
       `<button class="aufgabe__option" data-wert="${opt}">${opt}</button>`
@@ -303,7 +343,7 @@ function starteAufgabe(reihe, mechanik, profile, modal, inhalt, maxStufe, onWeit
     const richtig = wert === aufgabe.ergebnis;
     if (richtig) {
       const zeit_ms = performance.now() - startZeit;
-      rapportiereErgebnis(profile.id, aufgabe.aufgabentyp, true, zeit_ms);
+      rapportiereErgebnis(profile.id, aufgabe.aufgabentyp, true, zeit_ms, { maxStufe, adaptStufe: !reihe.festeStufe });
       // Niveau-Abstufung: in Biomen UNTER der Schulstufe weniger Basis-Drops + kein Premium.
       const biomId = getAktivesBiom(profile.id);
       const delta = baselineMaxIndex(profile.alter) - BIOME_REIHENFOLGE.indexOf(biomId);
@@ -321,7 +361,7 @@ function starteAufgabe(reihe, mechanik, profile, modal, inhalt, maxStufe, onWeit
     setzeAktiveReihe(profile.id, reihe.biom, reihe);   // Versuchsstand persistieren (Mitten-drin-Verlassen)
     if (reihe.fehlversuche >= MAX_FEHLVERSUCHE) {
       const zeit_ms = performance.now() - startZeit;
-      rapportiereErgebnis(profile.id, aufgabe.aufgabentyp, false, zeit_ms);
+      rapportiereErgebnis(profile.id, aufgabe.aufgabentyp, false, zeit_ms, { maxStufe, adaptStufe: !reihe.festeStufe });
       zeigeLoesung(aufgabe, modal, istKleinkind(profile), onWeiter);
       return;
     }
