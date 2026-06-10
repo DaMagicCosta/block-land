@@ -100,6 +100,7 @@ export function addProfile({ name, weltName, avatar, alter, kindPin = null }) {
     gutscheine: [],
     verlauf: {},                 // Tages-Verlauf pro Rechenart (Statistik-Tab)
     aufsagenProtokoll: [],       // Ereignis-Log Mal-Reihen-Aufsagen (Zeit + Durchgänge je Stufe)
+    eintragenProtokoll: [],      // Ereignis-Log Mal-Reihen-Eintragen (richtig/fehler/verraten je Reihe)
     aktiveReihen: {},            // laufende Übungsreihen pro Biom (Wiedereinstieg)
     schwierigkeit: { plus: 2 },
     statistik: { plus: { gesamt: 0, richtig: 0 } },
@@ -180,6 +181,18 @@ export function protokolliereAufsagen(profileId, eintrag) {
 
 export function getAufsagenProtokoll(profileId) {
   return structuredClone(state.profiles[profileId]?.aufsagenProtokoll ?? []);
+}
+
+// --- Eintragen-Protokoll (Mal-Trainer) ---
+export function protokolliereEintragen(profileId, eintrag) {
+  const p = state.profiles[profileId];
+  if (!p) return;
+  p.eintragenProtokoll = fuegeEintragHinzu(p.eintragenProtokoll ?? [], eintrag, 50);
+  save(state);
+}
+
+export function getEintragenProtokoll(profileId) {
+  return structuredClone(state.profiles[profileId]?.eintragenProtokoll ?? []);
 }
 
 // --- Übungsreihe (Wiedereinstieg) ---
