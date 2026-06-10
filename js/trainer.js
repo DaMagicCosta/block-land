@@ -5,8 +5,9 @@
 import { oeffneModal } from './modal.js';
 import { verteileBelohnung } from './belohnung.js';
 import { baueReihe } from './aufsagen-logik.js';
-import { protokolliereAufsagen, getCurrentProfile } from './state.js';
+import { protokolliereAufsagen, getCurrentProfile, protokolliereEintragen } from './state.js';
 import { kappeLuecke, formatDauer, neuerEintrag, INAKTIV_MS } from './aufsage-protokoll-logik.js';
+import { richtungsHinweis, neuerEintrag as neuerEintragEintragen } from './eintragen-protokoll-logik.js';
 import { tagesSchluessel } from './statistik-logik.js';
 
 const MAX_FEHLVERSUCHE = 2;
@@ -15,11 +16,17 @@ const MAX_FEHLVERSUCHE = 2;
 // und Lern-Stufen-Tab-Wechsel aufgerufen, damit Zeit/Durchgänge nicht verloren gehen.
 let aufsagenFinalisierer = null;
 
+// Finalisierer der laufenden Eintragen-Reihe (schreibt {richtig,fehler,verraten} ins Protokoll).
+let eintragenFinalisierer = null;
+
 export function oeffneTrainer(reward) {
   const modal = oeffneModal({
     klassen: 'modal-backdrop--trainer',
     inhaltHtml: '<div class="modal modal--trainer"></div>',
-    onClose: () => { if (aufsagenFinalisierer) { aufsagenFinalisierer(); aufsagenFinalisierer = null; } },
+    onClose: () => {
+      if (aufsagenFinalisierer) { aufsagenFinalisierer(); aufsagenFinalisierer = null; }
+      if (eintragenFinalisierer) { eintragenFinalisierer(); eintragenFinalisierer = null; }
+    },
   });
   if (!modal) return;
   zeigeReihenAuswahl(modal.inhalt, modal, reward);
@@ -68,6 +75,19 @@ function zeigeReihenAuswahl(wurzel, modal, reward) {
 // --- Schritt 2: Lern-Stufe (Vorlesen / Aufsagen / Eintragen) ---
 function zeigeLernStufe(wurzel, modal, reward, reihe) {
   let modus = 'vorlesen';
+  const profileId = getCurrentProfile()?.id ?? null;
+  let eintragenStat = { richtig: 0, fehler: 0, verraten: 0, aktiv: false };
+  function finalisiereEintragen() {
+    if (!eintragenStat.aktiv) return;
+    eintragenStat.aktiv = false;
+    const summe = eintragenStat.richtig + eintragenStat.fehler + eintragenStat.verraten;
+    if (profileId && summe > 0) {
+      protokolliereEintragen(profileId, neuerEintragEintragen({
+        datum: tagesSchluessel(new Date()),
+        reihe, richtig: eintragenStat.richtig, fehler: eintragenStat.fehler, verraten: eintragenStat.verraten,
+      }));
+    }
+  }
   wurzel.innerHTML = `
     <div class="trainer__kopf">Die ${reihe}er-Reihe</div>
     <div class="trainer__umschalter">
@@ -83,6 +103,10 @@ function zeigeLernStufe(wurzel, modal, reward, reihe) {
 
   function baue() {
     liste.innerHTML = '';
+    if (modus === 'eintragen') {
+      eintragenStat = { richtig: 0, fehler: 0, verraten: 0, aktiv: true };
+      eintragenFinalisierer = finalisiereEintragen;
+    }
     for (let i = 1; i <= 10; i++) {
       const erg = i * reihe;
       const z = document.createElement('div');
@@ -92,27 +116,66 @@ function zeigeLernStufe(wurzel, modal, reward, reihe) {
         z.addEventListener('click', () => sprich(`${i} mal ${reihe} gleich ${erg}`));
       } else {
         z.className = 'trainer__zeile';
-        z.innerHTML = `<span>${i} · ${reihe} =</span><input type="number" inputmode="numeric" />`;
+        z.innerHTML = `<span>${i} · ${reihe} =</span><input type="number" inputmode="numeric" /><span class="trainer__hinweis"></span>`;
         const inp = z.querySelector('input');
-        inp.addEventListener('input', () => {
-          if (parseInt(inp.value, 10) === erg) {
-            z.classList.add('trainer__zeile--korrekt');
+        const hinweis = z.querySelector('.trainer__hinweis');
+        const zeile = { fehler: 0, fertig: false };
+
+        function fokusNaechstes() {
+          const offen = liste.querySelector('.trainer__zeile input:not([readonly])');
+          if (offen) offen.focus();
+        }
+        function markiereRichtig() {
+          z.classList.add('trainer__zeile--korrekt');
+          z.classList.remove('trainer__zeile--falsch');
+          hinweis.textContent = '';
+          inp.readOnly = true;
+          zeile.fertig = true;
+          eintragenStat.richtig += 1;
+          fokusNaechstes();
+        }
+        function pruefeFalsch() {
+          if (zeile.fertig) return;
+          const roh = inp.value.trim();
+          if (roh === '') { z.classList.remove('trainer__zeile--falsch'); hinweis.textContent = ''; return; }
+          const wert = parseInt(roh, 10);
+          if (wert === erg) { markiereRichtig(); return; }
+          zeile.fehler += 1;
+          eintragenStat.fehler += 1;
+          z.classList.add('trainer__zeile--falsch');
+          hinweis.textContent = richtungsHinweis(wert, erg);
+          z.classList.remove('trainer__zeile--wackeln'); void z.offsetWidth; z.classList.add('trainer__zeile--wackeln');
+          if (zeile.fehler >= 2) {
+            inp.value = String(erg);
+            z.classList.remove('trainer__zeile--falsch');
+            z.classList.add('trainer__zeile--verraten');
+            hinweis.textContent = '';
             inp.readOnly = true;
-          } else {
-            z.classList.remove('trainer__zeile--korrekt');
+            zeile.fertig = true;
+            eintragenStat.verraten += 1;
+            fokusNaechstes();
           }
+        }
+        inp.addEventListener('input', () => {
+          if (zeile.fertig) return;
+          if (parseInt(inp.value.trim(), 10) === erg) markiereRichtig();
+          else z.classList.remove('trainer__zeile--korrekt');
         });
+        inp.addEventListener('change', pruefeFalsch);
+        inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') pruefeFalsch(); });
       }
       liste.appendChild(z);
     }
   }
 
   function aktualisiere() {
+    // Beim Verlassen von Aufsagen/Eintragen jeweils finalisieren (kein Datenverlust).
+    if (modus !== 'aufsagen' && aufsagenFinalisierer) { aufsagenFinalisierer(); aufsagenFinalisierer = null; }
+    if (modus !== 'eintragen' && eintragenFinalisierer) { eintragenFinalisierer(); eintragenFinalisierer = null; }
     if (modus === 'aufsagen') {
       weiterBtn.hidden = true;
       rendereAufsagen(wurzel, liste, modal, reward, reihe);
     } else {
-      if (aufsagenFinalisierer) { aufsagenFinalisierer(); aufsagenFinalisierer = null; }
       weiterBtn.hidden = false;
       baue();
     }
@@ -126,7 +189,10 @@ function zeigeLernStufe(wurzel, modal, reward, reihe) {
       aktualisiere();
     });
   });
-  weiterBtn.addEventListener('click', () => starteQuiz(wurzel, modal, reward, reihe));
+  weiterBtn.addEventListener('click', () => {
+    if (eintragenFinalisierer) { eintragenFinalisierer(); eintragenFinalisierer = null; }
+    starteQuiz(wurzel, modal, reward, reihe);
+  });
   aktualisiere();
 }
 
