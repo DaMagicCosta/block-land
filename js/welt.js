@@ -8,6 +8,9 @@ import { oeffneTrainer } from './trainer.js';
 import { oeffneRezeptbuch } from './werkstatt.js';
 import { oeffneElternBereich } from './eltern.js';
 
+// Würfel-Teich: Arten-Auswahl einmal pro Besuch beim Betreten zeigen (Reset beim Biom-Wechsel).
+let teichAuswahlGezeigtFuer = null;
+
 export async function renderWelt(container) {
   schliesseAlleModals();
 
@@ -129,5 +132,19 @@ export async function renderWelt(container) {
   const figur = container.querySelector('.welt__spielfigur');
   if (figur && figur.scrollIntoView) {
     figur.scrollIntoView({ inline: 'center', block: 'nearest' });
+  }
+
+  // Würfel-Teich: beim Betreten zuerst die Arten-Auswahl (einmal pro Besuch, kein Loop;
+  // bei offener Reihe übernimmt der „▶ Weitermachen"-Knopf das Fortsetzen).
+  if (aktivId === 'rechnen10') {
+    const ersterBesuch = teichAuswahlGezeigtFuer !== 'rechnen10';
+    teichAuswahlGezeigtFuer = 'rechnen10';
+    if (ersterBesuch && !hatReihe) {
+      const teichReward = Object.values(biom.tile_typen).find(t => t.reward)?.reward
+        ?? { item: 'blume', emoji: '🌸', label: 'Blume' };
+      oeffneRechnen10Auswahl(teichReward, { onClose: () => renderWelt(container) });
+    }
+  } else {
+    teichAuswahlGezeigtFuer = null;
   }
 }

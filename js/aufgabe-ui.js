@@ -48,14 +48,14 @@ export function oeffneRechnen10Auswahl(reward, { onClose } = {}) {
   if (!profile) return;
 
   const knoepfe = RECHNEN10_ARTEN.map((a, i) =>
-    `<button class="rechnen10-auswahl__knopf" data-idx="${i}">${a.label}</button>`).join('');
+    `<button class="rechnen10-auswahl__knopf${a.festeStufe === null ? ' rechnen10-auswahl__knopf--querbeet' : ''}" data-idx="${i}">${a.label}</button>`).join('');
   let gewaehlt = false;
   const modal = oeffneModal({
-    klassen: 'modal-backdrop--aufgabe',
-    inhaltHtml: `<div class="modal modal--aufgabe"><div class="rechnen10-auswahl">
-      <div class="aufgabe__text">Was möchtest du üben?</div>
+    klassen: 'modal-backdrop--trainer',
+    inhaltHtml: `<div class="modal modal--trainer">
+      <div class="trainer__kopf">🦆 Was möchtest du üben?</div>
       <div class="rechnen10-auswahl__knoepfe">${knoepfe}</div>
-    </div></div>`,
+    </div>`,
     onClose: () => { if (!gewaehlt && onClose) onClose(); },
   });
   if (!modal) return;
