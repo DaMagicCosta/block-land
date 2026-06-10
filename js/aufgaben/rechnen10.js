@@ -5,21 +5,10 @@
 
 export function generiereRechnen10Aufgabe(stufenConfig, distraktorConfig) {
   switch (stufenConfig.nr) {
-    case 2:  return zerlegung(stufenConfig, distraktorConfig);
-    case 3:  return verliebte(stufenConfig, distraktorConfig);
-    case 4:  return rechnen(stufenConfig, distraktorConfig);
-    default: return subitizing(stufenConfig, distraktorConfig);
+    case 2:  return verliebte(stufenConfig, distraktorConfig);
+    case 3:  return rechnen(stufenConfig, distraktorConfig);
+    default: return zerlegung(stufenConfig, distraktorConfig);
   }
-}
-
-function subitizing(cfg, dcfg) {
-  const ziel = zufallsZahl(cfg.ziel_min ?? 1, cfg.ziel_max ?? 10);
-  return basis('subitizing', cfg.nr, {
-    ziel, ergebnis: ziel,
-    text: 'Wie viele?',
-    vorlese_text: 'Wie viele Punkte siehst du?',
-    antwort_optionen: optionenUm(ziel, dcfg),
-  });
 }
 
 function zerlegung(cfg, dcfg) {
