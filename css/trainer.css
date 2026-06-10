@@ -190,6 +190,19 @@
 .trainer__nickerchen-emoji { font-size: 64px; }
 .trainer__nickerchen-text { color: var(--color-text-dim); font-size: var(--font-size-sm); }
 
+/* Eintragen-Feedback */
+.trainer__zeile--falsch { outline: 2px solid var(--color-danger); }
+.trainer__zeile--falsch input { color: var(--color-danger); }
+.trainer__zeile--verraten { outline: 2px solid var(--color-zehner); }
+.trainer__zeile--verraten input { color: var(--color-zehner); font-weight: bold; }
+.trainer__hinweis { font-size: var(--font-size-xs); color: var(--color-danger); font-family: var(--font-mono); min-width: 3.5em; }
+.trainer__zeile--wackeln { animation: trainer-wackeln 0.4s ease; }
+@keyframes trainer-wackeln {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  75% { transform: translateX(4px); }
+}
+
 @media (max-width: 480px) {
   .trainer__aufgabe { font-size: 32px; }
   .trainer__nickerchen-emoji { font-size: 52px; }
