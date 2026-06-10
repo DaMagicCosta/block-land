@@ -1,0 +1,23 @@
+{
+  "name": "Geteilt-Schlucht", "spalten": 12, "zeilen": 8,
+  "tile_typen": {
+    "g": { "label": "Fels", "emoji": "🟫", "interaktiv": false, "klasse": "tile--schlucht-fels" },
+    "G": { "label": "Dunkelfels", "emoji": "⬛", "interaktiv": false, "klasse": "tile--schlucht-tief" },
+    ".": { "label": "Weg", "emoji": "", "interaktiv": false, "klasse": "tile--schlucht-fels" },
+    "w": { "label": "Bach", "emoji": "💧", "interaktiv": false, "klasse": "tile--schlucht-wasser" },
+    "b": { "label": "Erz", "emoji": "⛏️", "interaktiv": true, "klasse": "tile--schlucht-erz", "reward": { "item": "stein", "emoji": "🪨", "label": "Stein" } },
+    "s": { "label": "Wurzelholz", "emoji": "🪵", "interaktiv": true, "klasse": "tile--schlucht-holz", "reward": { "item": "holz", "emoji": "🪵", "label": "Holz" } },
+    "f": { "label": "Kristall", "emoji": "💠", "interaktiv": true, "klasse": "tile--schlucht-kristall", "reward": { "item": "blume", "emoji": "🌸", "label": "Blume" } }
+  },
+  "spielfigur_start": { "spalte": 6, "zeile": 4 },
+  "layout": [
+    "GgbgGgggGbgG",
+    "GggggsgggggG",
+    "GgGgbgggGfgG",
+    "Ggbgg.gggbsG",
+    "GggggggbggGG",
+    "GgsggGgggsgG",
+    "GgGgfgggbggG",
+    "wwwwwwwwwwww"
+  ]
+}

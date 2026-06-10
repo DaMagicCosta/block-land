@@ -83,6 +83,12 @@
 .tile--teich-schilf  { background: #2e4d52; cursor: pointer; }
 .tile--teich-kiesel  { background: #2e4d52; cursor: pointer; }
 .tile--teich-seerose { background: #2e4d52; cursor: pointer; }
+.tile--schlucht-fels     { background: #3a2f2a; }
+.tile--schlucht-tief     { background: #241c18; }
+.tile--schlucht-wasser   { background: #25424a; }
+.tile--schlucht-erz      { background: #3a2f2a; cursor: pointer; }
+.tile--schlucht-holz     { background: #3a2f2a; cursor: pointer; }
+.tile--schlucht-kristall { background: #3a2f2a; cursor: pointer; }
 .tile--werkbank { background: #4a3f6a; cursor: pointer; }
 .tile--trainer {
   background: #4a3f6a;

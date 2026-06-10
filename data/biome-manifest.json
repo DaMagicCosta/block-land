@@ -3,5 +3,6 @@
   "rechnen10": { "name": "Würfel-Teich", "icon": "🦆", "aufgabentyp": "rechnen10", "atmosphaere": "teich", "kartenposition": { "x": 52, "y": 70 } },
   "plus":   { "name": "Plus-Wald",    "icon": "🌳", "aufgabentyp": "plus",   "atmosphaere": "wald",  "kartenposition": { "x": 77, "y": 52 } },
   "minus":  { "name": "Minus-Höhle",  "icon": "🪨", "aufgabentyp": "minus",  "atmosphaere": "hoehle","kartenposition": { "x": 23, "y": 34 } },
-  "mal":    { "name": "Mal-Berg",     "icon": "⛏️", "aufgabentyp": "mal",    "atmosphaere": "berg",  "kartenposition": { "x": 73, "y": 16 } }
+  "mal":    { "name": "Mal-Berg",     "icon": "⛏️", "aufgabentyp": "mal",    "atmosphaere": "berg",  "kartenposition": { "x": 73, "y": 16 } },
+  "geteilt": { "name": "Geteilt-Schlucht", "icon": "➗", "aufgabentyp": "geteilt", "atmosphaere": "schlucht", "kartenposition": { "x": 50, "y": 12 } }
 }
