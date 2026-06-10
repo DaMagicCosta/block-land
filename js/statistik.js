@@ -1,6 +1,6 @@
 // Statistik-Tab: Übersicht aller Kinder + Detailansicht pro Kind mit Tages-/Wochen-Verlauf.
 // Render-Modul (DOM). Aggregation/Reihen kommen aus statistik-logik.js.
-import { getProfiles, getSchwierigkeit, getVerlauf, getBiomFreigabe, getAufsagenProtokoll } from './state.js';
+import { getProfiles, getSchwierigkeit, getVerlauf, getBiomFreigabe, getAufsagenProtokoll, getEintragenProtokoll } from './state.js';
 import { stufeLabel, formatDauer } from './aufsage-protokoll-logik.js';
 import { freieBiome } from './biome-logik.js';
 import { summen, quoteFarbe, verlaufTage, verlaufWochen } from './statistik-logik.js';
@@ -53,6 +53,25 @@ function aufsagenProtokollHtml(profileId) {
       <span class="stat-aufsagen__stufe">${escapeHtml(stufeLabel(e.stufe))}</span>
       <span class="stat-aufsagen__wdh">🔁 ×${e.durchgaenge}</span>
       <span class="stat-aufsagen__zeit">⏱ ${escapeHtml(formatDauer(e.zeit_ms))}</span>
+      <span class="stat-aufsagen__datum">${escapeHtml(d)}</span>
+    </li>`;
+  }).join('');
+  return `<ul class="stat-aufsagen">${zeilen}</ul>`;
+}
+
+// Eintragen-Protokoll (Mal-Trainer): jüngste Einträge als schlichte Liste.
+function eintragenProtokollHtml(profileId) {
+  const log = getEintragenProtokoll(profileId).slice(0, 20);
+  if (!log.length) {
+    return '<div class="eltern__leer">Noch kein Eintragen protokolliert.</div>';
+  }
+  const zeilen = log.map(e => {
+    const d = e.datum ? `${e.datum.slice(8, 10)}.${e.datum.slice(5, 7)}.` : '';
+    return `<li class="stat-aufsagen__zeile">
+      <span class="stat-aufsagen__reihe">${escapeHtml(String(e.reihe))}er</span>
+      <span>✅ ${e.richtig}/10</span>
+      <span>✖ ${e.fehler}</span>
+      <span>💡 ${e.verraten}</span>
       <span class="stat-aufsagen__datum">${escapeHtml(d)}</span>
     </li>`;
   }).join('');
@@ -155,6 +174,9 @@ export function tabStatistik(container, neuRendern) {
 
         <div class="stat-detail__abschnitt">🗣️ Aufsagen-Protokoll</div>
         ${aufsagenProtokollHtml(p.id)}
+
+        <div class="stat-detail__abschnitt">✏️ Eintragen-Protokoll</div>
+        ${eintragenProtokollHtml(p.id)}
       </div>`;
 
     container.querySelector('[data-zurueck]').addEventListener('click', () => { view.kindId = null; render(); });
