@@ -117,7 +117,7 @@ export async function renderKarte(container) {
         <div class="karte__szene">
           ${kartenSzene()}
           ${marker}
-          <button class="karte__burg" id="karte-burg" style="left:84%;top:72%">
+          <button class="karte__burg" id="karte-burg" style="left:85%;top:90%">
             ${rendereBurgSvg(burgStufe)}
             <span class="karte__burg-label">Meine Burg</span>
           </button>
