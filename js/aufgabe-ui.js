@@ -34,7 +34,8 @@ function istKleinkind(profile) {
 }
 
 // Würfel-Teich: Auswahl beim Betreten — Querbeet (adaptiv) oder gezielt eine Art.
-// Läuft schon eine Reihe im Teich, wird sie direkt fortgesetzt (gleiche Art, keine Auswahl).
+// Der Tile-Tap zeigt IMMER die Auswahl; eine Wahl startet eine frische Reihe der Art
+// (eine offene Reihe fortsetzen läuft separat über den „▶ Weitermachen"-Knopf in der Welt).
 const RECHNEN10_ARTEN = [
   { label: '🎲 Querbeet', festeStufe: null },
   { label: '① Zerlegen', festeStufe: 1 },
@@ -45,7 +46,6 @@ const RECHNEN10_ARTEN = [
 export function oeffneRechnen10Auswahl(reward, { onClose } = {}) {
   const profile = getCurrentProfile();
   if (!profile) return;
-  if (getAktiveReihe(profile.id, 'rechnen10')) { oeffneAufgabe(reward, { onClose }); return; }
 
   const knoepfe = RECHNEN10_ARTEN.map((a, i) =>
     `<button class="rechnen10-auswahl__knopf" data-idx="${i}">${a.label}</button>`).join('');
@@ -64,6 +64,8 @@ export function oeffneRechnen10Auswahl(reward, { onClose } = {}) {
       const wahl = RECHNEN10_ARTEN[parseInt(btn.dataset.idx, 10)];
       gewaehlt = true;
       modal.schliessen();
+      // Frische Reihe der gewählten Art: offene Teich-Reihe verwerfen, damit festeStufe greift.
+      setzeAktiveReihe(profile.id, 'rechnen10', null);
       oeffneAufgabe(reward, { onClose, festeStufe: wahl.festeStufe });
     });
   });
