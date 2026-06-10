@@ -12,7 +12,7 @@ import {
 import { tabStatistik } from './statistik.js';
 import { escapeHtml } from './utils.js';
 import { loadBiomManifest } from './data.js';
-import { istFrei } from './biome-logik.js';
+import { istFrei, BIOME_REIHENFOLGE } from './biome-logik.js';
 
 const ITEM_KEYS = ['holz', 'stein', 'blume', 'eisen', 'diamant'];
 const ITEM_EMOJI = { holz: '🪵', stein: '🪨', blume: '🌸', eisen: '⛏️', diamant: '💎' };
@@ -433,7 +433,7 @@ async function tabBiome(container, neuRendern) {
   let manifest;
   try { manifest = await loadBiomManifest(); }
   catch { container.innerHTML = '<div class="eltern__leer">Manifest nicht ladbar.</div>'; return; }
-  const order = ['mengen', 'plus', 'minus', 'mal'];
+  const order = BIOME_REIHENFOLGE;   // Single Source of Truth — alle Biome (inkl. rechnen10, geteilt, künftige)
 
   container.innerHTML = profile.map(p => {
     const frei = getBiomFreigabe(p.id);
