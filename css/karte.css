@@ -15,6 +15,7 @@
 .karte__szene {
   position: relative; width: 100%; aspect-ratio: 100 / 150;
   min-height: 84vh;
+  container-type: size; /* erlaubt cqh-Einheiten = % der Szenenhöhe (Namens-Versatz pro Insel) */
 }
 /* Fortschritt zum nächsten (gesperrten) Land — macht das Ziel und den Weg sichtbar. */
 .karte__fortschritt {
@@ -48,23 +49,38 @@
 .karte__fahne {
   position: absolute; left: 3px; top: 1px; min-width: 24px; height: 21px;
   display: flex; align-items: center; justify-content: center; font-size: 16px; line-height: 1;
-  background: var(--sw-banner, #7a5a3a); color: #fff;
+  background: var(--sw-biom-farbe, #7a5a3a); color: #fff;
   clip-path: polygon(0 0, 100% 0, 82% 50%, 100% 100%, 0 100%);
   padding: 0 9px 0 4px; box-shadow: 0 1px 3px rgba(0,0,0,.45);
   transform-origin: left center; animation: sw-wehen 2.4s ease-in-out infinite;
 }
-.karte__biom--mengen .karte__fahne { --sw-banner: #4a7a3a; }
-.karte__biom--plus   .karte__fahne { --sw-banner: #2f6d2f; }
-.karte__biom--minus  .karte__fahne { --sw-banner: #4a4a58; }
-.karte__biom--mal    .karte__fahne { --sw-banner: #6b5a48; }
-.karte__biom--rechnen10 .karte__fahne { --sw-banner: #2f6d7a; }
+/* Eine Farbe pro Land (Flagge + Namens-Schild teilen sie) und der vertikale Versatz,
+   der den Namen vom Insel-Mittelpunkt an den unteren Inselrand setzt (in cqh = % der Szenenhöhe,
+   grob 0,55–0,7 × Insel-Halbhöhe, damit der Name unten sitzt ohne abzurutschen). */
+.karte__biom--mengen    { --sw-biom-farbe: #4a7a3a; --name-versatz: 6cqh; }
+.karte__biom--rechnen10 { --sw-biom-farbe: #2f6d7a; --name-versatz: 4.5cqh; }
+.karte__biom--plus      { --sw-biom-farbe: #2f6d2f; --name-versatz: 5.5cqh; }
+.karte__biom--minus     { --sw-biom-farbe: #4a4a58; --name-versatz: 5.5cqh; }
+.karte__biom--mal       { --sw-biom-farbe: #6b5a48; --name-versatz: 6.5cqh; }
+.karte__biom--geteilt   { --sw-biom-farbe: #7a5246; --name-versatz: 5cqh; }
+/* Namens-Schild: dunkler, gut lesbarer Kern + biomfarbener Rahmen & Schimmer.
+   Absolut unter dem Flaggen-Fuß (= Inselmittelpunkt) platziert und um --name-versatz nach
+   unten geschoben, sodass es als Beschriftung am unteren Inselrand sitzt. */
 .karte__name {
+  position: absolute; left: 50%; top: 100%;
+  transform: translate(-50%, var(--name-versatz, 5cqh));
   font-size: var(--font-size-sm); white-space: nowrap; color: #fff;
-  background: rgba(0,0,0,.6); padding: 1px 7px; border-radius: 3px;
-  text-shadow: 0 1px 2px rgba(0,0,0,.8); box-shadow: 0 1px 3px rgba(0,0,0,.4);
+  background: rgba(8,6,4,.78); padding: 1px 8px; border-radius: 4px;
+  border: 2px solid var(--sw-biom-farbe, #7a5a3a);
+  text-shadow: 0 1px 2px rgba(0,0,0,.9);
+  box-shadow: 0 1px 4px rgba(0,0,0,.5), 0 0 6px var(--sw-biom-farbe, transparent);
 }
 .karte__biom:hover .karte__fahne { filter: brightness(1.15); }
-.karte__biom--aktiv .karte__name { box-shadow: 0 0 0 2px var(--color-success); }
+.karte__biom:hover .karte__name { filter: brightness(1.12); }
+.karte__biom--aktiv .karte__name {
+  border-color: var(--color-success);
+  box-shadow: 0 1px 4px rgba(0,0,0,.5), 0 0 8px var(--color-success);
+}
 .karte__biom--aktiv .karte__fahne { animation-duration: 1.3s; }
 .karte__biom--gesperrt { opacity: .6; filter: grayscale(.7); }
 .karte__biom--gesperrt .karte__fahne { animation: none; }
@@ -84,24 +100,9 @@
 
 @keyframes sw-wehen { 0%,100% { transform: rotate(-2deg) skewX(-4deg); } 50% { transform: rotate(2deg) skewX(6deg); } }
 
-/* Rechen-Trainer-Station auf der Karte (fester Platz, öffnet den Trainer). */
-.karte__trainer {
-  position: absolute; transform: translate(-50%, -50%); z-index: 1;
-  display: flex; flex-direction: column; align-items: center; gap: 2px;
-  background: transparent; border: 0; padding: 0; cursor: pointer;
-  color: #fff; font-family: var(--font-mono);
-}
-.karte__trainer-icon { font-size: 40px; line-height: 1; filter: drop-shadow(0 2px 3px rgba(0,0,0,.5)); }
-.karte__trainer-label {
-  font-size: var(--font-size-xs); background: rgba(0,0,0,.6);
-  padding: 1px 6px; border-radius: 3px; text-shadow: 0 1px 2px rgba(0,0,0,.8);
-}
-.karte__trainer:hover .karte__trainer-icon { filter: drop-shadow(0 2px 3px rgba(0,0,0,.5)) brightness(1.1); }
-
 @media (max-width: 480px) {
   .karte__fahne { font-size: 14px; }
   .karte__name { font-size: var(--font-size-xs); }
-  .karte__trainer-icon { font-size: 34px; }
 }
 
 /* Wandernde Avatar-Figur: gleitet (Transition left/top) mit Geh-Wackeln zum Zielbiom. */

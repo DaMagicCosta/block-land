@@ -1,10 +1,10 @@
 // Pure Logik für das Biom-System: Reihenfolge + Freigabe-Berechnung. KEINE DOM-/State-Abhängigkeit.
 // Persistenz liegt in state.js, Anzeige-Daten im Manifest. Hier nur die Regeln.
 
-export const BIOME_REIHENFOLGE = ['mengen', 'rechnen10', 'plus', 'minus', 'mal'];
+export const BIOME_REIHENFOLGE = ['mengen', 'rechnen10', 'plus', 'minus', 'mal', 'geteilt'];
 
 // Höchster standardmäßig offener Biom-Index je Schulstufe (alle darunter ebenfalls offen).
-const ALTER_BASELINE = { 'kindergarten': 1, 'klasse-1': 3, 'klasse-2': 4, 'klasse-3': 4 };
+const ALTER_BASELINE = { 'kindergarten': 1, 'klasse-1': 3, 'klasse-2': 5, 'klasse-3': 5 };
 
 export function baselineMaxIndex(alter) {
   return ALTER_BASELINE[alter] ?? 0; // Unbekannt → konservativ nur Mengen

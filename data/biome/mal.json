@@ -6,8 +6,9 @@
     ".": { "label": "Lichtung", "emoji": "", "interaktiv": false, "klasse": "tile--stein" },
     "b": { "label": "Erz", "emoji": "⛏️", "interaktiv": true, "klasse": "tile--stein", "reward": { "item": "stein", "emoji": "🪨", "label": "Stein" } },
     "s": { "label": "Baum", "emoji": "🌲", "interaktiv": true, "klasse": "tile--baum", "reward": { "item": "holz", "emoji": "🪵", "label": "Holz" } },
-    "f": { "label": "Edelstein", "emoji": "💠", "interaktiv": true, "klasse": "tile--blume", "reward": { "item": "blume", "emoji": "🌸", "label": "Blume" } }
+    "f": { "label": "Edelstein", "emoji": "💠", "interaktiv": true, "klasse": "tile--blume", "reward": { "item": "blume", "emoji": "🌸", "label": "Blume" } },
+    "T": { "label": "Trainer-Hütte", "emoji": "🧮", "interaktiv": true, "klasse": "tile--trainer", "aktion": "trainer", "reward": { "item": "stein", "emoji": "🪨", "label": "Stein" } }
   },
   "spielfigur_start": { "spalte": 6, "zeile": 4 },
-  "layout": ["bgGgbgggbggb","ggbgggsgbggg","ggGggfgggGbg","gbggg.gggGsg","ggggbgggggGb","ggsgggGggsgg","ggGggggfggbg","ggggggsggbfg"]
+  "layout": ["bgGgbgggbggb","ggbgggsgbggg","ggGggfgggGbg","gbggg.TggGsg","ggggbgggggGb","ggsgggGggsgg","ggGggggfggbg","ggggggsggbfg"]
 }

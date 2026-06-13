@@ -8,15 +8,10 @@ import { oeffneModal, schliesseAlleModals } from './modal.js';
 import { aktuelleStufe as burgStufeAus } from './burg-logik.js';
 import { aktuelleStufe as aufgabenStufe } from './adaptiv.js';
 import { rendereBurgSvg } from './burg.js';
-import { oeffneTrainer } from './trainer.js';
-
-// Belohnung fürs Trainer-Quiz, wenn der Trainer von der Karte (ohne Biom-Tile) gestartet wird.
-const TRAINER_REWARD = { item: 'holz', emoji: '🪵', label: 'Holz' };
-
 // Stilisierte Landkarte im Hochformat (Pixel-/Minecraft-Anmutung). viewBox 100×150,
 // per CSS aufs Feld gestreckt (preserveAspectRatio="none"). Reise von unten (Wiese) nach
 // oben (Berg), Länder im Zickzack + gleichmäßig verteilt. Marker (in %) liegen auf den Regionen:
-// Wiese (24,89), Teich (52,70), Wald (77,52), Höhle (23,34), Berg (73,16). Region-cy = y%·1,5.
+// Wiese (24,89), Teich (52,70), Wald (77,52), Höhle (23,34), Berg (73,16), Schlucht (24,10). Region-cy = y%·1,5.
 function kartenSzene() {
   return `
     <svg class="karte__svg" viewBox="0 0 100 150" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -27,7 +22,7 @@ function kartenSzene() {
       </defs>
       <rect width="100" height="150" fill="url(#sw-himmel)"/>
       <!-- Pfad: Reise von unten (Wiese) nach oben (Berg), durch alle fünf Länder, breiter Zickzack -->
-      <path class="karte__pfad" d="M 24 142 C 30 136, 44 114, 52 105 C 62 96, 70 88, 77 78 C 86 64, 36 60, 23 51 C 12 44, 64 34, 73 24"
+      <path class="karte__pfad" d="M 24 142 C 30 136, 44 114, 52 105 C 62 96, 70 88, 77 78 C 86 64, 36 60, 23 51 C 12 44, 64 34, 73 24 C 80 14, 44 9, 24 15"
             fill="none" stroke="#d9c89a" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="2 5" opacity="0.8"/>
       <!-- Mengen-Wiese (unten links) -->
       <ellipse cx="24" cy="133" rx="26" ry="15" fill="#3f6e34"/>
@@ -50,8 +45,13 @@ function kartenSzene() {
       <ellipse cx="73" cy="24" rx="26" ry="16" fill="#5b4d3e"/>
       <polygon points="73,5 90,31 56,31" fill="#6b5a48"/>
       <polygon points="73,5 80,17 66,17" fill="#e8eef2"/>
+      <!-- Geteilt-Schlucht (oben links): Fels-Insel mit teilender Spalte + Bach (Division-Metapher) -->
+      <ellipse cx="24" cy="15" rx="22" ry="12" fill="#3a2f2a"/>
+      <polygon points="24,4 19,15 24,26 29,15" fill="#1a130f"/>
+      <rect x="23" y="6" width="2" height="18" fill="#2f5b66" opacity="0.85"/>
+      <rect x="12" y="13" width="4" height="4" rx="1" fill="#4a3f35"/><rect x="33" y="14" width="3.5" height="3.5" rx="1" fill="#4a3f35"/>
       <!-- Wolken -->
-      <g fill="#ffffff" opacity="0.15"><ellipse cx="28" cy="13" rx="9" ry="3.5"/><ellipse cx="44" cy="70" rx="7" ry="2.6"/></g>
+      <g fill="#ffffff" opacity="0.15"><ellipse cx="44" cy="70" rx="7" ry="2.6"/></g>
     </svg>`;
 }
 
@@ -122,13 +122,9 @@ export async function renderKarte(container) {
         <div class="karte__szene">
           ${kartenSzene()}
           ${marker}
-          <button class="karte__burg" id="karte-burg" style="left:84%;top:72%">
+          <button class="karte__burg" id="karte-burg" style="left:85%;top:90%">
             ${rendereBurgSvg(burgStufe)}
             <span class="karte__burg-label">Meine Burg</span>
-          </button>
-          <button class="karte__trainer" id="karte-trainer" style="left:84%;top:91%">
-            <span class="karte__trainer-icon">🧮</span>
-            <span class="karte__trainer-label">Rechen-Trainer</span>
           </button>
           <div class="karte__figur" id="karte-figur" style="left:${aktivPos.x}%;top:${aktivPos.y}%"><span class="karte__figur-emoji">${avatarEmoji}</span></div>
         </div>
@@ -139,7 +135,6 @@ export async function renderKarte(container) {
 
   container.querySelector('#karte-back').addEventListener('click', () => { location.hash = 'welt'; });
   container.querySelector('#karte-burg').addEventListener('click', () => { location.hash = 'burg'; });
-  container.querySelector('#karte-trainer').addEventListener('click', () => oeffneTrainer(TRAINER_REWARD));
 
   const figur = container.querySelector('#karte-figur');
   const fade = container.querySelector('#karte-fade');

@@ -14,6 +14,7 @@
 .welt--minus  { background: linear-gradient(180deg, #20202a, #131319); }
 .welt--mal    { background: linear-gradient(180deg, #2d2620, #3a2f22); }
 .welt--rechnen10 { background: linear-gradient(180deg, #16323a, #0f2027); }
+.welt--geteilt { background: linear-gradient(180deg, #2a211c, #14100c); }
 
 .welt__header {
   width: 100%;
@@ -83,7 +84,23 @@
 .tile--teich-schilf  { background: #2e4d52; cursor: pointer; }
 .tile--teich-kiesel  { background: #2e4d52; cursor: pointer; }
 .tile--teich-seerose { background: #2e4d52; cursor: pointer; }
+.tile--schlucht-fels     { background: #3a2f2a; }
+.tile--schlucht-tief     { background: #241c18; }
+.tile--schlucht-wasser   { background: #25424a; }
+.tile--schlucht-erz      { background: #3a2f2a; cursor: pointer; }
+.tile--schlucht-holz     { background: #3a2f2a; cursor: pointer; }
+.tile--schlucht-kristall { background: #3a2f2a; cursor: pointer; }
 .tile--werkbank { background: #4a3f6a; cursor: pointer; }
+.tile--trainer {
+  background: #4a3f6a;
+  cursor: pointer;
+  animation: trainer-puls 6.4s ease-in-out infinite;
+}
+
+@keyframes trainer-puls {
+  0%, 100% { background: #4a3f6a; box-shadow: 0 0 0 0 rgba(185, 167, 255, 0); }
+  50%      { background: #574a7d; box-shadow: 0 0 3px 1px rgba(185, 167, 255, 0.2); }
+}
 
 .welt__tile.is-interaktiv:hover { outline: 2px solid var(--color-action); z-index: 1; }
 

@@ -53,5 +53,14 @@
       { "nr": 3, "label": "Plus & Minus bis 10" }
     ],
     "distraktoren": { "anzahl": 4 }
+  },
+  "geteilt": {
+    "default_stufe": 1,
+    "stufen": [
+      { "nr": 1, "label": "Leichte Reihen (2, 5, 10)", "reihen": [2, 5, 10],            "quotient_max": 10 },
+      { "nr": 2, "label": "Dazu 3er & 4er",            "reihen": [2, 3, 4, 5, 10],      "quotient_max": 10 },
+      { "nr": 3, "label": "Alle Reihen",               "reihen": [2, 3, 4, 5, 6, 7, 8, 9, 10], "quotient_max": 10 }
+    ],
+    "distraktoren": { "anzahl": 4 }
   }
 }
