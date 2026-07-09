@@ -10,19 +10,24 @@
 }
 .eltern__hinweis { color: var(--color-text-dim); font-size: var(--font-size-sm); text-align: center; }
 
-.eltern__tabs { display: flex; gap: var(--space-xs); flex-wrap: wrap; }
+/* Tab-Leiste: gleichmäßiges Raster, Icon über Label, aktiver Tab mit Akzent-Rahmen. */
+.eltern__tabs { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-xs); }
 .eltern__tabs button {
-  flex: 1;
-  border: 0;
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  border: 1px solid transparent;
   background: var(--color-surface-2);
   color: var(--color-text-dim);
-  padding: var(--space-sm);
-  font-family: var(--font-mono);
-  font-size: var(--font-size-sm);
+  padding: var(--space-sm) 2px;
   border-radius: var(--radius-sm);
   cursor: pointer;
 }
-.eltern__tabs button.aktiv { background: var(--color-surface); color: var(--color-text); }
+.eltern__tab-icon { font-size: 20px; line-height: 1; }
+.eltern__tab-label { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.3px; }
+.eltern__tabs button.aktiv {
+  background: var(--color-surface);
+  color: var(--color-text);
+  border-color: var(--color-action);
+}
 
 .eltern__inhalt {
   display: flex;
@@ -188,7 +193,8 @@
 .welt__eltern:hover { border-color: var(--color-action); }
 
 @media (max-width: 480px) {
-  .eltern__tabs button { font-size: var(--font-size-xs); }
+  .eltern__tab-icon { font-size: 18px; }
+  .eltern__tab-label { font-size: 10px; }
 }
 
 .eltern__avatar-grid { display: flex; flex-wrap: wrap; gap: var(--space-xs); }

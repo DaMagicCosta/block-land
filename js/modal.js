@@ -1,6 +1,8 @@
 let aktivesBackdrop = null;
 
-export function oeffneModal({ inhaltHtml, onClose, klassen = '' }) {
+// backdropSchliesst: false → Klick/Tipp neben das Modal schließt NICHT (nur Button/Escape).
+// Für Bereiche mit Zugangs-Hürde (Eltern-PIN), damit ein Wisch-Versehen nicht rauswirft.
+export function oeffneModal({ inhaltHtml, onClose, klassen = '', backdropSchliesst = true }) {
   if (aktivesBackdrop) return null; // Mehrfach-Guard
 
   const backdrop = document.createElement('div');
@@ -20,7 +22,7 @@ export function oeffneModal({ inhaltHtml, onClose, klassen = '' }) {
   }
 
   backdrop.addEventListener('click', (e) => {
-    if (e.target === backdrop) schliessen();
+    if (backdropSchliesst && e.target === backdrop) schliessen();
   });
   document.addEventListener('keydown', escHandler);
 

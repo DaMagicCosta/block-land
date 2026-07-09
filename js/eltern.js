@@ -23,7 +23,9 @@ const ALTER = [['kindergarten', 'Kindergarten'], ['klasse-1', '1. Klasse'], ['kl
 const AVATARE = [['krieger', '🗡️'], ['bergmann', '⛏️'], ['magier', '🧙'], ['ninja', '🥷'], ['ritter', '🛡️'], ['schurke', '🦹'], ['tier', '🐺'], ['drache', '🐉']];
 
 export function oeffneElternBereich(onClose) {
-  const modal = oeffneModal({ klassen: 'modal-backdrop--eltern', inhaltHtml: '<div class="modal modal--eltern"></div>', onClose });
+  // backdropSchliesst: false — der Eltern-Bereich wird nur über „Fertig"/Escape verlassen,
+  // ein Wisch/Tipp daneben wirft nicht raus (sonst ständig neue PIN-Eingabe).
+  const modal = oeffneModal({ klassen: 'modal-backdrop--eltern', inhaltHtml: '<div class="modal modal--eltern"></div>', onClose, backdropSchliesst: false });
   if (!modal) return;
   if (istPinGesetzt()) pinAbfrage(modal);
   else pinErstellen(modal);
@@ -41,10 +43,14 @@ function pinAbfrage(modal) {
   const inp = modal.inhalt.querySelector('.eltern__pin');
   const fehler = modal.inhalt.querySelector('.eltern__fehler');
   inp.focus();
-  modal.inhalt.querySelector('.eltern__primary').addEventListener('click', () => {
-    if (pruefePin(inp.value)) dashboard(modal);
-    else { fehler.hidden = false; fehler.textContent = 'Falsche PIN.'; inp.value = ''; inp.focus(); }
-  });
+  function versuch(zeigeFehler) {
+    if (pruefePin(inp.value)) { dashboard(modal); return; }
+    if (zeigeFehler) { fehler.hidden = false; fehler.textContent = 'Falsche PIN.'; inp.value = ''; inp.focus(); }
+  }
+  // Auto-weiter, sobald die PIN stimmt — gleiche Mechanik wie die Kind-PIN in auswahl.js.
+  inp.addEventListener('input', () => { fehler.hidden = true; versuch(false); });
+  inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') versuch(true); });
+  modal.inhalt.querySelector('.eltern__primary').addEventListener('click', () => versuch(true));
   modal.inhalt.querySelector('.eltern__abbruch').addEventListener('click', () => modal.schliessen());
 }
 
@@ -78,13 +84,18 @@ function dashboard(modal) {
     modal.inhalt.innerHTML = `
       <div class="eltern__kopf">⚙️ Eltern-Bereich</div>
       <div class="eltern__tabs">
-        <button data-tab="belohnungen" class="${tab === 'belohnungen' ? 'aktiv' : ''}">🎁 Belohnungen</button>
-        <button data-tab="gutscheine" class="${tab === 'gutscheine' ? 'aktiv' : ''}">🎟️ Gutscheine</button>
-        <button data-tab="kinder" class="${tab === 'kinder' ? 'aktiv' : ''}">🧒 Kinder</button>
-        <button data-tab="biome" class="${tab === 'biome' ? 'aktiv' : ''}">🗺️ Biome</button>
-        <button data-tab="statistik" class="${tab === 'statistik' ? 'aktiv' : ''}">📊 Statistik</button>
-        <button data-tab="sync" class="${tab === 'sync' ? 'aktiv' : ''}">📡 Sync</button>
-        <button data-tab="pin" class="${tab === 'pin' ? 'aktiv' : ''}">🔒 PIN</button>
+        ${[
+          ['belohnungen', '🎁', 'Belohnungen'],
+          ['gutscheine', '🎟️', 'Gutscheine'],
+          ['kinder', '🧒', 'Kinder'],
+          ['biome', '🗺️', 'Biome'],
+          ['statistik', '📊', 'Statistik'],
+          ['sync', '📡', 'Sync'],
+          ['pin', '🔒', 'PIN'],
+        ].map(([id, icon, label]) => `
+          <button data-tab="${id}" class="${tab === id ? 'aktiv' : ''}">
+            <span class="eltern__tab-icon">${icon}</span><span class="eltern__tab-label">${label}</span>
+          </button>`).join('')}
       </div>
       <div class="eltern__inhalt"></div>
       <button class="eltern__sekundaer eltern__schliessen">Fertig</button>
