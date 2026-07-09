@@ -10,6 +10,7 @@ import { meldeAufsagen, meldeEintragen } from './sync.js';
 import { kappeLuecke, formatDauer, neuerEintrag, INAKTIV_MS } from './aufsage-protokoll-logik.js';
 import { richtungsHinweis, neuerEintrag as neuerEintragEintragen } from './eintragen-protokoll-logik.js';
 import { tagesSchluessel } from './statistik-logik.js';
+import { rapportiereErgebnis } from './adaptiv.js';
 
 const MAX_FEHLVERSUCHE = 2;
 
@@ -377,6 +378,7 @@ function rendereAufsagen(wurzel, container, modal, reward, reihe) {
 
 // --- Schritt 3: Quiz ---
 function starteQuiz(wurzel, modal, reward, reihe) {
+  const profileId = getCurrentProfile()?.id ?? null;
   const fakten = [];
   if (reihe === 'gemischt') {
     const alle = [];
@@ -399,6 +401,12 @@ function starteQuiz(wurzel, modal, reward, reihe) {
     const f = fakten[index];
     const richtig = f.a * f.b;
     let fehler = 0;
+    const frageStart = performance.now();
+    // Quiz zählt wie eine normale Aufgabe (Statistik + Familien-Sync). Stufe bleibt fix —
+    // die Reihen-Wahl ist die Schwierigkeit des Quiz, nicht die adaptive Mal-Stufe.
+    function rapportiere(warRichtig) {
+      if (profileId) rapportiereErgebnis(profileId, 'mal', warRichtig, performance.now() - frageStart, { adaptStufe: false });
+    }
     const optionen = mische([richtig, ...distraktoren(f.a, f.b)]);
     wurzel.innerHTML = `
       <div class="trainer__fortschritt">Frage ${index + 1} von ${fakten.length} · ⭐ ${sterne}</div>
@@ -416,6 +424,7 @@ function starteQuiz(wurzel, modal, reward, reihe) {
           btn.classList.add('trainer__antwort--richtig');
           ant.querySelectorAll('button').forEach(x => { x.disabled = true; });
           sterne++;
+          rapportiere(true);
           // einzelne Reihe = Stufe 3, Gemischt = Stufe 4 (maxStufe 4) → Gemischt gibt besseres Material
           verteileBelohnung(reihe === 'gemischt' ? 4 : 3, 4, reward.item);
           setTimeout(weiter, 700);
@@ -428,6 +437,7 @@ function starteQuiz(wurzel, modal, reward, reihe) {
               x.disabled = true;
               if (parseInt(x.textContent, 10) === richtig) x.classList.add('trainer__antwort--richtig');
             });
+            rapportiere(false);
             const tipp = wurzel.querySelector('.trainer__tipp');
             tipp.hidden = false;
             tipp.textContent = `Die Lösung ist ${richtig} 👍`;
