@@ -8,7 +8,9 @@ import {
   getDropChancen, setzeDropChance,
   addProfile, deleteProfile, setzeKindPin,
   getBiomFreigabe, setBiomElternStatus,
+  getSyncConfig, setzeSyncConfig,
 } from './state.js';
+import { flushSync, anzahlWartend } from './sync.js';
 import { tabStatistik } from './statistik.js';
 import { escapeHtml } from './utils.js';
 import { loadBiomManifest } from './data.js';
@@ -81,6 +83,7 @@ function dashboard(modal) {
         <button data-tab="kinder" class="${tab === 'kinder' ? 'aktiv' : ''}">🧒 Kinder</button>
         <button data-tab="biome" class="${tab === 'biome' ? 'aktiv' : ''}">🗺️ Biome</button>
         <button data-tab="statistik" class="${tab === 'statistik' ? 'aktiv' : ''}">📊 Statistik</button>
+        <button data-tab="sync" class="${tab === 'sync' ? 'aktiv' : ''}">📡 Sync</button>
         <button data-tab="pin" class="${tab === 'pin' ? 'aktiv' : ''}">🔒 PIN</button>
       </div>
       <div class="eltern__inhalt"></div>
@@ -92,6 +95,7 @@ function dashboard(modal) {
     else if (tab === 'kinder') tabKinder(inhalt, render);
     else if (tab === 'biome') tabBiome(inhalt, render);
     else if (tab === 'statistik') tabStatistik(inhalt, render);
+    else if (tab === 'sync') tabSync(inhalt, render);
     else tabPin(inhalt);
     modal.inhalt.querySelectorAll('.eltern__tabs button').forEach(b => {
       b.addEventListener('click', () => { tab = b.dataset.tab; render(); });
@@ -475,5 +479,46 @@ function tabPin(container) {
     fehler.hidden = false;
     fehler.className = 'eltern__erfolg';
     fehler.textContent = 'PIN geändert ✓';
+  });
+}
+
+// --- Tab: Familien-Sync (Übermittlung der Lernergebnisse) ---
+function tabSync(inhalt, render) {
+  const cfg = getSyncConfig();
+  inhalt.innerHTML = `
+    <p class="eltern__hinweis">Schickt die Lern-Ereignisse an Euer Familien-Sheet — Grundlage für den
+      abendlichen Telegram-Bericht und die Familien-Statistik. Einrichtung: <code>sync/EINRICHTUNG.md</code>.</p>
+    <label class="eltern__sync-label">Web-App-URL
+      <input class="eltern__feld" type="url" data-sync="url" value="${escapeHtml(cfg.url)}"
+             placeholder="https://script.google.com/macros/s/…/exec" />
+    </label>
+    <label class="eltern__sync-label">Familien-Schlüssel
+      <input class="eltern__feld" type="text" data-sync="schluessel" value="${escapeHtml(cfg.schluessel)}" />
+    </label>
+    <label class="eltern__sync-label eltern__sync-label--zeile">
+      <input type="checkbox" data-sync="aktiv" ${cfg.aktiv ? 'checked' : ''} /> Sync aktiv
+    </label>
+    <div class="eltern__sync-status">Wartende Ereignisse auf diesem Gerät: <b>${anzahlWartend()}</b></div>
+    <div class="eltern__fehler" hidden></div>
+    <button class="eltern__primary" data-aktion="speichern">Speichern</button>
+    <button class="eltern__sekundaer" data-aktion="senden">Jetzt senden</button>
+  `;
+  const meldung = inhalt.querySelector('.eltern__fehler');
+  function zeige(text) { meldung.hidden = false; meldung.textContent = text; }
+
+  inhalt.querySelector('[data-aktion="speichern"]').addEventListener('click', () => {
+    setzeSyncConfig({
+      url: inhalt.querySelector('[data-sync="url"]').value,
+      schluessel: inhalt.querySelector('[data-sync="schluessel"]').value,
+      aktiv: inhalt.querySelector('[data-sync="aktiv"]').checked,
+    });
+    render();
+  });
+
+  inhalt.querySelector('[data-aktion="senden"]').addEventListener('click', async () => {
+    zeige('Sende …');
+    const ergebnis = await flushSync();
+    if (ergebnis.ok) zeige(`✅ Gesendet: ${ergebnis.gesendet} Ereignis(se).`);
+    else zeige(`⚠️ Senden fehlgeschlagen: ${ergebnis.grund}.`);
   });
 }

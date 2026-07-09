@@ -258,4 +258,9 @@
   cursor: pointer;
 }
 .eltern__regler-step:hover { border-color: var(--color-action); }
+
+/* Familien-Sync-Tab */
+.eltern__sync-label { display: block; margin-bottom: var(--space-md); font-size: 14px; }
+.eltern__sync-label--zeile { display: flex; align-items: center; gap: var(--space-sm); }
+.eltern__sync-status { margin: var(--space-md) 0; font-size: 14px; opacity: 0.85; }
 .eltern__regler-step:active { background: var(--color-surface); }
