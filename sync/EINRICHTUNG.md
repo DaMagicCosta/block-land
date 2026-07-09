@@ -50,3 +50,7 @@ Block-Land öffnen → **Eltern-Bereich → Tab 📡 Sync**:
 - Neues Script-Update: Code ersetzen → **Bereitstellen → Bereitstellung verwalten → Bearbeiten →
   Version: Neu** (URL bleibt erhalten!).
 - Schlüssel wechseln: Skript-Eigenschaft ändern + in allen drei Apps neu eintragen.
+- Nach Update von `familien-sync.gs` (z. B. neue Rechenart-Labels wie `text: 'Textaufgaben'`):
+  Script neu deployen (s. o.). Die Web-App-URL bleibt gleich; die ausgelieferten HTML-Clients
+  (`BlockLand.html`) brauchen kein Update, der Trigger `taeglicherDigest` wertet die neuen
+  Labels sofort aus.

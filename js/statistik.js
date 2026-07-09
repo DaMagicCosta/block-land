@@ -12,7 +12,7 @@ const AVATAR_EMOJI = {
   krieger: '🗡️', bergmann: '⛏️', magier: '🧙', ninja: '🥷',
   ritter: '🛡️', schurke: '🦹', tier: '🐺', drache: '🐉',
 };
-const TYP_LABEL = { mengen: 'Mengen', plus: 'Plus', minus: 'Minus', mal: 'Mal' };
+const TYP_LABEL = { mengen: 'Mengen', plus: 'Plus', minus: 'Minus', mal: 'Mal', text: 'Textaufgaben' };
 
 function prozent(quote) { return `${Math.round(quote * 100)}%`; }
 
@@ -88,7 +88,7 @@ function eintragenProtokollHtml(profileId) {
 const ALTER_LABEL = { 'kindergarten': 'Vorschule', 'klasse-1': '1. Klasse', 'klasse-2': '2. Klasse', 'klasse-3': '3. Klasse' };
 const SYNC_TYP_LABEL = {
   mengen: 'Mengen bis 10', plus: 'Plus', minus: 'Minus', mal: 'Mal-Reihen',
-  geteilt: 'Geteilt', rechnen10: 'Rechnen bis 10', stellenwert: 'Stellenwert',
+  geteilt: 'Geteilt', rechnen10: 'Rechnen bis 10', stellenwert: 'Stellenwert', text: 'Textaufgaben',
 };
 
 // Server-Daten holen; kinder=null heißt: lokaler Fallback (mit Hinweis-Text).
