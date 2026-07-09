@@ -15,7 +15,7 @@
 .welt--mal    { background: linear-gradient(180deg, #2d2620, #3a2f22); }
 .welt--rechnen10 { background: linear-gradient(180deg, #16323a, #0f2027); }
 .welt--geteilt { background: linear-gradient(180deg, #2a211c, #14100c); }
-.welt--dorf   { background: linear-gradient(180deg, #4a331e, #2a1c10); }
+.welt--text   { background: linear-gradient(180deg, #4a331e, #2a1c10); }
 
 .welt__header {
   width: 100%;
