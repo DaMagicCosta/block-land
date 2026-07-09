@@ -22,7 +22,10 @@ function schreibeQueue(queue) {
 function melde(bauFn, profileId, daten) {
   const p = getProfile(profileId);
   if (!p) return;
-  const ereignis = bauFn({ kind: p.name, alter: p.alter, ts: new Date().toISOString(), ...daten });
+  const ereignis = {
+    id: `e_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+    ...bauFn({ kind: p.name, alter: p.alter, ts: new Date().toISOString(), ...daten }),
+  };
   schreibeQueue(fuegeInQueue(leseQueue(), ereignis));
   planeFlush();
 }
@@ -49,10 +52,21 @@ function planeFlush() {
   flushTimer = setTimeout(() => { flushSync(); }, FLUSH_VERZOEGERUNG_MS);
 }
 
+let laufenderFlush = null;
+
+// Sendet die komplette Queue. Parallelaufrufe (2s-Start-Timer und 5s-Debounce können
+// gleichzeitig feuern) teilen sich denselben Lauf — kein Doppel-Versand.
+export function flushSync() {
+  if (laufenderFlush) return laufenderFlush;
+  laufenderFlush = fuehreFlushAus().finally(() => { laufenderFlush = null; });
+  return laufenderFlush;
+}
+
 // Sendet die komplette Queue. Erst nach bestätigtem Empfang ({ok:true}) werden genau
-// die gesendeten Ereignisse entfernt — während des Sendens neu entstandene bleiben.
+// die gesendeten Ereignisse (per Id) entfernt — während des Sendens neu entstandene
+// bleiben, auch wenn ein Queue-Cap zwischenzeitlich Einträge vorne verdrängt hat.
 // KEIN Content-Type-Header: Simple Request, Apps Script beantwortet keine Preflights.
-export async function flushSync() {
+async function fuehreFlushAus() {
   const cfg = getSyncConfig();
   if (!cfg.aktiv || !cfg.url || !cfg.schluessel) return { ok: false, grund: 'nicht konfiguriert' };
   const queue = leseQueue();
@@ -64,7 +78,8 @@ export async function flushSync() {
     });
     const json = await res.json();
     if (!json.ok) return { ok: false, grund: json.fehler ?? 'abgelehnt' };
-    schreibeQueue(leseQueue().slice(queue.length));
+    const gesendeteIds = new Set(queue.map(e => e.id));
+    schreibeQueue(leseQueue().filter(e => !gesendeteIds.has(e.id)));
     return { ok: true, gesendet: queue.length };
   } catch {
     return { ok: false, grund: 'netzwerk' };
