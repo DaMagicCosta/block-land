@@ -14,14 +14,16 @@ export function tagesSchluessel(date) {
 
 // Schreibt eine Aufgabe in den Tages-Verlauf (pro Tag pro Rechenart) und kappt
 // Schlüssel, die älter als `maxTage` Tage sind (inkl. heute). Gibt ein NEUES Objekt
-// zurück (Eingabe bleibt unverändert).
-export function aktualisiereVerlauf(verlauf = {}, typ, warRichtig, heute, maxTage = 60) {
+// zurück (Eingabe bleibt unverändert). zeit_ms summiert die Antwortzeiten des Tages
+// (ältere Einträge ohne das Feld zählen als 0 — ⌀-Zeit erscheint dann als „—").
+export function aktualisiereVerlauf(verlauf = {}, typ, warRichtig, heute, maxTage = 60, zeitMs = 0) {
   const tag = tagesSchluessel(heute);
   const next = structuredClone(verlauf);
   const tagObj = next[tag] ?? {};
-  const typObj = tagObj[typ] ?? { gesamt: 0, richtig: 0 };
+  const typObj = tagObj[typ] ?? { gesamt: 0, richtig: 0, zeit_ms: 0 };
   typObj.gesamt += 1;
   if (warRichtig) typObj.richtig += 1;
+  typObj.zeit_ms = (typObj.zeit_ms ?? 0) + (Number(zeitMs) > 0 ? Math.round(zeitMs) : 0);
   tagObj[typ] = typObj;
   next[tag] = tagObj;
 
@@ -76,28 +78,31 @@ export function quoteFarbe(quote, gesamt) {
 
 // Summiert einen Tag (verlauf[key]) über die gewählte Rechenart ('alle' = alle).
 function summiereTag(tagObj, typFilter) {
-  let gesamt = 0, richtig = 0;
+  let gesamt = 0, richtig = 0, zeitMs = 0;
   for (const [typ, s] of Object.entries(tagObj ?? {})) {
     if (typFilter !== 'alle' && typ !== typFilter) continue;
     gesamt += s.gesamt ?? 0;
     richtig += s.richtig ?? 0;
+    zeitMs += s.zeit_ms ?? 0;
   }
-  return { gesamt, richtig };
+  return { gesamt, richtig, zeitMs };
 }
 
 // Letzte `anzahlTage` Tage, lückenlos, Reihenfolge alt -> neu.
+// zeitSchnittMs = ⌀ Antwortzeit pro Aufgabe (0, wenn keine Zeiten erfasst).
 export function verlaufTage(verlauf = {}, typFilter = 'alle', anzahlTage = 7, heute) {
   const reihe = [];
   for (let i = anzahlTage - 1; i >= 0; i--) {
     const d = new Date(heute);
     d.setDate(d.getDate() - i);
-    const { gesamt, richtig } = summiereTag(verlauf[tagesSchluessel(d)], typFilter);
+    const { gesamt, richtig, zeitMs } = summiereTag(verlauf[tagesSchluessel(d)], typFilter);
     reihe.push({
       datum: tagesSchluessel(d),
       label: WOCHENTAG[d.getDay()],
       gesamt,
       richtig,
       quote: gesamt ? richtig / gesamt : 0,
+      zeitSchnittMs: gesamt ? zeitMs / gesamt : 0,
     });
   }
   return reihe;
@@ -120,13 +125,14 @@ export function verlaufWochen(verlauf = {}, typFilter = 'alle', anzahlWochen = 5
   for (let w = anzahlWochen - 1; w >= 0; w--) {
     const start = new Date(montagDieserWoche);
     start.setDate(start.getDate() - w * 7);
-    let gesamt = 0, richtig = 0;
+    let gesamt = 0, richtig = 0, zeitMs = 0;
     for (let d = 0; d < 7; d++) {
       const tag = new Date(start);
       tag.setDate(tag.getDate() + d);
       const t = summiereTag(verlauf[tagesSchluessel(tag)], typFilter);
       gesamt += t.gesamt;
       richtig += t.richtig;
+      zeitMs += t.zeitMs;
     }
     reihe.push({
       start: tagesSchluessel(start),
@@ -134,6 +140,7 @@ export function verlaufWochen(verlauf = {}, typFilter = 'alle', anzahlWochen = 5
       gesamt,
       richtig,
       quote: gesamt ? richtig / gesamt : 0,
+      zeitSchnittMs: gesamt ? zeitMs / gesamt : 0,
     });
   }
   return reihe;

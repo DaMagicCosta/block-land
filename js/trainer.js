@@ -90,6 +90,7 @@ function zeigeLernStufe(wurzel, modal, reward, reihe) {
       }));
       meldeEintragen(profileId, {
         richtig: eintragenStat.richtig, fehler: eintragenStat.fehler, verraten: eintragenStat.verraten,
+        detail: `reihe ${reihe}`,
       });
     }
   }
@@ -249,7 +250,7 @@ function rendereAufsagen(wurzel, container, modal, reward, reihe) {
         datum: tagesSchluessel(new Date()),
         reihe, stufe, durchgaenge, zeit_ms: aktiveZeitMs,
       }));
-      meldeAufsagen(profileId, { zeit_ms: aktiveZeitMs });
+      meldeAufsagen(profileId, { zeit_ms: aktiveZeitMs, detail: `reihe ${reihe} · ${stufe}` });
     }
     durchgaenge = 0; aktiveZeitMs = 0;
   }
@@ -405,7 +406,9 @@ function starteQuiz(wurzel, modal, reward, reihe) {
     // Quiz zählt wie eine normale Aufgabe (Statistik + Familien-Sync). Stufe bleibt fix —
     // die Reihen-Wahl ist die Schwierigkeit des Quiz, nicht die adaptive Mal-Stufe.
     function rapportiere(warRichtig) {
-      if (profileId) rapportiereErgebnis(profileId, 'mal', warRichtig, performance.now() - frageStart, { adaptStufe: false });
+      if (profileId) rapportiereErgebnis(profileId, 'mal', warRichtig, performance.now() - frageStart, {
+        adaptStufe: false, detail: reihe === 'gemischt' ? 'reihe gemischt' : `reihe ${reihe}`,
+      });
     }
     const optionen = mische([richtig, ...distraktoren(f.a, f.b)]);
     wurzel.innerHTML = `

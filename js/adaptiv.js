@@ -38,9 +38,10 @@ export function aktuelleStufe(profileId, aufgabentyp) {
 // Wird nach jeder beantworteten Aufgabe aufgerufen.
 // war_richtig: boolean
 // zeit_ms: number — vom Anzeige der Aufgabe bis zur Antwort
-export function rapportiereErgebnis(profileId, aufgabentyp, war_richtig, zeit_ms, { maxStufe = 4, adaptStufe = true } = {}) {
+export function rapportiereErgebnis(profileId, aufgabentyp, war_richtig, zeit_ms, { maxStufe = 4, adaptStufe = true, detail = null } = {}) {
   trackeAufgabe(profileId, aufgabentyp, war_richtig, zeit_ms);
-  meldeAufgabe(profileId, aufgabentyp, war_richtig, zeit_ms);
+  // detail beschreibt die Übungssituation fürs Familien-Sheet; Standard ist die aktuelle Stufe.
+  meldeAufgabe(profileId, aufgabentyp, war_richtig, zeit_ms, detail ?? `stufe ${getSchwierigkeit(profileId, aufgabentyp)}`);
 
   const v = getVerlauf(profileId, aufgabentyp);
   v.letzte_5.push({ war_richtig, zeit_ms });

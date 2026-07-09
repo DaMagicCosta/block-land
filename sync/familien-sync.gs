@@ -6,7 +6,7 @@
 //   BOT_TOKEN            Token des Telegram-Bots (@BotFather)
 //   CHAT_IDS             Telegram-Chat-IDs der Eltern, kommagetrennt (zeigeChatIds() hilft)
 
-const SPALTEN = ['ts', 'kind', 'alter', 'art', 'typ', 'richtig', 'gesamt', 'zeit_ms'];
+const SPALTEN = ['ts', 'kind', 'alter', 'art', 'typ', 'richtig', 'gesamt', 'zeit_ms', 'detail'];
 const TYP_NAMEN = {
   mengen: 'Mengen bis 10', plus: 'Plus', minus: 'Minus', mal: 'Mal-Reihen',
   geteilt: 'Geteilt', rechnen10: 'Rechnen bis 10', stellenwert: 'Stellenwert',
@@ -26,6 +26,8 @@ function ereignisBlatt() {
   const doc = SpreadsheetApp.openById(prop('SHEET_ID'));
   let blatt = doc.getSheetByName('Ereignisse');
   if (!blatt) { blatt = doc.insertSheet('Ereignisse'); blatt.appendRow(SPALTEN); }
+  // Kopfzeile nachziehen, wenn neue Spalten dazukommen (z.B. 'detail') — idempotent.
+  if (blatt.getLastColumn() < SPALTEN.length) blatt.getRange(1, 1, 1, SPALTEN.length).setValues([SPALTEN]);
   return blatt;
 }
 
@@ -39,6 +41,7 @@ function doPost(e) {
       const zeilen = events.map(ev => [
         String(ev.ts || ''), String(ev.kind || ''), String(ev.alter || ''), String(ev.art || ''),
         String(ev.typ || ''), Number(ev.richtig) || 0, Number(ev.gesamt) || 0, Number(ev.zeit_ms) || 0,
+        String(ev.detail || ''),
       ]);
       const blatt = ereignisBlatt();
       blatt.getRange(blatt.getLastRow() + 1, 1, zeilen.length, SPALTEN.length).setValues(zeilen);
@@ -77,6 +80,7 @@ function leseEreignisse(maxTage) {
     .map(z => ({
       ts: new Date(z[0]), kind: String(z[1]), alter: String(z[2]), art: String(z[3]),
       typ: String(z[4]), richtig: Number(z[5]) || 0, gesamt: Number(z[6]) || 0, zeit_ms: Number(z[7]) || 0,
+      detail: String(z[8] || ''),
     }))
     .filter(ev => !isNaN(ev.ts) && ev.ts >= grenze);
 }
@@ -102,9 +106,10 @@ function aggregiere(events) {
     t.zeit_ms += ev.zeit_ms;
     const tag = tagVon(ev.ts);
     const tagObj = k.verlauf[tag] = k.verlauf[tag] || {};
-    const vt = tagObj[ev.typ] = tagObj[ev.typ] || { gesamt: 0, richtig: 0 };
+    const vt = tagObj[ev.typ] = tagObj[ev.typ] || { gesamt: 0, richtig: 0, zeit_ms: 0 };
     vt.gesamt += ev.gesamt;
     vt.richtig += ev.richtig;
+    vt.zeit_ms += ev.zeit_ms;
   });
   return Object.keys(map).map(name => {
     const k = map[name];

@@ -162,7 +162,7 @@ export function trackeAufgabe(profileId, aufgabentyp, war_richtig, zeit_ms = 0) 
   stat[aufgabentyp].zeit_summe_ms = (stat[aufgabentyp].zeit_summe_ms ?? 0) + (zeit_ms || 0);
   state.profiles[profileId].statistik = stat;
   const p = state.profiles[profileId];
-  p.verlauf = aktualisiereVerlauf(p.verlauf, aufgabentyp, war_richtig, new Date());
+  p.verlauf = aktualisiereVerlauf(p.verlauf, aufgabentyp, war_richtig, new Date(), 60, zeit_ms);
   save(state);
 }
 

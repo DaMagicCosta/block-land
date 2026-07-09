@@ -6,6 +6,7 @@ import { freieBiome } from './biome-logik.js';
 import { summen, quoteFarbe, verlaufTage, verlaufWochen } from './statistik-logik.js';
 import { escapeHtml } from './utils.js';
 import { holeFamilienStatistik } from './sync.js';
+import { erzeugeBefunde } from './befund-logik.js';
 
 const AVATAR_EMOJI = {
   krieger: '🗡️', bergmann: '⛏️', magier: '🧙', ninja: '🥷',
@@ -15,13 +16,19 @@ const TYP_LABEL = { mengen: 'Mengen', plus: 'Plus', minus: 'Minus', mal: 'Mal' }
 
 function prozent(quote) { return `${Math.round(quote * 100)}%`; }
 
-// Balkendiagramm aus einer Reihe ({ label, gesamt, quote }[]).
-function diagrammHtml(reihe) {
-  const max = Math.max(1, ...reihe.map(p => p.gesamt));
+// Balkendiagramm aus einer Reihe ({ label, gesamt, quote, zeitSchnittMs }[]).
+// metrik 'aufgaben': Balkenhöhe = Aufgabenzahl. metrik 'zeit': Balkenhöhe = ⌀ Zeit pro
+// Aufgabe. Die Farbe bleibt in beiden Fällen die Quote (Qualitätssignal).
+function diagrammHtml(reihe, metrik = 'aufgaben') {
+  const wert = p => (metrik === 'zeit' ? (p.zeitSchnittMs ?? 0) : p.gesamt);
+  const max = Math.max(1, ...reihe.map(wert));
   const balken = reihe.map(p => {
-    const h = Math.round((p.gesamt / max) * 100);
+    const h = Math.round((wert(p) / max) * 100);
     const farbe = quoteFarbe(p.quote, p.gesamt);
-    const titel = p.gesamt ? `${p.gesamt} Aufgaben · ${prozent(p.quote)} richtig` : 'keine Aufgaben';
+    const zeitText = p.zeitSchnittMs ? `⌀ ${(p.zeitSchnittMs / 1000).toFixed(1)}s` : 'keine Zeiten erfasst';
+    const titel = p.gesamt
+      ? (metrik === 'zeit' ? `${zeitText} · ${p.gesamt} Aufgaben` : `${p.gesamt} Aufgaben · ${prozent(p.quote)} richtig`)
+      : 'keine Aufgaben';
     return `
       <div class="stat-balken" title="${escapeHtml(titel)}">
         <div class="stat-balken__saeule">
@@ -101,7 +108,7 @@ async function holeServerKinder() {
 export function tabStatistik(container, neuRendern) {
   // Hauptquelle ist der Sync-Server (geräteübergreifend); lokale Daten sind Fallback
   // (offline/unkonfiguriert) und liefern die Geräte-Details (Stufe, Protokolle).
-  const view = { kindName: null, fenster: 'woche', filter: 'alle' };
+  const view = { kindName: null, fenster: 'woche', filter: 'alle', metrik: 'aufgaben' };
   let server = { kinder: null, hinweis: null };
 
   function render() {
@@ -176,7 +183,7 @@ export function tabStatistik(container, neuRendern) {
     if (!k && !p) { view.kindName = null; render(); return; }
 
     const avatar = p ? (AVATAR_EMOJI[p.avatar] ?? '🧒') : '🧒';
-    let tabelle, verlaufObj, filterTypen, quelle, extras = [];
+    let tabelle, verlaufObj, filterTypen, quelle, extras = [], kompassTypen = [];
 
     if (k) {
       const proTyp = k.proTyp ?? [];
@@ -199,6 +206,7 @@ export function tabStatistik(container, neuRendern) {
         : '<div class="eltern__leer">Noch keine Aufgaben gelöst.</div>';
       verlaufObj = k.verlauf ?? {};
       filterTypen = proTyp.map(t => t.typ);
+      kompassTypen = proTyp;
       quelle = '🌐 Alle Geräte · letzte 30 Tage';
       const aufsagen = Number(k.aufsagen) || 0;
       if (aufsagen) extras.push(`🗣️ ${aufsagen}× Reihen aufgesagt`);
@@ -220,6 +228,7 @@ export function tabStatistik(container, neuRendern) {
         : '<div class="eltern__leer">Noch keine Aufgaben gelöst.</div>';
       verlaufObj = getVerlauf(p.id);
       filterTypen = s.proTyp.map(t => t.typ);
+      kompassTypen = s.proTyp.map(t => ({ typ: t.typ, gesamt: t.gesamt, richtig: t.richtig, zeit_ms: t.zeitSumme }));
       quelle = server.hinweis ?? '📱 Nur dieses Gerät';
     }
 
@@ -230,6 +239,12 @@ export function tabStatistik(container, neuRendern) {
     const chips = [['alle', 'Alle'], ...filterTypen.map(t => [t, SYNC_TYP_LABEL[t] ?? t])].map(([key, label]) =>
       `<button class="stat-chip ${view.filter === key ? 'aktiv' : ''}" data-filter="${escapeHtml(key)}">${escapeHtml(label)}</button>`
     ).join('');
+
+    const befunde = erzeugeBefunde(kompassTypen, SYNC_TYP_LABEL);
+    const kompass = `
+        <div class="stat-detail__abschnitt">🧭 Förder-Kompass</div>
+        <div class="stat-befunde">${befunde.map(b =>
+          `<div class="stat-befund stat-befund--${b.farbe}">${escapeHtml(b.text)}</div>`).join('')}</div>`;
 
     // Geräte-Details (Stufe steht in der Tabelle; hier Biome + Protokolle) nur, wenn das
     // Kind auf DIESEM Gerät ein Profil hat — diese Daten werden bewusst nicht gesynct.
@@ -249,6 +264,7 @@ export function tabStatistik(container, neuRendern) {
         <button class="stat-zurueck" data-zurueck>← Zurück</button>
         <div class="stat-detail__kopf"><span>${avatar}</span> ${escapeHtml(view.kindName)}${kindDaten ? ` <span class="stat-detail__alter">(${escapeHtml(ALTER_LABEL[kindDaten.alter] ?? kindDaten.alter)})</span>` : ''}</div>
         <div class="stat-quelle">${escapeHtml(quelle)}</div>
+        ${kompass}
 
         <div class="stat-detail__abschnitt">📊 Gelöst je Rechenart</div>
         ${tabelle}
@@ -258,9 +274,12 @@ export function tabStatistik(container, neuRendern) {
         <div class="stat-fenster">
           <button class="stat-chip ${view.fenster === 'woche' ? 'aktiv' : ''}" data-fenster="woche">Woche</button>
           <button class="stat-chip ${view.fenster === 'monat' ? 'aktiv' : ''}" data-fenster="monat">Monat</button>
+          <span class="stat-fenster__trenner"></span>
+          <button class="stat-chip ${view.metrik === 'aufgaben' ? 'aktiv' : ''}" data-metrik="aufgaben">📊 Aufgaben</button>
+          <button class="stat-chip ${view.metrik === 'zeit' ? 'aktiv' : ''}" data-metrik="zeit">⏱️ ⌀ Zeit</button>
         </div>
         <div class="stat-chips">${chips}</div>
-        ${diagrammHtml(reihe)}
+        ${diagrammHtml(reihe, view.metrik)}
         ${LEGENDE}
         ${geraeteTeil}
       </div>`;
@@ -268,6 +287,8 @@ export function tabStatistik(container, neuRendern) {
     container.querySelector('[data-zurueck]').addEventListener('click', () => { view.kindName = null; render(); });
     container.querySelectorAll('[data-fenster]').forEach(b =>
       b.addEventListener('click', () => { view.fenster = b.dataset.fenster; render(); }));
+    container.querySelectorAll('[data-metrik]').forEach(b =>
+      b.addEventListener('click', () => { view.metrik = b.dataset.metrik; render(); }));
     container.querySelectorAll('[data-filter]').forEach(b =>
       b.addEventListener('click', () => { view.filter = b.dataset.filter; render(); }));
   }

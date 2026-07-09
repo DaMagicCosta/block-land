@@ -30,16 +30,16 @@ function melde(bauFn, profileId, daten) {
   planeFlush();
 }
 
-export function meldeAufgabe(profileId, aufgabentyp, warRichtig, zeitMs) {
-  melde(ereignisAufgabe, profileId, { aufgabentyp, warRichtig, zeitMs });
+export function meldeAufgabe(profileId, aufgabentyp, warRichtig, zeitMs, detail = '') {
+  melde(ereignisAufgabe, profileId, { aufgabentyp, warRichtig, zeitMs, detail });
 }
 
-export function meldeAufsagen(profileId, { zeit_ms }) {
-  melde(ereignisAufsagen, profileId, { zeitMs: zeit_ms });
+export function meldeAufsagen(profileId, { zeit_ms, detail = '' }) {
+  melde(ereignisAufsagen, profileId, { zeitMs: zeit_ms, detail });
 }
 
-export function meldeEintragen(profileId, { richtig, fehler, verraten }) {
-  melde(ereignisEintragen, profileId, { richtig, fehler, verraten });
+export function meldeEintragen(profileId, { richtig, fehler, verraten, detail = '' }) {
+  melde(ereignisEintragen, profileId, { richtig, fehler, verraten, detail });
 }
 
 export function anzahlWartend() {

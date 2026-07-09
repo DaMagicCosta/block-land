@@ -46,6 +46,18 @@
 .stat-biome { margin-top: var(--space-sm); color: var(--color-text-dim); font-size: 13px; }
 
 .stat-fenster, .stat-chips { display: flex; flex-wrap: wrap; gap: var(--space-xs); margin-bottom: var(--space-sm); }
+.stat-fenster__trenner { flex: 1; }
+
+/* Förder-Kompass: Klartext-Befunde als Ampel-Kacheln */
+.stat-befunde { display: flex; flex-direction: column; gap: var(--space-xs); }
+.stat-befund {
+  padding: var(--space-sm); border-radius: var(--radius-sm); font-size: 14px;
+  background: var(--color-surface); border-left: 4px solid var(--color-border);
+}
+.stat-befund--rot { border-left-color: var(--color-danger); }
+.stat-befund--gelb { border-left-color: var(--color-action); }
+.stat-befund--gruen { border-left-color: var(--color-success); }
+.stat-befund--neutral { border-left-color: var(--color-border); }
 .stat-chip {
   background: var(--color-surface); border: 1px solid var(--color-border);
   border-radius: 999px; padding: 4px 12px;

@@ -15,6 +15,7 @@ pruefe('aufgabe: Grundfelder', a.kind === 'Arthur' && a.alter === 'klasse-2' && 
 pruefe('aufgabe: typ/richtig/gesamt/zeit', a.typ === 'mal' && a.richtig === 1 && a.gesamt === 1 && a.zeit_ms === 4200);
 pruefe('aufgabe: falsch → richtig=0', ereignisAufgabe({ kind: 'A', alter: 'klasse-2', aufgabentyp: 'plus', warRichtig: false, zeitMs: 0, ts }).richtig === 0);
 pruefe('aufgabe: kaputte zeit → 0', ereignisAufgabe({ kind: 'A', alter: 'klasse-2', aufgabentyp: 'plus', warRichtig: true, zeitMs: NaN, ts }).zeit_ms === 0);
+pruefe('aufgabe: detail durchgereicht + Default leer', a.detail === '' && ereignisAufgabe({ kind: 'A', alter: 'klasse-2', aufgabentyp: 'mal', warRichtig: true, zeitMs: 1, ts, detail: 'reihe 7' }).detail === 'reihe 7');
 
 const e = ereignisEintragen({ kind: 'Arthur', alter: 'klasse-2', richtig: 8, fehler: 1, verraten: 1, ts });
 pruefe('eintragen: gesamt = richtig+fehler+verraten', e.art === 'eintragen' && e.typ === 'mal' && e.richtig === 8 && e.gesamt === 10 && e.zeit_ms === 0);
