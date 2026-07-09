@@ -167,14 +167,10 @@ export function tabStatistik(container, neuRendern) {
       <div class="stat-uebersicht">${karten}</div>
       <div class="stat-detail__abschnitt">🌐 Familien-Statistik (alle Geräte, 30 Tage)</div>
       <div class="stat-familie">
-        <button class="eltern__sekundaer" data-familie-laden>Laden</button>
         <div class="stat-familie__inhalt"></div>
       </div>`;
-    const familieBtn = container.querySelector('[data-familie-laden]');
-    familieBtn.addEventListener('click', () => {
-      familieBtn.hidden = true;
-      ladeFamilienStatistik(container.querySelector('.stat-familie__inhalt'));
-    });
+    // Lädt automatisch bei jedem Öffnen der Übersicht (ohne Konfiguration nur Hinweis, kein Netz).
+    ladeFamilienStatistik(container.querySelector('.stat-familie__inhalt'));
     container.querySelectorAll('[data-kind]').forEach(btn => {
       btn.addEventListener('click', () => { view.kindId = btn.dataset.kind; render(); });
     });

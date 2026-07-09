@@ -15,6 +15,9 @@
 .stat-karte__pfeil { margin-left: auto; color: var(--color-text-dim); font-size: 22px; }
 .stat-karte__kennzahl { color: var(--color-text-dim); font-size: 14px; }
 .stat-karte__mini { height: 48px; }
+/* Das Mini-Diagramm muss in die 48px der Karte passen — ohne Override läuft die
+   140px-Detail-Höhe unten aus der Karte und kollidiert mit dem Inhalt darunter. */
+.stat-karte__mini .stat-diagramm { height: 100%; padding: 0; background: none; }
 
 .stat-zurueck {
   background: none; border: none; color: var(--color-action);
