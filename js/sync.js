@@ -91,3 +91,14 @@ async function fuehreFlushAus() {
 export function initSync() {
   setTimeout(() => { flushSync(); }, 2000);
 }
+
+// Holt die aggregierte Familien-Statistik (letzte 30 Tage) vom Sync-Server.
+// Wirft bei fehlender Konfiguration oder Serverfehler — der Aufrufer zeigt die Fehler-UI.
+export async function holeFamilienStatistik() {
+  const cfg = getSyncConfig();
+  if (!cfg.url || !cfg.schluessel) throw new Error('nicht konfiguriert');
+  const res = await fetch(`${cfg.url}?schluessel=${encodeURIComponent(cfg.schluessel)}`);
+  const json = await res.json();
+  if (!json.ok) throw new Error(json.fehler ?? 'abgelehnt');
+  return json;
+}

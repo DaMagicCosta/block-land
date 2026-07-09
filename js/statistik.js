@@ -5,6 +5,7 @@ import { stufeLabel, formatDauer } from './aufsage-protokoll-logik.js';
 import { freieBiome } from './biome-logik.js';
 import { summen, quoteFarbe, verlaufTage, verlaufWochen } from './statistik-logik.js';
 import { escapeHtml } from './utils.js';
+import { holeFamilienStatistik } from './sync.js';
 
 const AVATAR_EMOJI = {
   krieger: '🗡️', bergmann: '⛏️', magier: '🧙', ninja: '🥷',
@@ -121,9 +122,7 @@ async function ladeFamilienStatistik(ziel) {
   }
   ziel.innerHTML = '<div class="eltern__leer">Lade …</div>';
   try {
-    const res = await fetch(`${cfg.url}?schluessel=${encodeURIComponent(cfg.schluessel)}`);
-    const json = await res.json();
-    if (!json.ok) throw new Error(json.fehler ?? 'abgelehnt');
+    const json = await holeFamilienStatistik();
     ziel.innerHTML = json.kinder.length
       ? json.kinder.map(familienKindHtml).join('')
       : '<div class="eltern__leer">Noch keine Ereignisse in den letzten 30 Tagen.</div>';
