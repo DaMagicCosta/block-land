@@ -11,7 +11,8 @@ import { rendereBurgSvg } from './burg.js';
 // Stilisierte Landkarte im Hochformat (Pixel-/Minecraft-Anmutung). viewBox 100×150,
 // per CSS aufs Feld gestreckt (preserveAspectRatio="none"). Reise von unten (Wiese) nach
 // oben (Berg), Länder im Zickzack + gleichmäßig verteilt. Marker (in %) liegen auf den Regionen:
-// Wiese (24,89), Teich (52,70), Wald (77,52), Höhle (23,34), Berg (73,16), Schlucht (24,10). Region-cy = y%·1,5.
+// Wiese (24,89), Teich (52,70), Wald (77,52), Höhle (23,34), Berg (73,16), Schlucht (24,10),
+// Dorf (70,36). Region-cy = y%·1,5.
 function kartenSzene() {
   return `
     <svg class="karte__svg" viewBox="0 0 100 150" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -21,8 +22,9 @@ function kartenSzene() {
         </linearGradient>
       </defs>
       <rect width="100" height="150" fill="url(#sw-himmel)"/>
-      <!-- Pfad: Reise von unten (Wiese) nach oben (Berg), durch alle fünf Länder, breiter Zickzack -->
-      <path class="karte__pfad" d="M 24 142 C 30 136, 44 114, 52 105 C 62 96, 70 88, 77 78 C 86 64, 36 60, 23 51 C 12 44, 64 34, 73 24 C 80 14, 44 9, 24 15"
+      <!-- Pfad: Reise von unten (Wiese) nach oben (Berg), durch alle Länder, breiter Zickzack;
+           letzter Abschnitt schwenkt von der Schlucht zurück ins Geschichten-Dorf (rechte Mitte). -->
+      <path class="karte__pfad" d="M 24 142 C 30 136, 44 114, 52 105 C 62 96, 70 88, 77 78 C 86 64, 36 60, 23 51 C 12 44, 64 34, 73 24 C 80 14, 44 9, 24 15 C 4 21, 45 22, 70 54"
             fill="none" stroke="#d9c89a" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="2 5" opacity="0.8"/>
       <!-- Mengen-Wiese (unten links) -->
       <ellipse cx="24" cy="133" rx="26" ry="15" fill="#3f6e34"/>
@@ -50,6 +52,11 @@ function kartenSzene() {
       <polygon points="24,4 19,15 24,26 29,15" fill="#1a130f"/>
       <rect x="23" y="6" width="2" height="18" fill="#2f5b66" opacity="0.85"/>
       <rect x="12" y="13" width="4" height="4" rx="1" fill="#4a3f35"/><rect x="33" y="14" width="3.5" height="3.5" rx="1" fill="#4a3f35"/>
+      <!-- Geschichten-Dorf (rechte Mitte, zwischen Wald und Berg): warme Dorf-Insel mit Häusern + Brunnen -->
+      <ellipse cx="70" cy="54" rx="18" ry="10" fill="#6b5033"/>
+      <rect x="61" y="49" width="5" height="4" fill="#8a6a44"/><polygon points="61,49 63.5,44.5 66,49" fill="#a5432f"/>
+      <rect x="75" y="51" width="5" height="4" fill="#8a6a44"/><polygon points="75,51 77.5,46.5 80,51" fill="#a5432f"/>
+      <circle cx="70" cy="58" r="2" fill="#3a2f2a"/><circle cx="70" cy="58" r="1.2" fill="#5b8a9a"/>
       <!-- Wolken -->
       <g fill="#ffffff" opacity="0.15"><ellipse cx="44" cy="70" rx="7" ry="2.6"/></g>
     </svg>`;

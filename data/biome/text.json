@@ -1,0 +1,23 @@
+{
+  "name": "Geschichten-Dorf", "spalten": 12, "zeilen": 8,
+  "tile_typen": {
+    "g": { "label": "Wiese", "emoji": "🌿", "interaktiv": false, "klasse": "tile--dorf-wiese" },
+    ".": { "label": "Weg", "emoji": "", "interaktiv": false, "klasse": "tile--dorf-weg" },
+    "h": { "label": "Haus", "emoji": "🏠", "interaktiv": false, "klasse": "tile--dorf-haus" },
+    "b": { "label": "Brunnen", "emoji": "⛲", "interaktiv": false, "klasse": "tile--dorf-brunnen" },
+    "q": { "label": "Bauer", "emoji": "🧑‍🌾", "interaktiv": true, "klasse": "tile--dorf-bauer", "reward": { "item": "holz", "emoji": "🪵", "label": "Holz" } },
+    "w": { "label": "Handwerker", "emoji": "👷", "interaktiv": true, "klasse": "tile--dorf-handwerker", "reward": { "item": "stein", "emoji": "🪨", "label": "Stein" } },
+    "e": { "label": "Gärtnerin", "emoji": "👩‍🌾", "interaktiv": true, "klasse": "tile--dorf-gaertnerin", "reward": { "item": "blume", "emoji": "🌸", "label": "Blume" } }
+  },
+  "spielfigur_start": { "spalte": 6, "zeile": 4 },
+  "layout": [
+    "hgg.gghgg.gh",
+    "gqgggwgggggg",
+    "g.g.b.g.g.gg",
+    "ggggg.gggggg",
+    "geggggqggggg",
+    "gwggggeggggg",
+    "hgqggggwgggh",
+    "hgg.gghgg.gh"
+  ]
+}

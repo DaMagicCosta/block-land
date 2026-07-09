@@ -15,6 +15,7 @@
 .welt--mal    { background: linear-gradient(180deg, #2d2620, #3a2f22); }
 .welt--rechnen10 { background: linear-gradient(180deg, #16323a, #0f2027); }
 .welt--geteilt { background: linear-gradient(180deg, #2a211c, #14100c); }
+.welt--dorf   { background: linear-gradient(180deg, #4a331e, #2a1c10); }
 
 .welt__header {
   width: 100%;
@@ -90,6 +91,13 @@
 .tile--schlucht-erz      { background: #3a2f2a; cursor: pointer; }
 .tile--schlucht-holz     { background: #3a2f2a; cursor: pointer; }
 .tile--schlucht-kristall { background: #3a2f2a; cursor: pointer; }
+.tile--dorf-wiese       { background: #5a7a3a; }
+.tile--dorf-weg         { background: #7a6444; }
+.tile--dorf-haus        { background: #5a3f26; }
+.tile--dorf-brunnen     { background: #2f5b66; }
+.tile--dorf-bauer       { background: #5a7a3a; cursor: pointer; }
+.tile--dorf-handwerker  { background: #5a3f26; cursor: pointer; }
+.tile--dorf-gaertnerin  { background: #5a7a3a; cursor: pointer; }
 .tile--werkbank { background: #4a3f6a; cursor: pointer; }
 .tile--trainer {
   background: #4a3f6a;

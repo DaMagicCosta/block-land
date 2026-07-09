@@ -63,6 +63,7 @@
 .karte__biom--minus     { --sw-biom-farbe: #4a4a58; --name-versatz: 5.5cqh; }
 .karte__biom--mal       { --sw-biom-farbe: #6b5a48; --name-versatz: 6.5cqh; }
 .karte__biom--geteilt   { --sw-biom-farbe: #7a5246; --name-versatz: 5cqh; }
+.karte__biom--text      { --sw-biom-farbe: #c9863a; --name-versatz: 4.2cqh; }
 /* Namens-Schild: dunkler, gut lesbarer Kern + biomfarbener Rahmen & Schimmer.
    Absolut unter dem Flaggen-Fuß (= Inselmittelpunkt) platziert und um --name-versatz nach
    unten geschoben, sodass es als Beschriftung am unteren Inselrand sitzt. */
