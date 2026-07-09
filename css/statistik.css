@@ -23,7 +23,9 @@
   background: none; border: none; color: var(--color-action);
   cursor: pointer; font-size: 15px; padding: 0; margin-bottom: var(--space-sm);
 }
-.stat-detail__kopf { font-size: 20px; font-weight: 700; margin-bottom: var(--space-md); }
+.stat-detail__kopf { font-size: 20px; font-weight: 700; margin-bottom: var(--space-xs); }
+.stat-detail__alter { font-weight: 400; color: var(--color-text-dim); font-size: 15px; }
+.stat-quelle { color: var(--color-text-dim); font-size: 13px; margin-bottom: var(--space-md); }
 .stat-detail__abschnitt {
   font-weight: 600; color: var(--color-text); margin: var(--space-md) 0 var(--space-sm);
 }

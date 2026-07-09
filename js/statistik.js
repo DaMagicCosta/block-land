@@ -12,7 +12,6 @@ const AVATAR_EMOJI = {
   ritter: '🛡️', schurke: '🦹', tier: '🐺', drache: '🐉',
 };
 const TYP_LABEL = { mengen: 'Mengen', plus: 'Plus', minus: 'Minus', mal: 'Mal' };
-const FILTER = [['alle', 'Alle'], ['mengen', 'Mengen'], ['plus', 'Plus'], ['minus', 'Minus'], ['mal', 'Mal']];
 
 function prozent(quote) { return `${Math.round(quote * 100)}%`; }
 
@@ -85,143 +84,175 @@ const SYNC_TYP_LABEL = {
   geteilt: 'Geteilt', rechnen10: 'Rechnen bis 10', stellenwert: 'Stellenwert',
 };
 
-// Ein Kind-Block der Familien-Statistik (Daten kommen aggregiert vom Sync-Server).
-function familienKindHtml(k) {
-  const zeilen = (k.proTyp ?? []).map(t => {
-    const gesamt = Number(t.gesamt) || 0;
-    const richtig = Number(t.richtig) || 0;
-    return `
-    <tr>
-      <td class="stat-tabelle__typ">${escapeHtml(SYNC_TYP_LABEL[t.typ] ?? t.typ)}</td>
-      <td>${richtig}/${gesamt}</td>
-      <td>${gesamt ? prozent(richtig / gesamt) : '—'}</td>
-    </tr>`;
-  }).join('');
-  const extras = [];
-  const aufsagen = Number(k.aufsagen) || 0;
-  if (aufsagen) extras.push(`🗣️ ${aufsagen}× aufgesagt`);
-  const zeit_ms = Number(k.zeit_ms) || 0;
-  extras.push(`⏱️ ca. ${Math.max(1, Math.round(zeit_ms / 60000))} Min geübt`);
-  return `
-    <div class="stat-familie__kind">
-      <div class="stat-familie__name">👦 ${escapeHtml(k.kind)} <span>(${escapeHtml(ALTER_LABEL[k.alter] ?? k.alter)})</span></div>
-      <table class="stat-tabelle">
-        <thead><tr><th>Rechenart</th><th>Richtig</th><th>Quote</th></tr></thead>
-        <tbody>${zeilen}</tbody>
-      </table>
-      <div class="stat-familie__extras">${escapeHtml(extras.join(' · '))}</div>
-    </div>`;
-}
-
-// Lädt die geräteübergreifende Statistik vom Sync-Server (letzte 30 Tage).
-async function ladeFamilienStatistik(ziel) {
+// Server-Daten holen; kinder=null heißt: lokaler Fallback (mit Hinweis-Text).
+async function holeServerKinder() {
   const cfg = getSyncConfig();
   if (!cfg.url || !cfg.schluessel) {
-    ziel.innerHTML = '<div class="eltern__leer">Familien-Sync ist nicht eingerichtet (Tab 📡 Sync).</div>';
-    return;
+    return { kinder: null, hinweis: 'Familien-Sync nicht eingerichtet (Tab 📡 Sync) — Ansicht zeigt nur dieses Gerät.' };
   }
-  ziel.innerHTML = '<div class="eltern__leer">Lade …</div>';
   try {
     const json = await holeFamilienStatistik();
-    ziel.innerHTML = json.kinder.length
-      ? json.kinder.map(familienKindHtml).join('')
-      : '<div class="eltern__leer">Noch keine Ereignisse in den letzten 30 Tagen.</div>';
+    return { kinder: Array.isArray(json.kinder) ? json.kinder : [] };
   } catch {
-    ziel.innerHTML = '<div class="eltern__leer">⚠️ Konnte die Familien-Statistik nicht laden.</div>';
+    return { kinder: null, hinweis: '⚠️ Familien-Statistik nicht erreichbar — Ansicht zeigt nur dieses Gerät.' };
   }
 }
 
 export function tabStatistik(container, neuRendern) {
-  const view = { kindId: null, fenster: 'woche', filter: 'alle' };
+  // Hauptquelle ist der Sync-Server (geräteübergreifend); lokale Daten sind Fallback
+  // (offline/unkonfiguriert) und liefern die Geräte-Details (Stufe, Protokolle).
+  const view = { kindName: null, fenster: 'woche', filter: 'alle' };
+  let server = { kinder: null, hinweis: null };
 
   function render() {
-    if (view.kindId) renderDetail();
+    if (view.kindName) renderDetail();
     else renderUebersicht();
+  }
+
+  function kartenHtml(name, avatar, kennzahl, mini) {
+    return `
+      <button class="stat-karte" data-kind="${escapeHtml(name)}">
+        <div class="stat-karte__kopf">
+          <span class="stat-karte__avatar">${avatar}</span>
+          <span class="stat-karte__name">${escapeHtml(name)}</span>
+          <span class="stat-karte__pfeil">›</span>
+        </div>
+        <div class="stat-karte__kennzahl">${escapeHtml(kennzahl)}</div>
+        <div class="stat-karte__mini">${mini}</div>
+      </button>`;
   }
 
   function renderUebersicht() {
     const profile = getProfiles();
-    if (!profile.length) {
+    const profilNachName = new Map(profile.map(p => [p.name, p]));
+    const karten = [];
+
+    if (server.kinder) {
+      for (const k of server.kinder) {
+        const p = profilNachName.get(k.kind);
+        const gesamt = Number(k.gesamt) || 0;
+        const richtig = Number(k.richtig) || 0;
+        const minuten = Math.max(1, Math.round((Number(k.zeit_ms) || 0) / 60000));
+        const kennzahl = gesamt
+          ? `${gesamt} Aufgaben · ${prozent(richtig / gesamt)} richtig · ca. ${minuten} Min`
+          : 'noch nicht geübt';
+        karten.push(kartenHtml(k.kind, p ? (AVATAR_EMOJI[p.avatar] ?? '🧒') : '🧒', kennzahl,
+          diagrammHtml(verlaufTage(k.verlauf ?? {}, 'alle', 7, new Date()))));
+      }
+      // Lokale Profile, die serverseitig noch keine Ereignisse haben, trotzdem anzeigen.
+      for (const p of profile) {
+        if (!server.kinder.some(k => k.kind === p.name)) {
+          karten.push(kartenHtml(p.name, AVATAR_EMOJI[p.avatar] ?? '🧒', 'noch nicht geübt',
+            diagrammHtml(verlaufTage({}, 'alle', 7, new Date()))));
+        }
+      }
+    } else {
+      // Fallback: lokale Statistik dieses Geräts.
+      for (const p of profile) {
+        const s = summen(p.statistik ?? {});
+        const kennzahl = s.gesamt ? `${s.gesamt} Aufgaben · ${prozent(s.quote)} richtig` : 'noch nicht geübt';
+        karten.push(kartenHtml(p.name, AVATAR_EMOJI[p.avatar] ?? '🧒', kennzahl,
+          diagrammHtml(verlaufTage(getVerlauf(p.id), 'alle', 7, new Date()))));
+      }
+    }
+
+    if (!karten.length) {
       container.innerHTML = '<div class="eltern__leer">Noch keine Kinder. Lege im Tab 🧒 Kinder eins an.</div>';
       return;
     }
-    const karten = profile.map(p => {
-      const s = summen(p.statistik ?? {});
-      const mini = diagrammHtml(verlaufTage(getVerlauf(p.id), 'alle', 7, new Date()));
-      const avatar = AVATAR_EMOJI[p.avatar] ?? '🧒';
-      const kennzahl = s.gesamt
-        ? `${s.gesamt} Aufgaben · ${prozent(s.quote)} richtig`
-        : 'noch nicht geübt';
-      return `
-        <button class="stat-karte" data-kind="${p.id}">
-          <div class="stat-karte__kopf">
-            <span class="stat-karte__avatar">${avatar}</span>
-            <span class="stat-karte__name">${escapeHtml(p.name)}</span>
-            <span class="stat-karte__pfeil">›</span>
-          </div>
-          <div class="stat-karte__kennzahl">${escapeHtml(kennzahl)}</div>
-          <div class="stat-karte__mini">${mini}</div>
-        </button>`;
-    }).join('');
-    container.innerHTML = `
-      <div class="stat-uebersicht">${karten}</div>
-      <div class="stat-detail__abschnitt">🌐 Familien-Statistik (alle Geräte, 30 Tage)</div>
-      <div class="stat-familie">
-        <div class="stat-familie__inhalt"></div>
-      </div>`;
-    // Lädt automatisch bei jedem Öffnen der Übersicht (ohne Konfiguration nur Hinweis, kein Netz).
-    ladeFamilienStatistik(container.querySelector('.stat-familie__inhalt'));
+    const quelle = server.kinder
+      ? '<div class="stat-quelle">🌐 Alle Geräte · letzte 30 Tage</div>'
+      : `<div class="stat-quelle">${escapeHtml(server.hinweis ?? '')}</div>`;
+    container.innerHTML = `${quelle}<div class="stat-uebersicht">${karten.join('')}</div>`;
     container.querySelectorAll('[data-kind]').forEach(btn => {
-      btn.addEventListener('click', () => { view.kindId = btn.dataset.kind; render(); });
+      btn.addEventListener('click', () => { view.kindName = btn.dataset.kind; view.filter = 'alle'; render(); });
     });
   }
 
   function renderDetail() {
     const profile = getProfiles();
-    const p = profile.find(x => x.id === view.kindId);
-    if (!p) { view.kindId = null; render(); return; }
+    const p = profile.find(x => x.name === view.kindName) ?? null;
+    const k = server.kinder?.find(x => x.kind === view.kindName) ?? null;
+    if (!k && !p) { view.kindName = null; render(); return; }
 
-    const s = summen(p.statistik ?? {});
-    const tabelle = s.proTyp.length
-      ? `<table class="stat-tabelle">
-          <thead>
-            <tr>
-              <th>Rechenart</th><th>Richtig</th><th>Quote</th><th>⌀ Zeit</th><th>Stufe</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${s.proTyp.map(t => `
+    const avatar = p ? (AVATAR_EMOJI[p.avatar] ?? '🧒') : '🧒';
+    let tabelle, verlaufObj, filterTypen, quelle, extras = [];
+
+    if (k) {
+      const proTyp = k.proTyp ?? [];
+      tabelle = proTyp.length
+        ? `<table class="stat-tabelle">
+            <thead><tr><th>Rechenart</th><th>Richtig</th><th>Quote</th><th>⌀ Zeit</th><th>Stufe</th></tr></thead>
+            <tbody>${proTyp.map(t => {
+              const gesamt = Number(t.gesamt) || 0;
+              const richtig = Number(t.richtig) || 0;
+              const zeit = Number(t.zeit_ms) || 0;
+              return `<tr>
+                <td class="stat-tabelle__typ">${escapeHtml(SYNC_TYP_LABEL[t.typ] ?? t.typ)}</td>
+                <td>${richtig}/${gesamt}</td>
+                <td>${gesamt ? prozent(richtig / gesamt) : '—'}</td>
+                <td>${gesamt && zeit ? `${(zeit / gesamt / 1000).toFixed(1)}s` : '—'}</td>
+                <td>${p ? getSchwierigkeit(p.id, t.typ) : '—'}</td>
+              </tr>`;
+            }).join('')}</tbody>
+          </table>`
+        : '<div class="eltern__leer">Noch keine Aufgaben gelöst.</div>';
+      verlaufObj = k.verlauf ?? {};
+      filterTypen = proTyp.map(t => t.typ);
+      quelle = '🌐 Alle Geräte · letzte 30 Tage';
+      const aufsagen = Number(k.aufsagen) || 0;
+      if (aufsagen) extras.push(`🗣️ ${aufsagen}× Reihen aufgesagt`);
+      extras.push(`⏱️ ca. ${Math.max(1, Math.round((Number(k.zeit_ms) || 0) / 60000))} Min geübt`);
+    } else {
+      const s = summen(p.statistik ?? {});
+      tabelle = s.proTyp.length
+        ? `<table class="stat-tabelle">
+            <thead><tr><th>Rechenart</th><th>Richtig</th><th>Quote</th><th>⌀ Zeit</th><th>Stufe</th></tr></thead>
+            <tbody>${s.proTyp.map(t => `
               <tr>
-                <td class="stat-tabelle__typ">${escapeHtml(TYP_LABEL[t.typ] ?? t.typ)}</td>
+                <td class="stat-tabelle__typ">${escapeHtml(SYNC_TYP_LABEL[t.typ] ?? t.typ)}</td>
                 <td>${t.richtig}/${t.gesamt}</td>
                 <td>${prozent(t.quote)}</td>
                 <td>${(t.zeitSchnittMs / 1000).toFixed(1)}s</td>
                 <td>${getSchwierigkeit(p.id, t.typ)}</td>
-              </tr>`).join('')}
-          </tbody>
-        </table>`
-      : '<div class="eltern__leer">Noch keine Aufgaben gelöst.</div>';
-
-    const frei = freieBiome(getBiomFreigabe(p.id))
-      .map(id => TYP_LABEL[id] ?? id).join(' · ') || '—';
+              </tr>`).join('')}</tbody>
+          </table>`
+        : '<div class="eltern__leer">Noch keine Aufgaben gelöst.</div>';
+      verlaufObj = getVerlauf(p.id);
+      filterTypen = s.proTyp.map(t => t.typ);
+      quelle = server.hinweis ?? '📱 Nur dieses Gerät';
+    }
 
     const reihe = view.fenster === 'woche'
-      ? verlaufTage(getVerlauf(p.id), view.filter, 7, new Date())
-      : verlaufWochen(getVerlauf(p.id), view.filter, 5, new Date());
+      ? verlaufTage(verlaufObj, view.filter, 7, new Date())
+      : verlaufWochen(verlaufObj, view.filter, 5, new Date());
 
-    const chips = FILTER.map(([key, label]) =>
-      `<button class="stat-chip ${view.filter === key ? 'aktiv' : ''}" data-filter="${key}">${label}</button>`
+    const chips = [['alle', 'Alle'], ...filterTypen.map(t => [t, SYNC_TYP_LABEL[t] ?? t])].map(([key, label]) =>
+      `<button class="stat-chip ${view.filter === key ? 'aktiv' : ''}" data-filter="${escapeHtml(key)}">${escapeHtml(label)}</button>`
     ).join('');
 
-    const avatar = AVATAR_EMOJI[p.avatar] ?? '🧒';
+    // Geräte-Details (Stufe steht in der Tabelle; hier Biome + Protokolle) nur, wenn das
+    // Kind auf DIESEM Gerät ein Profil hat — diese Daten werden bewusst nicht gesynct.
+    const geraeteTeil = p ? `
+        <div class="stat-detail__abschnitt">📱 Auf diesem Gerät</div>
+        <div class="stat-biome">Freigeschaltet: ${escapeHtml(freieBiome(getBiomFreigabe(p.id)).map(id => SYNC_TYP_LABEL[id] ?? TYP_LABEL[id] ?? id).join(' · ') || '—')}</div>
+
+        <div class="stat-detail__abschnitt">🗣️ Aufsagen-Protokoll</div>
+        ${aufsagenProtokollHtml(p.id)}
+
+        <div class="stat-detail__abschnitt">✏️ Eintragen-Protokoll</div>
+        ${eintragenProtokollHtml(p.id)}` : '';
+
+    const kindDaten = k ?? null;
     container.innerHTML = `
       <div class="stat-detail">
         <button class="stat-zurueck" data-zurueck>← Zurück</button>
-        <div class="stat-detail__kopf"><span>${avatar}</span> ${escapeHtml(p.name)}</div>
+        <div class="stat-detail__kopf"><span>${avatar}</span> ${escapeHtml(view.kindName)}${kindDaten ? ` <span class="stat-detail__alter">(${escapeHtml(ALTER_LABEL[kindDaten.alter] ?? kindDaten.alter)})</span>` : ''}</div>
+        <div class="stat-quelle">${escapeHtml(quelle)}</div>
 
         <div class="stat-detail__abschnitt">📊 Gelöst je Rechenart</div>
         ${tabelle}
-        <div class="stat-biome">Freigeschaltet: ${escapeHtml(frei)}</div>
+        ${extras.length ? `<div class="stat-biome">${escapeHtml(extras.join(' · '))}</div>` : ''}
 
         <div class="stat-detail__abschnitt">📈 Verlauf</div>
         <div class="stat-fenster">
@@ -231,20 +262,17 @@ export function tabStatistik(container, neuRendern) {
         <div class="stat-chips">${chips}</div>
         ${diagrammHtml(reihe)}
         ${LEGENDE}
-
-        <div class="stat-detail__abschnitt">🗣️ Aufsagen-Protokoll</div>
-        ${aufsagenProtokollHtml(p.id)}
-
-        <div class="stat-detail__abschnitt">✏️ Eintragen-Protokoll</div>
-        ${eintragenProtokollHtml(p.id)}
+        ${geraeteTeil}
       </div>`;
 
-    container.querySelector('[data-zurueck]').addEventListener('click', () => { view.kindId = null; render(); });
+    container.querySelector('[data-zurueck]').addEventListener('click', () => { view.kindName = null; render(); });
     container.querySelectorAll('[data-fenster]').forEach(b =>
       b.addEventListener('click', () => { view.fenster = b.dataset.fenster; render(); }));
     container.querySelectorAll('[data-filter]').forEach(b =>
       b.addEventListener('click', () => { view.filter = b.dataset.filter; render(); }));
   }
 
-  render();
+  // Beim Öffnen: Server-Daten laden (einmal pro Tab-Öffnen), dann rendern.
+  container.innerHTML = '<div class="eltern__leer">Lade Familien-Statistik …</div>';
+  holeServerKinder().then(ergebnis => { server = ergebnis; render(); });
 }

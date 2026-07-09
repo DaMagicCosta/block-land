@@ -264,9 +264,3 @@
 .eltern__sync-label--zeile { display: flex; align-items: center; gap: var(--space-sm); }
 .eltern__sync-status { margin: var(--space-md) 0; font-size: 14px; opacity: 0.85; }
 .eltern__regler-step:active { background: var(--color-surface); }
-
-/* Familien-Statistik (Statistik-Tab) */
-.stat-familie__kind { margin-bottom: var(--space-md); }
-.stat-familie__name { font-weight: 600; margin-bottom: var(--space-xs); }
-.stat-familie__name span { font-weight: 400; opacity: 0.7; }
-.stat-familie__extras { font-size: 13px; opacity: 0.85; margin-top: var(--space-xs); }

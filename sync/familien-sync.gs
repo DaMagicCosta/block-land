@@ -81,25 +81,30 @@ function leseEreignisse(maxTage) {
     .filter(ev => !isNaN(ev.ts) && ev.ts >= grenze);
 }
 
-// Ereignisse → pro Kind: Summen, pro Rechenart, pro Tag.
+// Ereignisse → pro Kind: Summen, pro Rechenart (inkl. Zeit) und Tages-Verlauf.
+// `verlauf` hat dasselbe Format wie der lokale Verlauf der App
+// ({ 'YYYY-MM-DD': { typ: { gesamt, richtig } } }), damit die Statistik-Ansicht
+// Server-Daten mit denselben Funktionen rendert wie lokale.
 function aggregiere(events) {
   const map = {};
   events.forEach(ev => {
     const k = map[ev.kind] = map[ev.kind] || {
-      kind: ev.kind, alter: ev.alter, gesamt: 0, richtig: 0, zeit_ms: 0, aufsagen: 0, proTyp: {}, proTag: {},
+      kind: ev.kind, alter: ev.alter, gesamt: 0, richtig: 0, zeit_ms: 0, aufsagen: 0, proTyp: {}, verlauf: {},
     };
     k.alter = ev.alter;
     k.zeit_ms += ev.zeit_ms;
     if (ev.art === 'aufsagen') { k.aufsagen += 1; return; }
     k.gesamt += ev.gesamt;
     k.richtig += ev.richtig;
-    const t = k.proTyp[ev.typ] = k.proTyp[ev.typ] || { typ: ev.typ, gesamt: 0, richtig: 0 };
+    const t = k.proTyp[ev.typ] = k.proTyp[ev.typ] || { typ: ev.typ, gesamt: 0, richtig: 0, zeit_ms: 0 };
     t.gesamt += ev.gesamt;
     t.richtig += ev.richtig;
+    t.zeit_ms += ev.zeit_ms;
     const tag = tagVon(ev.ts);
-    const tg = k.proTag[tag] = k.proTag[tag] || { tag: tag, gesamt: 0, richtig: 0 };
-    tg.gesamt += ev.gesamt;
-    tg.richtig += ev.richtig;
+    const tagObj = k.verlauf[tag] = k.verlauf[tag] || {};
+    const vt = tagObj[ev.typ] = tagObj[ev.typ] || { gesamt: 0, richtig: 0 };
+    vt.gesamt += ev.gesamt;
+    vt.richtig += ev.richtig;
   });
   return Object.keys(map).map(name => {
     const k = map[name];
@@ -107,7 +112,7 @@ function aggregiere(events) {
       kind: k.kind, alter: k.alter, gesamt: k.gesamt, richtig: k.richtig,
       zeit_ms: k.zeit_ms, aufsagen: k.aufsagen,
       proTyp: Object.keys(k.proTyp).map(t => k.proTyp[t]),
-      proTag: Object.keys(k.proTag).sort().map(t => k.proTag[t]),
+      verlauf: k.verlauf,
     };
   });
 }
