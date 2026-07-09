@@ -78,6 +78,21 @@ function wackeln(modal) {
   setTimeout(() => modal.inhalt.classList.remove('aufgabe--puls-fehler'), 600);
 }
 
+// Rapportiert das Quest-Ergebnis GENAU EINMAL, sobald es feststeht — nicht erst am Modal-Ende.
+// "Feststehen" heißt: entweder wird in irgendeiner Phase die 2-Fehlversuche-Grenze erreicht
+// (Ergebnis "falsch" steht ab diesem Moment fest, egal ob die Quest danach noch weiterläuft),
+// oder Phase 4 wird beantwortet (richtig ohne vorheriges Verraten, oder falsch im 2. Versuch).
+// Ein Abbruch (Modal schließen) BEVOR eines dieser Ereignisse eintritt zählt NICHT — dafür wird
+// hier nie rapportiert, konsistent zu allen anderen Aufgaben der App (angefangene, nie
+// beantwortete Aufgabe zählt nicht). `ctx.rapportiert` schützt vor Doppel-Rapport, z.B. wenn
+// nach einem Verraten in Phase 2/3 die Rechnen-Phase trotzdem noch "richtig" beantwortet wird.
+function rapportiereWennFaellig(profile, questStart, ctx, aufgabe, richtig) {
+  if (ctx.rapportiert) return;
+  ctx.rapportiert = true;
+  const zeitMs = performance.now() - questStart;
+  rapportiereErgebnis(profile.id, 'text', richtig, zeitMs, { maxStufe: MAX_STUFE, detail: aufgabe.detail });
+}
+
 export async function oeffneTextaufgabe(reward, { onClose } = {}) {
   const profile = getCurrentProfile();
   if (!profile) return;
@@ -106,7 +121,7 @@ export async function oeffneTextaufgabe(reward, { onClose } = {}) {
   const stufe = aktuelleStufe(profile.id, 'text');
   const aufgabe = generiereTextaufgabe(vorlagen, stufe);
   const questStart = performance.now();
-  const ctx = { verraten: false };   // wird true, sobald irgendeine Phase verraten wurde
+  const ctx = { verraten: false, rapportiert: false };   // verraten: true sobald irgendeine Phase verraten wurde; rapportiert: Doppel-Rapport-Guard
 
   rendereLesenPhase(modal, aufgabe, profile, questStart, ctx, reward);
 }
@@ -166,6 +181,7 @@ function rendereZahlenPhase(modal, aufgabe, profile, questStart, ctx, reward) {
     fehlversuche++;
     if (fehlversuche >= MAX_FEHLVERSUCHE) {
       ctx.verraten = true;
+      rapportiereWennFaellig(profile, questStart, ctx, aufgabe, false);
       // Lösung zeigen: die korrekten Zahlen bekommen die Markierung automatisch.
       rendereFragePhase(modal, aufgabe, profile, questStart, ctx, erwartet, reward);
       return;
@@ -203,6 +219,7 @@ function rendereFragePhase(modal, aufgabe, profile, questStart, ctx, markierteZa
     fehlversuche++;
     if (fehlversuche >= MAX_FEHLVERSUCHE) {
       ctx.verraten = true;
+      rapportiereWennFaellig(profile, questStart, ctx, aufgabe, false);
       rendereRechnenPhase(modal, aufgabe, profile, questStart, ctx, markierteZahlen, reward);
       return;
     }
@@ -236,12 +253,16 @@ function rendereRechnenPhase(modal, aufgabe, profile, questStart, ctx, markierte
 
   function pruefen(wert) {
     if (wert === aufgabe.ergebnis) {
+      // Ergebnis steht fest: richtig, sofern in keiner vorherigen Phase verraten wurde
+      // (war schon verraten, ist ctx.rapportiert bereits gesetzt → Guard greift, kein Doppel-Rapport).
+      rapportiereWennFaellig(profile, questStart, ctx, aufgabe, !ctx.verraten);
       abschliessen(true);
       return;
     }
     fehlversuche++;
     if (fehlversuche >= MAX_FEHLVERSUCHE) {
       ctx.verraten = true;
+      rapportiereWennFaellig(profile, questStart, ctx, aufgabe, false);
       abschliessen(false);
       return;
     }
@@ -254,8 +275,6 @@ function rendereRechnenPhase(modal, aufgabe, profile, questStart, ctx, markierte
 
   function abschliessen(antwortRichtig) {
     const warRichtig = !ctx.verraten && antwortRichtig;
-    const zeitMs = performance.now() - questStart;
-    rapportiereErgebnis(profile.id, 'text', warRichtig, zeitMs, { maxStufe: MAX_STUFE, detail: aufgabe.detail });
     if (warRichtig) {
       gebeReward(reward.item, 1);
       zeigeErfolg(modal, reward);

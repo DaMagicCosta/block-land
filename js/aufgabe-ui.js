@@ -13,20 +13,9 @@ import { waehleMechanik, aktuelleStufe, rapportiereErgebnis } from './adaptiv.js
 import { getCurrentProfile, getAktivesBiom, schalteNaechstesBiomFrei, getAktiveReihe, setzeAktiveReihe } from './state.js';
 import { reihenLaenge, istReiheFertig, fortschrittPunkte } from './reihe-logik.js';
 import { BIOME_REIHENFOLGE, baselineMaxIndex } from './biome-logik.js';
-import { escapeHtml } from './utils.js';
+import { escapeHtml, sprich } from './utils.js';
 
 const MAX_FEHLVERSUCHE = 2;  // Nach 2 Fehlversuchen Lösung zeigen.
-
-function sprich(text) {
-  try {
-    if (!window.speechSynthesis) return;
-    window.speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(text);
-    u.lang = 'de-DE';
-    u.rate = 0.9;
-    window.speechSynthesis.speak(u);
-  } catch (e) { /* keine Sprachausgabe verfügbar — egal */ }
-}
 
 let letzteAufgabeKey = null;
 function aufgabeKey(a) { return `${a.aufgabentyp}:${a.a}:${a.b}`; }
