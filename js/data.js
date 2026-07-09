@@ -24,3 +24,7 @@ export function loadBiomManifest() {
 export function loadAufgabenPool() {
   return loadJson('./data/aufgaben-pool.json');
 }
+
+export function loadTextaufgaben() {
+  return loadJson('./data/textaufgaben.json');
+}

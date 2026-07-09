@@ -1,0 +1,306 @@
+[
+  {
+    "id": "t1-haendler-kauf",
+    "stufe": 1,
+    "operation": "plus",
+    "npc": "🧑‍🌾",
+    "saetze": [
+      "Der Händler hat {a} Münzen.",
+      "Er bekommt {b} Münzen dazu.",
+      "Wie viele Münzen hat er jetzt?"
+    ],
+    "frage_index": 2,
+    "slots": { "a": { "min": 10, "max": 79 }, "b": { "min": 5, "max": 20 } },
+    "loesung": "a+b"
+  },
+  {
+    "id": "t1-bergmann-erz",
+    "stufe": 1,
+    "operation": "plus",
+    "npc": "⛏️",
+    "saetze": [
+      "Der Bergmann findet {a} Erze.",
+      "Er findet noch {b} Erze dazu.",
+      "Wie viele Erze hat er jetzt?"
+    ],
+    "frage_index": 2,
+    "slots": { "a": { "min": 15, "max": 70 }, "b": { "min": 5, "max": 25 } },
+    "loesung": "a+b"
+  },
+  {
+    "id": "t1-baeuerin-eier",
+    "stufe": 1,
+    "operation": "plus",
+    "npc": "👩‍🌾",
+    "saetze": [
+      "Die Bäuerin sammelt {a} Eier.",
+      "Sie sammelt {b} Eier dazu.",
+      "Wie viele Eier hat sie jetzt?"
+    ],
+    "frage_index": 2,
+    "slots": { "a": { "min": 10, "max": 60 }, "b": { "min": 5, "max": 30 } },
+    "loesung": "a+b"
+  },
+  {
+    "id": "t1-schafe-herde",
+    "stufe": 1,
+    "operation": "plus",
+    "npc": "🐑",
+    "saetze": [
+      "Der Bauer hat {a} Schafe.",
+      "Er kauft {b} Schafe dazu.",
+      "Wie viele Schafe hat er jetzt?"
+    ],
+    "frage_index": 2,
+    "slots": { "a": { "min": 5, "max": 50 }, "b": { "min": 5, "max": 40 } },
+    "loesung": "a+b"
+  },
+  {
+    "id": "t1-werkstatt-bretter",
+    "stufe": 1,
+    "operation": "plus",
+    "npc": "🔨",
+    "saetze": [
+      "Der Schreiner hat {a} Bretter.",
+      "Er sägt {b} Bretter dazu.",
+      "Wie viele Bretter hat er jetzt?"
+    ],
+    "frage_index": 2,
+    "slots": { "a": { "min": 10, "max": 60 }, "b": { "min": 5, "max": 35 } },
+    "loesung": "a+b"
+  },
+  {
+    "id": "t1-haendler-verkauf",
+    "stufe": 1,
+    "operation": "minus",
+    "npc": "🧑‍🌾",
+    "saetze": [
+      "Der Händler hat {a} Äpfel.",
+      "Er verkauft {b} Äpfel.",
+      "Wie viele Äpfel hat er noch?"
+    ],
+    "frage_index": 2,
+    "slots": { "a": { "min": 20, "max": 99 }, "b": { "min": 5, "max": 19 } },
+    "loesung": "a-b"
+  },
+  {
+    "id": "t1-bergmann-verkauf",
+    "stufe": 1,
+    "operation": "minus",
+    "npc": "⛏️",
+    "saetze": [
+      "Der Bergmann hat {a} Diamanten.",
+      "Er verkauft {b} Diamanten.",
+      "Wie viele Diamanten hat er noch?"
+    ],
+    "frage_index": 2,
+    "slots": { "a": { "min": 20, "max": 90 }, "b": { "min": 5, "max": 19 } },
+    "loesung": "a-b"
+  },
+  {
+    "id": "t1-baeuerin-verkauf",
+    "stufe": 1,
+    "operation": "minus",
+    "npc": "👩‍🌾",
+    "saetze": [
+      "Die Bäuerin hat {a} Kürbisse.",
+      "Sie verkauft {b} Kürbisse.",
+      "Wie viele Kürbisse bleiben übrig?"
+    ],
+    "frage_index": 2,
+    "slots": { "a": { "min": 15, "max": 80 }, "b": { "min": 5, "max": 14 } },
+    "loesung": "a-b"
+  },
+  {
+    "id": "t1-huehner-eier",
+    "stufe": 1,
+    "operation": "minus",
+    "npc": "🐔",
+    "saetze": [
+      "Der Bauer hat {a} Hühner.",
+      "Er verkauft {b} Hühner.",
+      "Wie viele Hühner hat er noch?"
+    ],
+    "frage_index": 2,
+    "slots": { "a": { "min": 20, "max": 70 }, "b": { "min": 3, "max": 20 } },
+    "loesung": "a-b"
+  },
+  {
+    "id": "t1-werkstatt-naegel",
+    "stufe": 1,
+    "operation": "minus",
+    "npc": "🔨",
+    "saetze": [
+      "Der Schmied hat {a} Nägel.",
+      "Er verbraucht {b} Nägel.",
+      "Wie viele Nägel hat er noch?"
+    ],
+    "frage_index": 2,
+    "slots": { "a": { "min": 20, "max": 95 }, "b": { "min": 5, "max": 20 } },
+    "loesung": "a-b"
+  },
+  {
+    "id": "t2-haendler-kisten",
+    "stufe": 2,
+    "operation": "mal",
+    "npc": "🧑‍🌾",
+    "saetze": [
+      "Der Händler packt {a} Kisten.",
+      "In jede Kiste passen {b} Äpfel.",
+      "Wie viele Äpfel sind das?"
+    ],
+    "frage_index": 2,
+    "slots": { "a": { "min": 2, "max": 10 }, "b": { "min": 2, "max": 10 } },
+    "loesung": "a*b"
+  },
+  {
+    "id": "t2-baeuerin-reihen",
+    "stufe": 2,
+    "operation": "mal",
+    "npc": "👩‍🌾",
+    "saetze": [
+      "Die Bäuerin pflanzt {a} Reihen.",
+      "In jede Reihe kommen {b} Pflanzen.",
+      "Wie viele Pflanzen sind das?"
+    ],
+    "frage_index": 2,
+    "slots": { "a": { "min": 2, "max": 10 }, "b": { "min": 2, "max": 10 } },
+    "loesung": "a*b"
+  },
+  {
+    "id": "t2-werkstatt-kisten",
+    "stufe": 2,
+    "operation": "mal",
+    "npc": "🔨",
+    "saetze": [
+      "Der Schreiner baut {a} Kisten.",
+      "In jede Kiste legt er {b} Bretter.",
+      "Wie viele Bretter sind das?"
+    ],
+    "frage_index": 2,
+    "slots": { "a": { "min": 2, "max": 10 }, "b": { "min": 2, "max": 10 } },
+    "loesung": "a*b"
+  },
+  {
+    "id": "t2-bergmann-truhen",
+    "stufe": 2,
+    "operation": "mal",
+    "npc": "⛏️",
+    "saetze": [
+      "Der Bergmann findet {a} Truhen.",
+      "In jeder Truhe sind {b} Diamanten.",
+      "Er trinkt {c} Flaschen Wasser.",
+      "Wie viele Diamanten findet er?"
+    ],
+    "frage_index": 3,
+    "slots": {
+      "a": { "min": 2, "max": 10 },
+      "b": { "min": 2, "max": 10 },
+      "c": { "min": 1, "max": 5 }
+    },
+    "irrelevante_slots": ["c"],
+    "loesung": "a*b"
+  },
+  {
+    "id": "t2-haendler-verteilen",
+    "stufe": 2,
+    "operation": "geteilt",
+    "npc": "🧑‍🌾",
+    "saetze": [
+      "Der Händler hat {a} Äpfel.",
+      "Er verteilt sie auf {b} Körbe.",
+      "Wie viele Äpfel sind in einem Korb?"
+    ],
+    "frage_index": 2,
+    "slots": {
+      "b": { "min": 2, "max": 10 },
+      "a": { "vielfachesVon": "b", "min": 2, "max": 10 }
+    },
+    "loesung": "a/b"
+  },
+  {
+    "id": "t2-baeuerin-verteilen",
+    "stufe": 2,
+    "operation": "geteilt",
+    "npc": "👩‍🌾",
+    "saetze": [
+      "Die Bäuerin hat {a} Eier.",
+      "Sie packt sie in {b} Kartons.",
+      "Die Hühner fressen {c} Körner.",
+      "Wie viele Eier sind in einem Karton?"
+    ],
+    "frage_index": 3,
+    "slots": {
+      "b": { "min": 2, "max": 10 },
+      "a": { "vielfachesVon": "b", "min": 2, "max": 10 },
+      "c": { "min": 1, "max": 9 }
+    },
+    "irrelevante_slots": ["c"],
+    "loesung": "a/b"
+  },
+  {
+    "id": "t2-werkstatt-verteilen",
+    "stufe": 2,
+    "operation": "geteilt",
+    "npc": "🔨",
+    "saetze": [
+      "Der Schmied hat {a} Nägel.",
+      "Er verteilt sie auf {b} Kisten.",
+      "Wie viele Nägel sind in einer Kiste?"
+    ],
+    "frage_index": 2,
+    "slots": {
+      "b": { "min": 2, "max": 10 },
+      "a": { "vielfachesVon": "b", "min": 2, "max": 10 }
+    },
+    "loesung": "a/b"
+  },
+  {
+    "id": "t2-haendler-geld-kauf",
+    "stufe": 2,
+    "operation": "plus",
+    "npc": "🧑‍🌾",
+    "saetze": [
+      "Der Händler verkauft ein Schwert für {a} Euro.",
+      "Er verkauft einen Schild für {b} Euro.",
+      "Wie viel Geld bekommt er zusammen?"
+    ],
+    "frage_index": 2,
+    "slots": { "a": { "min": 10, "max": 50 }, "b": { "min": 10, "max": 50 } },
+    "loesung": "a+b"
+  },
+  {
+    "id": "t2-baeuerin-geld-rest",
+    "stufe": 2,
+    "operation": "minus",
+    "npc": "👩‍🌾",
+    "saetze": [
+      "Die Bäuerin hat {a} Euro.",
+      "Sie kauft ein Huhn für {b} Euro.",
+      "Sie sieht {c} Vögel fliegen.",
+      "Wie viel Geld hat sie noch?"
+    ],
+    "frage_index": 3,
+    "slots": {
+      "a": { "min": 20, "max": 99 },
+      "b": { "min": 5, "max": 19 },
+      "c": { "min": 1, "max": 9 }
+    },
+    "irrelevante_slots": ["c"],
+    "loesung": "a-b"
+  },
+  {
+    "id": "t2-werkstatt-geld-mal",
+    "stufe": 2,
+    "operation": "mal",
+    "npc": "🔨",
+    "saetze": [
+      "Der Schmied verkauft {a} Schwerter.",
+      "Jedes Schwert kostet {b} Euro.",
+      "Wie viel Geld bekommt er?"
+    ],
+    "frage_index": 2,
+    "slots": { "a": { "min": 2, "max": 10 }, "b": { "min": 2, "max": 10 } },
+    "loesung": "a*b"
+  }
+]
