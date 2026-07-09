@@ -86,15 +86,21 @@ const SYNC_TYP_LABEL = {
 
 // Ein Kind-Block der Familien-Statistik (Daten kommen aggregiert vom Sync-Server).
 function familienKindHtml(k) {
-  const zeilen = (k.proTyp ?? []).map(t => `
+  const zeilen = (k.proTyp ?? []).map(t => {
+    const gesamt = Number(t.gesamt) || 0;
+    const richtig = Number(t.richtig) || 0;
+    return `
     <tr>
       <td class="stat-tabelle__typ">${escapeHtml(SYNC_TYP_LABEL[t.typ] ?? t.typ)}</td>
-      <td>${t.richtig}/${t.gesamt}</td>
-      <td>${t.gesamt ? prozent(t.richtig / t.gesamt) : '—'}</td>
-    </tr>`).join('');
+      <td>${richtig}/${gesamt}</td>
+      <td>${gesamt ? prozent(richtig / gesamt) : '—'}</td>
+    </tr>`;
+  }).join('');
   const extras = [];
-  if (k.aufsagen) extras.push(`🗣️ ${k.aufsagen}× aufgesagt`);
-  extras.push(`⏱️ ca. ${Math.max(1, Math.round((k.zeit_ms ?? 0) / 60000))} Min geübt`);
+  const aufsagen = Number(k.aufsagen) || 0;
+  if (aufsagen) extras.push(`🗣️ ${aufsagen}× aufgesagt`);
+  const zeit_ms = Number(k.zeit_ms) || 0;
+  extras.push(`⏱️ ca. ${Math.max(1, Math.round(zeit_ms / 60000))} Min geübt`);
   return `
     <div class="stat-familie__kind">
       <div class="stat-familie__name">👦 ${escapeHtml(k.kind)} <span>(${escapeHtml(ALTER_LABEL[k.alter] ?? k.alter)})</span></div>
