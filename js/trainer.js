@@ -6,6 +6,7 @@ import { oeffneModal } from './modal.js';
 import { verteileBelohnung } from './belohnung.js';
 import { baueReihe } from './aufsagen-logik.js';
 import { protokolliereAufsagen, getCurrentProfile, protokolliereEintragen } from './state.js';
+import { meldeAufsagen, meldeEintragen } from './sync.js';
 import { kappeLuecke, formatDauer, neuerEintrag, INAKTIV_MS } from './aufsage-protokoll-logik.js';
 import { richtungsHinweis, neuerEintrag as neuerEintragEintragen } from './eintragen-protokoll-logik.js';
 import { tagesSchluessel } from './statistik-logik.js';
@@ -86,6 +87,9 @@ function zeigeLernStufe(wurzel, modal, reward, reihe) {
         datum: tagesSchluessel(new Date()),
         reihe, richtig: eintragenStat.richtig, fehler: eintragenStat.fehler, verraten: eintragenStat.verraten,
       }));
+      meldeEintragen(profileId, {
+        richtig: eintragenStat.richtig, fehler: eintragenStat.fehler, verraten: eintragenStat.verraten,
+      });
     }
   }
   wurzel.innerHTML = `
@@ -244,6 +248,7 @@ function rendereAufsagen(wurzel, container, modal, reward, reihe) {
         datum: tagesSchluessel(new Date()),
         reihe, stufe, durchgaenge, zeit_ms: aktiveZeitMs,
       }));
+      meldeAufsagen(profileId, { zeit_ms: aktiveZeitMs });
     }
     durchgaenge = 0; aktiveZeitMs = 0;
   }

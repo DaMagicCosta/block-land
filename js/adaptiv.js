@@ -1,4 +1,5 @@
 import { getSchwierigkeit, setSchwierigkeit, trackeAufgabe } from './state.js';
+import { meldeAufgabe } from './sync.js';
 
 const REAKTIONSZEIT_SCHWELLE_MS = 12000;  // > 12 Sek = "langsam"
 const FEHLER_SERIE_FUER_B_WECHSEL = 3;
@@ -39,6 +40,7 @@ export function aktuelleStufe(profileId, aufgabentyp) {
 // zeit_ms: number — vom Anzeige der Aufgabe bis zur Antwort
 export function rapportiereErgebnis(profileId, aufgabentyp, war_richtig, zeit_ms, { maxStufe = 4, adaptStufe = true } = {}) {
   trackeAufgabe(profileId, aufgabentyp, war_richtig, zeit_ms);
+  meldeAufgabe(profileId, aufgabentyp, war_richtig, zeit_ms);
 
   const v = getVerlauf(profileId, aufgabentyp);
   v.letzte_5.push({ war_richtig, zeit_ms });
