@@ -504,7 +504,11 @@ function tabSync(inhalt, render) {
     <button class="eltern__sekundaer" data-aktion="senden">Jetzt senden</button>
   `;
   const meldung = inhalt.querySelector('.eltern__fehler');
-  function zeige(text) { meldung.hidden = false; meldung.textContent = text; }
+  function zeige(text, erfolg = false) {
+    meldung.hidden = false;
+    meldung.className = erfolg ? 'eltern__erfolg' : 'eltern__fehler';
+    meldung.textContent = text;
+  }
 
   inhalt.querySelector('[data-aktion="speichern"]').addEventListener('click', () => {
     setzeSyncConfig({
@@ -518,7 +522,10 @@ function tabSync(inhalt, render) {
   inhalt.querySelector('[data-aktion="senden"]').addEventListener('click', async () => {
     zeige('Sende …');
     const ergebnis = await flushSync();
-    if (ergebnis.ok) zeige(`✅ Gesendet: ${ergebnis.gesendet} Ereignis(se).`);
+    if (ergebnis.ok) {
+      zeige(`✅ Gesendet: ${ergebnis.gesendet} Ereignis(se).`, true);
+      inhalt.querySelector('.eltern__sync-status b').textContent = anzahlWartend();
+    }
     else zeige(`⚠️ Senden fehlgeschlagen: ${ergebnis.grund}.`);
   });
 }
