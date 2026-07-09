@@ -1,6 +1,6 @@
 // Statistik-Tab: Übersicht aller Kinder + Detailansicht pro Kind mit Tages-/Wochen-Verlauf.
 // Render-Modul (DOM). Aggregation/Reihen kommen aus statistik-logik.js.
-import { getProfiles, getSchwierigkeit, getVerlauf, getBiomFreigabe, getAufsagenProtokoll, getEintragenProtokoll } from './state.js';
+import { getProfiles, getSchwierigkeit, getVerlauf, getBiomFreigabe, getAufsagenProtokoll, getEintragenProtokoll, getSyncConfig } from './state.js';
 import { stufeLabel, formatDauer } from './aufsage-protokoll-logik.js';
 import { freieBiome } from './biome-logik.js';
 import { summen, quoteFarbe, verlaufTage, verlaufWochen } from './statistik-logik.js';
@@ -78,6 +78,54 @@ function eintragenProtokollHtml(profileId) {
   return `<ul class="stat-aufsagen">${zeilen}</ul>`;
 }
 
+const ALTER_LABEL = { 'kindergarten': 'Vorschule', 'klasse-1': '1. Klasse', 'klasse-2': '2. Klasse', 'klasse-3': '3. Klasse' };
+const SYNC_TYP_LABEL = {
+  mengen: 'Mengen bis 10', plus: 'Plus', minus: 'Minus', mal: 'Mal-Reihen',
+  geteilt: 'Geteilt', rechnen10: 'Rechnen bis 10', stellenwert: 'Stellenwert',
+};
+
+// Ein Kind-Block der Familien-Statistik (Daten kommen aggregiert vom Sync-Server).
+function familienKindHtml(k) {
+  const zeilen = (k.proTyp ?? []).map(t => `
+    <tr>
+      <td class="stat-tabelle__typ">${escapeHtml(SYNC_TYP_LABEL[t.typ] ?? t.typ)}</td>
+      <td>${t.richtig}/${t.gesamt}</td>
+      <td>${t.gesamt ? prozent(t.richtig / t.gesamt) : '—'}</td>
+    </tr>`).join('');
+  const extras = [];
+  if (k.aufsagen) extras.push(`🗣️ ${k.aufsagen}× aufgesagt`);
+  extras.push(`⏱️ ca. ${Math.max(1, Math.round((k.zeit_ms ?? 0) / 60000))} Min geübt`);
+  return `
+    <div class="stat-familie__kind">
+      <div class="stat-familie__name">👦 ${escapeHtml(k.kind)} <span>(${escapeHtml(ALTER_LABEL[k.alter] ?? k.alter)})</span></div>
+      <table class="stat-tabelle">
+        <thead><tr><th>Rechenart</th><th>Richtig</th><th>Quote</th></tr></thead>
+        <tbody>${zeilen}</tbody>
+      </table>
+      <div class="stat-familie__extras">${escapeHtml(extras.join(' · '))}</div>
+    </div>`;
+}
+
+// Lädt die geräteübergreifende Statistik vom Sync-Server (letzte 30 Tage).
+async function ladeFamilienStatistik(ziel) {
+  const cfg = getSyncConfig();
+  if (!cfg.url || !cfg.schluessel) {
+    ziel.innerHTML = '<div class="eltern__leer">Familien-Sync ist nicht eingerichtet (Tab 📡 Sync).</div>';
+    return;
+  }
+  ziel.innerHTML = '<div class="eltern__leer">Lade …</div>';
+  try {
+    const res = await fetch(`${cfg.url}?schluessel=${encodeURIComponent(cfg.schluessel)}`);
+    const json = await res.json();
+    if (!json.ok) throw new Error(json.fehler ?? 'abgelehnt');
+    ziel.innerHTML = json.kinder.length
+      ? json.kinder.map(familienKindHtml).join('')
+      : '<div class="eltern__leer">Noch keine Ereignisse in den letzten 30 Tagen.</div>';
+  } catch {
+    ziel.innerHTML = '<div class="eltern__leer">⚠️ Konnte die Familien-Statistik nicht laden.</div>';
+  }
+}
+
 export function tabStatistik(container, neuRendern) {
   const view = { kindId: null, fenster: 'woche', filter: 'alle' };
 
@@ -110,7 +158,18 @@ export function tabStatistik(container, neuRendern) {
           <div class="stat-karte__mini">${mini}</div>
         </button>`;
     }).join('');
-    container.innerHTML = `<div class="stat-uebersicht">${karten}</div>`;
+    container.innerHTML = `
+      <div class="stat-uebersicht">${karten}</div>
+      <div class="stat-detail__abschnitt">🌐 Familien-Statistik (alle Geräte, 30 Tage)</div>
+      <div class="stat-familie">
+        <button class="eltern__sekundaer" data-familie-laden>Laden</button>
+        <div class="stat-familie__inhalt"></div>
+      </div>`;
+    const familieBtn = container.querySelector('[data-familie-laden]');
+    familieBtn.addEventListener('click', () => {
+      familieBtn.hidden = true;
+      ladeFamilienStatistik(container.querySelector('.stat-familie__inhalt'));
+    });
     container.querySelectorAll('[data-kind]').forEach(btn => {
       btn.addEventListener('click', () => { view.kindId = btn.dataset.kind; render(); });
     });
