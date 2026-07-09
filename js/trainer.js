@@ -11,6 +11,7 @@ import { kappeLuecke, formatDauer, neuerEintrag, INAKTIV_MS } from './aufsage-pr
 import { richtungsHinweis, neuerEintrag as neuerEintragEintragen } from './eintragen-protokoll-logik.js';
 import { tagesSchluessel } from './statistik-logik.js';
 import { rapportiereErgebnis } from './adaptiv.js';
+import { sprich } from './utils.js';
 
 const MAX_FEHLVERSUCHE = 2;
 
@@ -32,17 +33,6 @@ export function oeffneTrainer(reward) {
   });
   if (!modal) return;
   zeigeReihenAuswahl(modal.inhalt, modal, reward);
-}
-
-function sprich(text) {
-  try {
-    if (!window.speechSynthesis) return;
-    window.speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(text);
-    u.lang = 'de-DE';
-    u.rate = 0.9;
-    window.speechSynthesis.speak(u);
-  } catch (e) { /* keine Sprachausgabe verfügbar — egal */ }
 }
 
 function mische(arr) {

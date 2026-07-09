@@ -16,6 +16,8 @@
   --color-ilian:     #6cb4ff;
   --color-einer:     #ffb347;   /* Stellenwert: Einer (orange) */
   --color-zehner:    #4a9eff;   /* Stellenwert: Zehner (blau)  */
+  --color-markier-zahl:  #ff4d4d;  /* Textaufgabe: Zahl-Markierung (kräftiges Rot) */
+  --color-markier-frage: #3d8bff;  /* Textaufgabe: Frage-Markierung (kräftiges Blau) */
 
   /* Spacings */
   --space-xs: 4px;

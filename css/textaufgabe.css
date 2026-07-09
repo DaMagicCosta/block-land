@@ -1,0 +1,104 @@
+/* Geschichten-Dorf: Textaufgaben-Quest (4 Phasen in einem Modal). */
+.modal--textaufgabe { text-align: left; }
+
+.text-npc-kopf { text-align: center; margin-bottom: var(--space-sm); }
+.text-npc-emoji { font-size: 44px; line-height: 1; }
+
+.text-schritt-prompt {
+  text-align: center;
+  color: var(--color-text);
+  font-size: var(--font-size-base);
+  font-weight: bold;
+  margin-bottom: var(--space-md);
+}
+
+.text-saetze {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  background: var(--color-surface-2);
+  padding: var(--space-md);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-base);
+  line-height: 1.6;
+}
+
+.text-saetze--kompakt { font-size: var(--font-size-sm); }
+
+/* Ein Satz — im Lese-Modus reiner Fließtext, in Phase 3 ein antippbarer Block. */
+.text-satz {
+  color: var(--color-text);
+  word-break: break-word;
+}
+
+.text-satz--klickbar {
+  all: unset;
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-size: inherit;
+  line-height: inherit;
+  padding: var(--space-sm);
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  word-break: break-word;
+}
+.text-satz--klickbar:hover { border-color: var(--color-action); }
+
+.text-satz--frage-markiert {
+  text-decoration: underline;
+  text-decoration-color: var(--color-markier-frage);
+  text-decoration-thickness: 3px;
+  color: var(--color-markier-frage);
+}
+
+/* Einzelnes Wort/Zahl-Token — als Button (Phase 2, antippbar) oder Span (read-only). */
+.text-token {
+  display: inline-block;
+  padding: 2px 5px;
+  border-radius: var(--radius-sm);
+  border: 2px solid transparent;
+}
+button.text-token {
+  all: unset;
+  display: inline-block;
+  padding: 2px 5px;
+  border-radius: var(--radius-sm);
+  border: 2px solid transparent;
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-size: inherit;
+  cursor: pointer;
+}
+button.text-token:hover { border-color: var(--color-action); }
+
+.text-token--zahl-markiert {
+  border: 2px solid var(--color-markier-zahl);
+  border-radius: 999px;
+  color: var(--color-markier-zahl);
+  font-weight: bold;
+}
+
+.text-weiter {
+  align-self: center;
+  background: var(--color-action);
+  color: var(--color-bg);
+  border: 0;
+  padding: var(--space-sm) var(--space-lg);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-weight: bold;
+  cursor: pointer;
+}
+
+@media (max-width: 480px) {
+  .text-npc-emoji { font-size: 32px; }
+  .text-schritt-prompt { font-size: var(--font-size-sm); }
+  .text-saetze { font-size: var(--font-size-sm); padding: var(--space-sm); gap: var(--space-xs); }
+  .text-satz--klickbar { padding: var(--space-xs); }
+  .text-token, button.text-token { padding: 1px 3px; }
+  .text-weiter { padding: var(--space-xs) var(--space-md); font-size: var(--font-size-sm); }
+}
