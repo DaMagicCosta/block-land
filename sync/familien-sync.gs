@@ -151,14 +151,26 @@ function taeglicherDigest() {
 function sendeTelegram(text) {
   const token = prop('BOT_TOKEN');
   const chatIds = (prop('CHAT_IDS') || '').split(',').map(s => s.trim()).filter(Boolean);
+  // Fehlkonfiguration sichtbar machen — ein Tippfehler im Property-Namen liefe sonst lautlos durch.
+  if (!token) { Logger.log('FEHLER: Skript-Eigenschaft BOT_TOKEN fehlt/leer.'); return; }
+  if (!chatIds.length) { Logger.log('FEHLER: Skript-Eigenschaft CHAT_IDS fehlt/leer.'); return; }
   chatIds.forEach(chatId => {
-    UrlFetchApp.fetch('https://api.telegram.org/bot' + token + '/sendMessage', {
+    const res = UrlFetchApp.fetch('https://api.telegram.org/bot' + token + '/sendMessage', {
       method: 'post',
       contentType: 'application/json',
       payload: JSON.stringify({ chat_id: chatId, text: text }),
       muteHttpExceptions: true,
     });
+    Logger.log('Telegram an ' + chatId + ': HTTP ' + res.getResponseCode() + ' — ' + res.getContentText().slice(0, 120));
   });
+}
+
+// Sendet eine fixe Testnachricht an alle CHAT_IDS — unabhängig von Ereignissen.
+// Zum Diagnostizieren des Sendepfads im Editor ausführen, dann Log ansehen.
+function testTelegram() {
+  Logger.log('BOT_TOKEN gesetzt: ' + (prop('BOT_TOKEN') ? 'ja' : 'NEIN'));
+  Logger.log('CHAT_IDS gesetzt: ' + (prop('CHAT_IDS') || 'NEIN'));
+  sendeTelegram('🔧 Block-Land: Sendepfad-Test — wenn Du das liest, funktioniert der Versand.');
 }
 
 // --- Einmalige Setup-Helfer (im Apps-Script-Editor ausführen) ---
