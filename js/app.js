@@ -2,6 +2,7 @@ import { renderAuswahl } from './auswahl.js';
 import { renderWelt }    from './welt.js';
 import { renderKarte }  from './karte.js';
 import { renderBurg }   from './burg.js';
+import { initSync } from './sync.js';
 
 const root = document.getElementById('app');
 
@@ -23,4 +24,5 @@ function route() {
 
 window.addEventListener('hashchange', route);
 route();
+initSync();
 console.log('[Block-Land] Routing aktiv.');

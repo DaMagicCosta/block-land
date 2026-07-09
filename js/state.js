@@ -30,6 +30,7 @@ const DEFAULT_STATE = {
     pin: null,
     diamantSeltenheit: 'sehr_selten',  // (Alt, ungenutzt seit Material-Reglern)
     dropChancen: { holz: 0.9, stein: 0.85, blume: 0.85, eisen: 0.4, diamant: 0.07 },
+    sync: { url: '', schluessel: '', aktiv: false },   // Familien-Sync pro Gerät (Eltern-Bereich)
   },
 };
 
@@ -364,6 +365,22 @@ export function setzeDropChance(item, wert) {
   state.parentSettings = state.parentSettings ?? {};
   state.parentSettings.dropChancen = { ...DEFAULT_DROP, ...(state.parentSettings.dropChancen ?? {}) };
   state.parentSettings.dropChancen[item] = wert;
+  save(state);
+}
+
+// --- Familien-Sync (Konfiguration pro Gerät, Eltern-Bereich) ---
+export function getSyncConfig() {
+  const s = state.parentSettings?.sync ?? {};
+  return { url: s.url ?? '', schluessel: s.schluessel ?? '', aktiv: !!s.aktiv };
+}
+
+export function setzeSyncConfig({ url, schluessel, aktiv }) {
+  state.parentSettings = state.parentSettings ?? {};
+  state.parentSettings.sync = {
+    url: String(url ?? '').trim(),
+    schluessel: String(schluessel ?? '').trim(),
+    aktiv: !!aktiv,
+  };
   save(state);
 }
 
