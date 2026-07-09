@@ -51,10 +51,14 @@ function doPost(e) {
 
 // Aggregierte Familien-Statistik für die Eltern-Ansicht (letzte 30 Tage).
 function doGet(e) {
-  if (((e && e.parameter && e.parameter.schluessel) || '') !== prop('FAMILIEN_SCHLUESSEL')) {
-    return antwortJson({ ok: false, fehler: 'schluessel' });
+  try {
+    if (((e && e.parameter && e.parameter.schluessel) || '') !== prop('FAMILIEN_SCHLUESSEL')) {
+      return antwortJson({ ok: false, fehler: 'schluessel' });
+    }
+    return antwortJson({ ok: true, kinder: aggregiere(leseEreignisse(30)) });
+  } catch (err) {
+    return antwortJson({ ok: false, fehler: String(err) });
   }
-  return antwortJson({ ok: true, kinder: aggregiere(leseEreignisse(30)) });
 }
 
 function tagVon(datum) {
