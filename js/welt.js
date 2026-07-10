@@ -119,7 +119,7 @@ export async function renderWelt(container) {
           ${hatReihe ? `<button class="welt__weiter" id="welt-weiter">▶ Weitermachen — Frage ${reihe.position}/${reihe.laenge}</button>` : ''}
         </div>
         ${rendereInventarHeader()}
-        <div class="welt__auftrag${auftragErfuellt ? ' welt__auftrag--erfuellt' : ''}" title="Tagesauftrag">📜 ${auftrag.fortschritt}/${auftrag.ziel}</div>
+        <button class="welt__auftrag${auftragErfuellt ? ' welt__auftrag--erfuellt' : ''}" id="welt-auftrag" title="Tagesauftrag">📜 ${auftrag.fortschritt}/${auftrag.ziel}</button>
         <button class="welt__karte-btn${hatHinweis ? ' welt__karte-btn--hinweis' : ''}" id="welt-karte" title="Land wechseln">🗺️</button>
         <button class="welt__rezeptbuch" id="welt-rezeptbuch" title="Werkstatt / Rezeptbuch">📖</button>
         <button class="welt__eltern" id="welt-eltern" title="Eltern-Bereich">⚙️</button>
@@ -137,6 +137,30 @@ export async function renderWelt(container) {
   });
 
   container.querySelector('#welt-rezeptbuch').addEventListener('click', () => oeffneRezeptbuch());
+
+  // Tafel antippen → kindgerechte Erklärung, was der Tagesauftrag ist (er startet nirgends —
+  // jede gelöste Aufgabe zählt; das war ohne Erklärung nicht erkennbar).
+  container.querySelector('#welt-auftrag').addEventListener('click', () => {
+    const a = getTagesauftrag(profile.id);
+    const fertig = a.fortschritt >= a.ziel;
+    const modal = oeffneModal({ inhaltHtml: '<div class="modal modal--aufgabe"></div>' });
+    if (!modal) return;
+    modal.inhalt.innerHTML = `
+      <div class="modal__emoji">📜</div>
+      <div class="modal__titel">Dein Tagesauftrag</div>
+      <p class="welt__auftrag-erklaerung">
+        ${fertig
+          ? (a.belohnt
+              ? 'Heute schon geschafft — super! 🎉<br>Morgen wartet ein neuer Auftrag mit neuer Truhe.'
+              : 'Geschafft! Deine Schatztruhe wartet gleich auf Dich! 🎁')
+          : `Löse heute <b>${a.ziel} Aufgaben</b> — egal in welchem Land!<br>
+             Schon geschafft: <b>${a.fortschritt} von ${a.ziel}</b>.<br>
+             Als Belohnung wartet eine Schatztruhe! 🎁`}
+      </p>
+      <button class="modal__close">Los geht's!</button>
+    `;
+    modal.inhalt.querySelector('.modal__close').addEventListener('click', () => modal.schliessen());
+  });
   container.querySelector('#welt-eltern').addEventListener('click', () => oeffneElternBereich());
   container.querySelector('#welt-karte').addEventListener('click', () => { location.hash = 'karte'; });
 

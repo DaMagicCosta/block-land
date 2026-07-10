@@ -222,7 +222,7 @@
 }
 .welt__karte-btn:hover { border-color: var(--color-action); }
 
-/* Tagesauftrag-Tafel: „📜 N/Ziel", dezentes Funkeln sobald erfüllt (kein Streak-Druck). */
+/* Tagesauftrag-Tafel: „📜 N/Ziel", antippbar (Erklär-Modal), Funkeln sobald erfüllt. */
 .welt__auftrag {
   background: var(--color-surface-2);
   border: 2px solid var(--color-border);
@@ -232,7 +232,11 @@
   font-size: var(--font-size-sm);
   color: var(--color-text-dim);
   white-space: nowrap;
+  cursor: pointer;
 }
+.welt__auftrag:hover { border-color: var(--color-action); }
+
+.welt__auftrag-erklaerung { font-size: 16px; line-height: 1.6; text-align: center; }
 
 .welt__auftrag--erfuellt {
   border-color: var(--color-action);
