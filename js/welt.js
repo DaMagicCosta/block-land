@@ -1,13 +1,52 @@
-import { getCurrentProfile, setCurrentProfile, getAktivesBiom, getAktiveReihe, getOffeneReihen } from './state.js';
+import { getCurrentProfile, setCurrentProfile, getAktivesBiom, getAktiveReihe, getOffeneReihen, getTagesauftrag, markiereTagesauftragBelohnt, getDropChancen } from './state.js';
 import { loadAvatare, loadBiom } from './data.js';
 import { escapeHtml } from './utils.js';
 import { oeffneModal, schliesseAlleModals } from './modal.js';
 import { oeffneAufgabe, oeffneRechnen10Auswahl } from './aufgabe-ui.js';
 import { oeffneTextaufgabe } from './textaufgabe-ui.js';
-import { rendereInventarHeader } from './inventar.js';
+import { rendereInventarHeader, gebeReward } from './inventar.js';
 import { oeffneTrainer } from './trainer.js';
 import { oeffneRezeptbuch } from './werkstatt.js';
 import { oeffneElternBereich } from './eltern.js';
+import { truhenZiehung } from './tagesauftrag-logik.js';
+
+const TRUHEN_ITEM_INFO = {
+  holz: { e: '🪵', l: 'Holz' },
+  stein: { e: '🪨', l: 'Stein' },
+  blume: { e: '🌸', l: 'Blume' },
+  eisen: { e: '⛏️', l: 'Eisen' },
+  diamant: { e: '💎', l: 'Diamant' },
+};
+
+// Schatztruhen-Modal beim Erfüllen des Tagesauftrags. Zieht + vergibt die Materialien SOFORT
+// (nicht erst beim Schließen) und markiert den Auftrag als belohnt, damit ein Re-Render
+// (z.B. durchs onClose) keine zweite Truhe öffnet.
+function zeigeTruhenModal(profileId, container) {
+  const materialien = truhenZiehung(getDropChancen(), Math.random, 3);
+  materialien.forEach(item => gebeReward(item, 1));
+  markiereTagesauftragBelohnt(profileId);
+
+  const items = materialien.map(it => TRUHEN_ITEM_INFO[it] ?? { e: '❔', l: it });
+  const emojis = items.map(i => `<span class="feier__item">${i.e}</span>`).join('');
+  const labels = items.map(i => i.l).join(' + ');
+
+  const modal = oeffneModal({
+    inhaltHtml: `
+      <div class="modal modal--erfolg">
+        <div class="modal__emoji feier__huepf">🎁</div>
+        <div class="feier__konfetti">✨🎊⭐🎉✨</div>
+        <div class="modal__titel">Tagesauftrag geschafft!</div>
+        <p class="modal__text">Die Schatztruhe öffnet sich...</p>
+        <div class="modal__emoji">${emojis}</div>
+        <p class="modal__text">Du hast <strong>${escapeHtml(labels)}</strong> gefunden!</p>
+        <button class="modal__close">Super!</button>
+      </div>
+    `,
+    onClose: () => renderWelt(container),
+  });
+  if (!modal) return;
+  modal.inhalt.querySelector('.modal__close').addEventListener('click', () => modal.schliessen());
+}
 
 // Würfel-Teich: Arten-Auswahl einmal pro Besuch beim Betreten zeigen (Reset beim Biom-Wechsel).
 let teichAuswahlGezeigtFuer = null;
@@ -27,6 +66,8 @@ export async function renderWelt(container) {
   const hatReihe = !!reihe;
   const offeneAndere = getOffeneReihen(profile.id).filter(b => b !== aktivId);
   const hatHinweis = offeneAndere.length > 0;
+  const auftrag = getTagesauftrag(profile.id);
+  const auftragErfuellt = auftrag.fortschritt >= auftrag.ziel && !auftrag.belohnt;
   let biom, avatare;
   try {
     [biom, avatare] = await Promise.all([loadBiom(aktivId), loadAvatare()]);
@@ -73,6 +114,7 @@ export async function renderWelt(container) {
           ${hatReihe ? `<button class="welt__weiter" id="welt-weiter">▶ Weitermachen — Frage ${reihe.position}/${reihe.laenge}</button>` : ''}
         </div>
         ${rendereInventarHeader()}
+        <div class="welt__auftrag${auftragErfuellt ? ' welt__auftrag--erfuellt' : ''}" title="Tagesauftrag">📜 ${auftrag.fortschritt}/${auftrag.ziel}</div>
         <button class="welt__karte-btn${hatHinweis ? ' welt__karte-btn--hinweis' : ''}" id="welt-karte" title="Land wechseln">🗺️</button>
         <button class="welt__rezeptbuch" id="welt-rezeptbuch" title="Werkstatt / Rezeptbuch">📖</button>
         <button class="welt__eltern" id="welt-eltern" title="Eltern-Bereich">⚙️</button>
@@ -134,6 +176,13 @@ export async function renderWelt(container) {
   const figur = container.querySelector('.welt__spielfigur');
   if (figur && figur.scrollIntoView) {
     figur.scrollIntoView({ inline: 'center', block: 'nearest' });
+  }
+
+  // Tagesauftrag geschafft (und noch nicht abgeholt): Schatztruhe beim Rückkehren in die Welt —
+  // NICHT mitten in einer Aufgabe (dieser Punkt läuft nur beim (Re-)Rendern der Welt selbst).
+  if (auftragErfuellt) {
+    zeigeTruhenModal(profile.id, container);
+    return;
   }
 
   // Würfel-Teich: beim Betreten zuerst die Arten-Auswahl (einmal pro Besuch, kein Loop;

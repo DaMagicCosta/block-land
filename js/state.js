@@ -1,8 +1,9 @@
 import { istFrei, freieBiome, naechstesBiom, hoechstesFreies } from './biome-logik.js';
 import { gruppiereGutscheine, entferneAusStapel } from './gutschein-logik.js';
-import { aktualisiereVerlauf } from './statistik-logik.js';
+import { aktualisiereVerlauf, tagesSchluessel } from './statistik-logik.js';
 import { fuegeEintragHinzu } from './aufsage-protokoll-logik.js';
 import { offeneBiome } from './reihe-logik.js';
+import { zielFuer, neuerAuftrag, aktualisiereTagesauftrag } from './tagesauftrag-logik.js';
 
 const STORAGE_KEY = 'block-land-state-v1';
 
@@ -106,6 +107,7 @@ export function addProfile({ name, weltName, avatar, alter, kindPin = null }) {
     schwierigkeit: { plus: 2 },
     statistik: { plus: { gesamt: 0, richtig: 0 } },
     biome: { aktiv: null, autoFrei: [], elternFrei: [], elternGesperrt: [] },
+    tagesauftrag: neuerAuftrag(tagesSchluessel(new Date())),  // Tafel-Fortschritt „N/Ziel", lazy Reset pro Tag
   };
   save(state);
   return id;
@@ -163,11 +165,33 @@ export function trackeAufgabe(profileId, aufgabentyp, war_richtig, zeit_ms = 0) 
   state.profiles[profileId].statistik = stat;
   const p = state.profiles[profileId];
   p.verlauf = aktualisiereVerlauf(p.verlauf, aufgabentyp, war_richtig, new Date(), 60, zeit_ms);
+  // Tagesauftrag: jede final beantwortete Aufgabe zählt (richtig oder falsch — Anstrengung zählt).
+  p.tagesauftrag = aktualisiereTagesauftrag(p.tagesauftrag, tagesSchluessel(new Date()));
   save(state);
 }
 
 export function getVerlauf(profileId) {
   return structuredClone(state.profiles[profileId]?.verlauf ?? {});
+}
+
+// --- Tagesauftrag (Auftrags-Tafel im Welt-Header, kein Streak) ---
+// Lazy Reset auch beim reinen Lesen (defensive Init für Altprofile ohne das Feld).
+export function getTagesauftrag(profileId) {
+  const p = state.profiles[profileId];
+  if (!p) return null;
+  const heute = tagesSchluessel(new Date());
+  if (!p.tagesauftrag || p.tagesauftrag.datum !== heute) {
+    p.tagesauftrag = neuerAuftrag(heute);
+    save(state);
+  }
+  return { ...structuredClone(p.tagesauftrag), ziel: zielFuer(p.alter) };
+}
+
+export function markiereTagesauftragBelohnt(profileId) {
+  const p = state.profiles[profileId];
+  if (!p || !p.tagesauftrag) return;
+  p.tagesauftrag.belohnt = true;
+  save(state);
 }
 
 // --- Aufsage-Protokoll (Mal-Reihen) ---
