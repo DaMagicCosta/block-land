@@ -323,9 +323,9 @@
     "operation": "plus",
     "npc": "🐉",
     "saetze": [
-      "Der Drache hortet {a} Goldstücke.",
+      "Der Drache sammelt {a} Goldstücke.",
       "Er findet noch {b} Goldstücke dazu.",
-      "Wie viele Goldstücke hortet er jetzt?"
+      "Wie viele Goldstücke sammelt er jetzt?"
     ],
     "frage_index": 2,
     "slots": { "a": { "min": 15, "max": 70 }, "b": { "min": 5, "max": 25 } },
@@ -346,17 +346,17 @@
     "loesung": "a+b"
   },
   {
-    "id": "t1-fussball-tore",
+    "id": "t1-fussball-sammelkarten",
     "stufe": 1,
     "operation": "plus",
     "npc": "⚽",
     "saetze": [
-      "Die Mannschaft schießt {a} Tore.",
-      "Dazu kommen noch {b} weitere Tore.",
-      "Wie viele Tore sind es zusammen?"
+      "Mia hat {a} Fußballkarten im Album.",
+      "Sie klebt {b} neue Karten dazu.",
+      "Wie viele Karten hat sie jetzt?"
     ],
     "frage_index": 2,
-    "slots": { "a": { "min": 5, "max": 50 }, "b": { "min": 5, "max": 40 } },
+    "slots": { "a": { "min": 20, "max": 70 }, "b": { "min": 5, "max": 25 } },
     "loesung": "a+b"
   },
   {
@@ -436,7 +436,7 @@
     "npc": "🐉",
     "saetze": [
       "Der Drache bewacht {a} Goldstücke.",
-      "Ein Ritter stiehlt {b} Goldstücke.",
+      "Der Drache verliert {b} Goldstücke.",
       "Wie viele Goldstücke bewacht er noch?"
     ],
     "frage_index": 2,
@@ -463,9 +463,9 @@
     "operation": "minus",
     "npc": "⚽",
     "saetze": [
-      "Im Stadion sitzen {a} Zuschauer.",
+      "Auf der Tribüne sitzen {a} Zuschauer.",
       "{b} Zuschauer gehen nach Hause.",
-      "Wie viele Zuschauer bleiben im Stadion?"
+      "Wie viele Zuschauer bleiben auf der Tribüne?"
     ],
     "frage_index": 2,
     "slots": { "a": { "min": 20, "max": 90 }, "b": { "min": 5, "max": 19 } },
@@ -486,7 +486,7 @@
     "loesung": "a-b"
   },
   {
-    "id": "t1-zauberer-tricks",
+    "id": "t1-zauberer-sprueche",
     "stufe": 1,
     "operation": "minus",
     "npc": "🧙",
@@ -500,14 +500,14 @@
     "loesung": "a-b"
   },
   {
-    "id": "t1-feuerwehr-wasser",
+    "id": "t1-feuerwehr-handschuhe",
     "stufe": 1,
     "operation": "minus",
     "npc": "🚒",
     "saetze": [
-      "Das Feuerwehrauto hat {a} Liter Wasser.",
-      "Es spritzt {b} Liter Wasser auf das Feuer.",
-      "Wie viele Liter Wasser sind noch da?"
+      "Die Feuerwehr hat {a} Handschuhe im Lager.",
+      "Sie gibt {b} Handschuhe an Rekruten aus.",
+      "Wie viele Handschuhe sind noch im Lager?"
     ],
     "frage_index": 2,
     "slots": { "a": { "min": 20, "max": 95 }, "b": { "min": 5, "max": 20 } },
@@ -549,7 +549,7 @@
     "saetze": [
       "Der Pirat findet {a} Schatzkisten.",
       "In jeder Kiste sind {b} Goldmünzen.",
-      "Er trinkt {c} Becher Rum.",
+      "Er singt {c} Seemannslieder.",
       "Wie viele Goldmünzen findet er?"
     ],
     "frage_index": 3,
@@ -748,8 +748,8 @@
     "operation": "mal",
     "npc": "🚀",
     "saetze": [
-      "Die Raumfahrtagentur baut {a} Raketen.",
-      "Jede Rakete kostet {b} Euro extra Treibstoff.",
+      "Der Raumhafen baut {a} Raketen.",
+      "Der Treibstoff für jede Rakete kostet {b} Euro.",
       "Ein Techniker trinkt {c} Tassen Kaffee.",
       "Wie viel Geld kostet der Treibstoff insgesamt?"
     ],
