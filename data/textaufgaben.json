@@ -112,7 +112,7 @@
     "loesung": "a-b"
   },
   {
-    "id": "t1-huehner-eier",
+    "id": "t1-bauer-huehner",
     "stufe": 1,
     "operation": "minus",
     "npc": "🐔",
@@ -301,6 +301,465 @@
     ],
     "frage_index": 2,
     "slots": { "a": { "min": 2, "max": 10 }, "b": { "min": 2, "max": 10 } },
+    "loesung": "a*b"
+  },
+  {
+    "id": "t1-ritter-schilde",
+    "stufe": 1,
+    "operation": "plus",
+    "npc": "🤺",
+    "saetze": [
+      "Der Ritter poliert {a} Schilde.",
+      "Er bekommt {b} neue Schilde dazu.",
+      "Wie viele Schilde hat er jetzt?"
+    ],
+    "frage_index": 2,
+    "slots": { "a": { "min": 10, "max": 70 }, "b": { "min": 5, "max": 25 } },
+    "loesung": "a+b"
+  },
+  {
+    "id": "t1-drache-goldstuecke",
+    "stufe": 1,
+    "operation": "plus",
+    "npc": "🐉",
+    "saetze": [
+      "Der Drache hortet {a} Goldstücke.",
+      "Er findet noch {b} Goldstücke dazu.",
+      "Wie viele Goldstücke hortet er jetzt?"
+    ],
+    "frage_index": 2,
+    "slots": { "a": { "min": 15, "max": 70 }, "b": { "min": 5, "max": 25 } },
+    "loesung": "a+b"
+  },
+  {
+    "id": "t1-pirat-muenzen",
+    "stufe": 1,
+    "operation": "plus",
+    "npc": "🏴‍☠️",
+    "saetze": [
+      "Der Pirat hat {a} Goldmünzen in der Truhe.",
+      "Er findet {b} Goldmünzen dazu.",
+      "Wie viele Goldmünzen sind jetzt in der Truhe?"
+    ],
+    "frage_index": 2,
+    "slots": { "a": { "min": 10, "max": 60 }, "b": { "min": 5, "max": 30 } },
+    "loesung": "a+b"
+  },
+  {
+    "id": "t1-fussball-tore",
+    "stufe": 1,
+    "operation": "plus",
+    "npc": "⚽",
+    "saetze": [
+      "Die Mannschaft schießt {a} Tore.",
+      "Dazu kommen noch {b} weitere Tore.",
+      "Wie viele Tore sind es zusammen?"
+    ],
+    "frage_index": 2,
+    "slots": { "a": { "min": 5, "max": 50 }, "b": { "min": 5, "max": 40 } },
+    "loesung": "a+b"
+  },
+  {
+    "id": "t1-schwimmbad-kinder",
+    "stufe": 1,
+    "operation": "plus",
+    "npc": "🏊",
+    "saetze": [
+      "Im Schwimmbad planschen {a} Kinder.",
+      "Es kommen {b} Kinder dazu.",
+      "Wie viele Kinder sind jetzt im Schwimmbad?"
+    ],
+    "frage_index": 2,
+    "slots": { "a": { "min": 10, "max": 60 }, "b": { "min": 5, "max": 30 } },
+    "loesung": "a+b"
+  },
+  {
+    "id": "t1-zoo-tiere",
+    "stufe": 1,
+    "operation": "plus",
+    "npc": "🦁",
+    "saetze": [
+      "Im Zoo leben {a} Tiere.",
+      "Es ziehen {b} neue Tiere ein.",
+      "Wie viele Tiere leben jetzt im Zoo?"
+    ],
+    "frage_index": 2,
+    "slots": { "a": { "min": 10, "max": 60 }, "b": { "min": 5, "max": 30 } },
+    "loesung": "a+b"
+  },
+  {
+    "id": "t1-baustelle-steine",
+    "stufe": 1,
+    "operation": "plus",
+    "npc": "🚧",
+    "saetze": [
+      "Auf der Baustelle liegen {a} Steine.",
+      "Ein Laster bringt {b} Steine dazu.",
+      "Wie viele Steine liegen jetzt da?"
+    ],
+    "frage_index": 2,
+    "slots": { "a": { "min": 10, "max": 60 }, "b": { "min": 5, "max": 35 } },
+    "loesung": "a+b"
+  },
+  {
+    "id": "t1-weltraum-sterne",
+    "stufe": 1,
+    "operation": "plus",
+    "npc": "🚀",
+    "saetze": [
+      "Der Astronaut zählt {a} Sterne.",
+      "Er entdeckt {b} Sterne dazu.",
+      "Wie viele Sterne zählt er jetzt?"
+    ],
+    "frage_index": 2,
+    "slots": { "a": { "min": 10, "max": 70 }, "b": { "min": 5, "max": 25 } },
+    "loesung": "a+b"
+  },
+  {
+    "id": "t1-ritter-pfeile",
+    "stufe": 1,
+    "operation": "minus",
+    "npc": "🤺",
+    "saetze": [
+      "Der Ritter hat {a} Pfeile im Köcher.",
+      "Er verschießt {b} Pfeile.",
+      "Wie viele Pfeile hat er noch?"
+    ],
+    "frage_index": 2,
+    "slots": { "a": { "min": 20, "max": 80 }, "b": { "min": 5, "max": 19 } },
+    "loesung": "a-b"
+  },
+  {
+    "id": "t1-drache-schatz",
+    "stufe": 1,
+    "operation": "minus",
+    "npc": "🐉",
+    "saetze": [
+      "Der Drache bewacht {a} Goldstücke.",
+      "Ein Ritter stiehlt {b} Goldstücke.",
+      "Wie viele Goldstücke bewacht er noch?"
+    ],
+    "frage_index": 2,
+    "slots": { "a": { "min": 20, "max": 90 }, "b": { "min": 5, "max": 19 } },
+    "loesung": "a-b"
+  },
+  {
+    "id": "t1-pirat-schatzinsel",
+    "stufe": 1,
+    "operation": "minus",
+    "npc": "🏴‍☠️",
+    "saetze": [
+      "Der Pirat hat {a} Goldmünzen.",
+      "Er gibt {b} Goldmünzen aus.",
+      "Wie viele Goldmünzen bleiben übrig?"
+    ],
+    "frage_index": 2,
+    "slots": { "a": { "min": 20, "max": 99 }, "b": { "min": 5, "max": 19 } },
+    "loesung": "a-b"
+  },
+  {
+    "id": "t1-fussball-zuschauer",
+    "stufe": 1,
+    "operation": "minus",
+    "npc": "⚽",
+    "saetze": [
+      "Im Stadion sitzen {a} Zuschauer.",
+      "{b} Zuschauer gehen nach Hause.",
+      "Wie viele Zuschauer bleiben im Stadion?"
+    ],
+    "frage_index": 2,
+    "slots": { "a": { "min": 20, "max": 90 }, "b": { "min": 5, "max": 19 } },
+    "loesung": "a-b"
+  },
+  {
+    "id": "t1-schwimmbad-verlassen",
+    "stufe": 1,
+    "operation": "minus",
+    "npc": "🏊",
+    "saetze": [
+      "Im Schwimmbad sind {a} Kinder.",
+      "{b} Kinder gehen nach Hause.",
+      "Wie viele Kinder bleiben im Schwimmbad?"
+    ],
+    "frage_index": 2,
+    "slots": { "a": { "min": 20, "max": 70 }, "b": { "min": 3, "max": 20 } },
+    "loesung": "a-b"
+  },
+  {
+    "id": "t1-zauberer-tricks",
+    "stufe": 1,
+    "operation": "minus",
+    "npc": "🧙",
+    "saetze": [
+      "Der Zauberer kennt {a} Zaubersprüche.",
+      "Er vergisst {b} Zaubersprüche.",
+      "Wie viele Zaubersprüche kennt er noch?"
+    ],
+    "frage_index": 2,
+    "slots": { "a": { "min": 20, "max": 95 }, "b": { "min": 5, "max": 20 } },
+    "loesung": "a-b"
+  },
+  {
+    "id": "t1-feuerwehr-wasser",
+    "stufe": 1,
+    "operation": "minus",
+    "npc": "🚒",
+    "saetze": [
+      "Das Feuerwehrauto hat {a} Liter Wasser.",
+      "Es spritzt {b} Liter Wasser auf das Feuer.",
+      "Wie viele Liter Wasser sind noch da?"
+    ],
+    "frage_index": 2,
+    "slots": { "a": { "min": 20, "max": 95 }, "b": { "min": 5, "max": 20 } },
+    "loesung": "a-b"
+  },
+  {
+    "id": "t2-ritter-schilde-sterne",
+    "stufe": 2,
+    "operation": "mal",
+    "npc": "🤺",
+    "saetze": [
+      "Der Ritter bemalt {a} Schilde.",
+      "Auf jeden Schild malt er {b} Sterne.",
+      "Wie viele Sterne malt er insgesamt?"
+    ],
+    "frage_index": 2,
+    "slots": { "a": { "min": 2, "max": 10 }, "b": { "min": 2, "max": 10 } },
+    "loesung": "a*b"
+  },
+  {
+    "id": "t2-drache-hoehlen-gold",
+    "stufe": 2,
+    "operation": "mal",
+    "npc": "🐉",
+    "saetze": [
+      "Der Drache bewacht {a} Höhlen.",
+      "In jeder Höhle liegen {b} Goldstücke.",
+      "Wie viele Goldstücke bewacht er insgesamt?"
+    ],
+    "frage_index": 2,
+    "slots": { "a": { "min": 2, "max": 10 }, "b": { "min": 2, "max": 10 } },
+    "loesung": "a*b"
+  },
+  {
+    "id": "t2-pirat-kisten-muenzen",
+    "stufe": 2,
+    "operation": "mal",
+    "npc": "🏴‍☠️",
+    "saetze": [
+      "Der Pirat findet {a} Schatzkisten.",
+      "In jeder Kiste sind {b} Goldmünzen.",
+      "Er trinkt {c} Becher Rum.",
+      "Wie viele Goldmünzen findet er?"
+    ],
+    "frage_index": 3,
+    "slots": {
+      "a": { "min": 2, "max": 10 },
+      "b": { "min": 2, "max": 10 },
+      "c": { "min": 1, "max": 5 }
+    },
+    "irrelevante_slots": ["c"],
+    "loesung": "a*b"
+  },
+  {
+    "id": "t2-zoo-kaefige-tiere",
+    "stufe": 2,
+    "operation": "mal",
+    "npc": "🦁",
+    "saetze": [
+      "Im Zoo stehen {a} Käfige.",
+      "In jedem Käfig leben {b} Tiere.",
+      "Wie viele Tiere leben insgesamt im Zoo?"
+    ],
+    "frage_index": 2,
+    "slots": { "a": { "min": 2, "max": 10 }, "b": { "min": 2, "max": 10 } },
+    "loesung": "a*b"
+  },
+  {
+    "id": "t2-baustelle-container-ziegel",
+    "stufe": 2,
+    "operation": "mal",
+    "npc": "🚧",
+    "saetze": [
+      "Auf der Baustelle stehen {a} Container.",
+      "In jedem Container liegen {b} Ziegel.",
+      "Ein Bagger hebt {c} Meter Erde aus.",
+      "Wie viele Ziegel liegen insgesamt da?"
+    ],
+    "frage_index": 3,
+    "slots": {
+      "a": { "min": 2, "max": 10 },
+      "b": { "min": 2, "max": 10 },
+      "c": { "min": 1, "max": 9 }
+    },
+    "irrelevante_slots": ["c"],
+    "loesung": "a*b"
+  },
+  {
+    "id": "t2-weltraum-raketen-astronauten",
+    "stufe": 2,
+    "operation": "mal",
+    "npc": "🚀",
+    "saetze": [
+      "Es starten {a} Raketen.",
+      "In jeder Rakete sitzen {b} Astronauten.",
+      "Wie viele Astronauten fliegen insgesamt mit?"
+    ],
+    "frage_index": 2,
+    "slots": { "a": { "min": 2, "max": 10 }, "b": { "min": 2, "max": 10 } },
+    "loesung": "a*b"
+  },
+  {
+    "id": "t2-fussball-mannschaften",
+    "stufe": 2,
+    "operation": "geteilt",
+    "npc": "⚽",
+    "saetze": [
+      "Der Trainer hat {a} Spieler.",
+      "Er teilt sie in {b} Mannschaften ein.",
+      "Wie viele Spieler sind in jeder Mannschaft?"
+    ],
+    "frage_index": 2,
+    "slots": {
+      "b": { "min": 2, "max": 10 },
+      "a": { "vielfachesVon": "b", "min": 2, "max": 10 }
+    },
+    "loesung": "a/b"
+  },
+  {
+    "id": "t2-schwimmbad-bahnen",
+    "stufe": 2,
+    "operation": "geteilt",
+    "npc": "🏊",
+    "saetze": [
+      "Im Schwimmbad sind {a} Schwimmer.",
+      "Sie verteilen sich auf {b} Bahnen.",
+      "Wie viele Schwimmer sind in einer Bahn?"
+    ],
+    "frage_index": 2,
+    "slots": {
+      "b": { "min": 2, "max": 10 },
+      "a": { "vielfachesVon": "b", "min": 2, "max": 10 }
+    },
+    "loesung": "a/b"
+  },
+  {
+    "id": "t2-zauberer-zaubertraenke",
+    "stufe": 2,
+    "operation": "geteilt",
+    "npc": "🧙",
+    "saetze": [
+      "Der Zauberer braut {a} Zaubertränke.",
+      "Er verteilt sie auf {b} Regale.",
+      "Er murmelt {c} Zaubersprüche dabei.",
+      "Wie viele Zaubertränke stehen in einem Regal?"
+    ],
+    "frage_index": 3,
+    "slots": {
+      "b": { "min": 2, "max": 10 },
+      "a": { "vielfachesVon": "b", "min": 2, "max": 10 },
+      "c": { "min": 1, "max": 9 }
+    },
+    "irrelevante_slots": ["c"],
+    "loesung": "a/b"
+  },
+  {
+    "id": "t2-feuerwehr-schlaeuche",
+    "stufe": 2,
+    "operation": "geteilt",
+    "npc": "🚒",
+    "saetze": [
+      "Die Feuerwehr hat {a} Meter Schlauch.",
+      "Sie verteilt ihn auf {b} Fahrzeuge.",
+      "Wie viele Meter Schlauch hat jedes Fahrzeug?"
+    ],
+    "frage_index": 2,
+    "slots": {
+      "b": { "min": 2, "max": 10 },
+      "a": { "vielfachesVon": "b", "min": 2, "max": 10 }
+    },
+    "loesung": "a/b"
+  },
+  {
+    "id": "t2-ritter-geld-ausruestung",
+    "stufe": 2,
+    "operation": "plus",
+    "npc": "🤺",
+    "saetze": [
+      "Der Ritter kauft ein Schwert für {a} Euro.",
+      "Dazu kauft er einen Helm für {b} Euro.",
+      "Wie viel Geld gibt er insgesamt aus?"
+    ],
+    "frage_index": 2,
+    "slots": { "a": { "min": 10, "max": 50 }, "b": { "min": 10, "max": 50 } },
+    "loesung": "a+b"
+  },
+  {
+    "id": "t2-pirat-geld-schatz",
+    "stufe": 2,
+    "operation": "minus",
+    "npc": "🏴‍☠️",
+    "saetze": [
+      "Der Pirat hat {a} Euro im Beutel.",
+      "Er kauft eine Schatzkarte für {b} Euro.",
+      "Er findet {c} Muscheln am Strand.",
+      "Wie viel Geld hat er noch?"
+    ],
+    "frage_index": 3,
+    "slots": {
+      "a": { "min": 20, "max": 99 },
+      "b": { "min": 5, "max": 19 },
+      "c": { "min": 1, "max": 9 }
+    },
+    "irrelevante_slots": ["c"],
+    "loesung": "a-b"
+  },
+  {
+    "id": "t2-drache-geld-verkauf",
+    "stufe": 2,
+    "operation": "mal",
+    "npc": "🐉",
+    "saetze": [
+      "Der Drache verkauft {a} Schätze.",
+      "Jeder Schatz bringt {b} Euro.",
+      "Wie viel Geld bekommt er?"
+    ],
+    "frage_index": 2,
+    "slots": { "a": { "min": 2, "max": 10 }, "b": { "min": 2, "max": 10 } },
+    "loesung": "a*b"
+  },
+  {
+    "id": "t2-baustelle-geld-material",
+    "stufe": 2,
+    "operation": "minus",
+    "npc": "🚧",
+    "saetze": [
+      "Der Bauleiter hat {a} Euro für Material.",
+      "Er kauft Ziegel für {b} Euro.",
+      "Wie viel Geld hat er noch übrig?"
+    ],
+    "frage_index": 2,
+    "slots": { "a": { "min": 20, "max": 99 }, "b": { "min": 5, "max": 19 } },
+    "loesung": "a-b"
+  },
+  {
+    "id": "t2-weltraum-geld-rakete",
+    "stufe": 2,
+    "operation": "mal",
+    "npc": "🚀",
+    "saetze": [
+      "Die Raumfahrtagentur baut {a} Raketen.",
+      "Jede Rakete kostet {b} Euro extra Treibstoff.",
+      "Ein Techniker trinkt {c} Tassen Kaffee.",
+      "Wie viel Geld kostet der Treibstoff insgesamt?"
+    ],
+    "frage_index": 3,
+    "slots": {
+      "a": { "min": 2, "max": 10 },
+      "b": { "min": 2, "max": 10 },
+      "c": { "min": 1, "max": 5 }
+    },
+    "irrelevante_slots": ["c"],
     "loesung": "a*b"
   }
 ]

@@ -10,12 +10,12 @@ function pruefe(name, bedingung) {
 }
 
 // Daten-Validierung: jede Vorlage vollständig + Frage letzter Satz mit '?'
-pruefe('20 Vorlagen (10 T1 + 10 T2)',
-  vorlagen.length === 20 && vorlagen.filter(v => v.stufe === 1).length === 10);
+pruefe('50 Vorlagen (25 T1 + 25 T2)',
+  vorlagen.length === 50 && vorlagen.filter(v => v.stufe === 1).length === 25);
 pruefe('jede Vorlage: Frage = letzter Satz mit ?', vorlagen.every(v =>
   v.frage_index === v.saetze.length - 1 && v.saetze[v.frage_index].endsWith('?')));
-pruefe('3 T2-Vorlagen mit überflüssiger Zahl',
-  vorlagen.filter(v => (v.irrelevante_slots ?? []).length).length === 3);
+pruefe('8 T2-Vorlagen mit überflüssiger Zahl',
+  vorlagen.filter(v => (v.irrelevante_slots ?? []).length).length === 8);
 
 // Deterministische Generierung (fester rnd) über ALLE Vorlagen × 50 Läufe:
 let laeufe = 0, gueltig = 0;
