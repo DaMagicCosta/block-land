@@ -23,28 +23,28 @@ export function aktualisiereTagesauftrag(auftrag, heuteKey) {
   return { ...basis, fortschritt: basis.fortschritt + 1 };
 }
 
-// Reihenfolge von selten -> häufig; bestimmt, welches Material eine Ziehung trifft.
-// 'holz' steht bewusst am Ende der Verteilung (häufigstes/letztes Segment) UND ist der
-// Fallback, falls dropChancen leer/0 ist — die Truhe ist dadurch nie leer.
+// Reihenfolge von selten -> häufig; bestimmt, in welcher Reihenfolge die unabhängigen
+// Material-Chancen pro Slot geprüft werden (seltenes Material hat Vorrang, falls mehrere
+// Würfe im selben Slot treffen). 'holz' steht bewusst am Ende UND ist der Fallback, falls
+// kein Material trifft — die Truhe ist dadurch nie leer.
 const REIHENFOLGE = ['diamant', 'eisen', 'blume', 'stein', 'holz'];
 
-// Zieht `anzahl` Materialien gewichtet über die Eltern-Drop-Regler (dropChancen-Werte als
-// relative Gewichte, kumulative Verteilung). Ein rnd()-Aufruf pro Ziehung (deterministisch
-// testbar). Chance auf Eisen/Diamant ist inklusive. Fällt nie leer aus: fehlen/summen sich
-// alle Gewichte zu 0, wird 'holz' gezogen.
+// Zieht `anzahl` Materialien. WICHTIG: dropChancen sind KEINE normierte kategoriale
+// Verteilung (das würde die Eltern-Regler gegenseitig koppeln — Blume hoch => Diamant-Chance
+// sinkt rechnerisch). Stattdessen die gleiche Semantik wie in js/belohnung.js
+// (verteileBelohnung): pro Material eine UNABHÄNGIGE Wahrscheinlichkeit, geprüft per
+// `rnd() < chance[material]`. Pro Truhen-Slot wird REIHENFOLGE von selten nach häufig
+// durchgegangen; das erste Material, dessen eigener Wurf trifft, gewinnt den Slot (ein
+// rnd()-Aufruf je geprüftem Material, deterministisch testbar). Trifft kein Material ->
+// Fallback 'holz' (Truhe nie leer). So wirkt jeder Eltern-Regler nur auf sein eigenes
+// Material, unabhängig von den anderen.
 export function truhenZiehung(dropChancen = {}, rnd = Math.random, anzahl = 3) {
-  const items = REIHENFOLGE.filter(item => (dropChancen[item] ?? 0) > 0);
-  const gewichte = items.map(item => dropChancen[item]);
-  const summe = gewichte.reduce((a, b) => a + b, 0);
-
   const ergebnis = [];
   for (let i = 0; i < anzahl; i++) {
-    if (!items.length || summe <= 0) { ergebnis.push('holz'); continue; }
-    let ziel = rnd() * summe;
-    let gewaehlt = items[items.length - 1];
-    for (let j = 0; j < items.length; j++) {
-      if (ziel < gewichte[j]) { gewaehlt = items[j]; break; }
-      ziel -= gewichte[j];
+    let gewaehlt = 'holz';
+    for (const material of REIHENFOLGE) {
+      const chance = dropChancen[material] ?? 0;
+      if (chance > 0 && rnd() < chance) { gewaehlt = material; break; }
     }
     ergebnis.push(gewaehlt);
   }

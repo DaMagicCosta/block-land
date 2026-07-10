@@ -18,18 +18,12 @@ const TRUHEN_ITEM_INFO = {
   diamant: { e: '💎', l: 'Diamant' },
 };
 
-// Schatztruhen-Modal beim Erfüllen des Tagesauftrags. Zieht + vergibt die Materialien SOFORT
-// (nicht erst beim Schließen) und markiert den Auftrag als belohnt, damit ein Re-Render
-// (z.B. durchs onClose) keine zweite Truhe öffnet.
+// Schatztruhen-Modal beim Erfüllen des Tagesauftrags. Öffnet ZUERST das Modal (Singleton-
+// Guard in modal.js kann null liefern, z.B. wenn bereits ein anderes Modal offen ist) —
+// erst wenn das Modal wirklich zustande kam, wird gezogen, belohnt und der Auftrag als
+// belohnt markiert. Ohne Modal keine Vergabe/Markierung: der nächste Welt-Render versucht
+// es erneut (statt Materialien "ins Leere" zu vergeben, die das Kind nie zu sehen bekommt).
 function zeigeTruhenModal(profileId, container) {
-  const materialien = truhenZiehung(getDropChancen(), Math.random, 3);
-  materialien.forEach(item => gebeReward(item, 1));
-  markiereTagesauftragBelohnt(profileId);
-
-  const items = materialien.map(it => TRUHEN_ITEM_INFO[it] ?? { e: '❔', l: it });
-  const emojis = items.map(i => `<span class="feier__item">${i.e}</span>`).join('');
-  const labels = items.map(i => i.l).join(' + ');
-
   const modal = oeffneModal({
     inhaltHtml: `
       <div class="modal modal--erfolg">
@@ -37,14 +31,25 @@ function zeigeTruhenModal(profileId, container) {
         <div class="feier__konfetti">✨🎊⭐🎉✨</div>
         <div class="modal__titel">Tagesauftrag geschafft!</div>
         <p class="modal__text">Die Schatztruhe öffnet sich...</p>
-        <div class="modal__emoji">${emojis}</div>
-        <p class="modal__text">Du hast <strong>${escapeHtml(labels)}</strong> gefunden!</p>
+        <div class="modal__emoji modal__truhen-inhalt"></div>
+        <p class="modal__text modal__truhen-text"></p>
         <button class="modal__close">Super!</button>
       </div>
     `,
     onClose: () => renderWelt(container),
   });
   if (!modal) return;
+
+  const materialien = truhenZiehung(getDropChancen(), Math.random, 3);
+  materialien.forEach(item => gebeReward(item, 1));
+  markiereTagesauftragBelohnt(profileId);
+
+  const items = materialien.map(it => TRUHEN_ITEM_INFO[it] ?? { e: '❔', l: it });
+  const emojis = items.map(i => `<span class="feier__item">${i.e}</span>`).join('');
+  const labels = items.map(i => i.l).join(' + ');
+  modal.inhalt.querySelector('.modal__truhen-inhalt').innerHTML = emojis;
+  modal.inhalt.querySelector('.modal__truhen-text').innerHTML = `Du hast <strong>${escapeHtml(labels)}</strong> gefunden!`;
+
   modal.inhalt.querySelector('.modal__close').addEventListener('click', () => modal.schliessen());
 }
 
