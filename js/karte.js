@@ -8,57 +8,62 @@ import { oeffneModal, schliesseAlleModals } from './modal.js';
 import { aktuelleStufe as burgStufeAus } from './burg-logik.js';
 import { aktuelleStufe as aufgabenStufe } from './adaptiv.js';
 import { rendereBurgSvg } from './burg.js';
-// Stilisierte Landkarte im Hochformat (Pixel-/Minecraft-Anmutung). viewBox 100×150,
-// per CSS aufs Feld gestreckt (preserveAspectRatio="none"). Reise von unten (Wiese) nach
-// oben (Berg), Länder im Zickzack + gleichmäßig verteilt. Marker (in %) liegen auf den Regionen:
-// Wiese (24,89), Teich (52,70), Wald (77,52), Höhle (23,34), Berg (73,16), Schlucht (24,10),
-// Dorf (70,36). Region-cy = y%·1,5.
+// Stilisierte Landkarte im Hochformat (Pixel-/Minecraft-Anmutung). viewBox 100×300 (doppelte
+// Höhe für die vertikal scrollbare Lernreise), per CSS aufs Feld gestreckt (preserveAspectRatio="none").
+// Reise von unten (Wiese) nach oben (Dorf), Länder im Zickzack + gleichmäßig verteilt (BIOME_REIHENFOLGE).
+// Marker (in %, Region-cy = y%·3): Wiese (28,92), Teich (70,78), Wald (28,64), Höhle (70,50),
+// Berg (28,36), Schlucht (70,22), Dorf (28,8).
 function kartenSzene() {
   return `
-    <svg class="karte__svg" viewBox="0 0 100 150" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <svg class="karte__svg" viewBox="0 0 100 300" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
       <defs>
         <linearGradient id="sw-himmel" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0" stop-color="#21384c"/><stop offset="0.5" stop-color="#243640"/><stop offset="1" stop-color="#1d3320"/>
         </linearGradient>
       </defs>
-      <rect width="100" height="150" fill="url(#sw-himmel)"/>
-      <!-- Pfad: Reise von unten (Wiese) nach oben (Berg), durch alle Länder, breiter Zickzack;
-           letzter Abschnitt schwenkt von der Schlucht zurück ins Geschichten-Dorf (rechte Mitte). -->
-      <path class="karte__pfad" d="M 24 142 C 30 136, 44 114, 52 105 C 62 96, 70 88, 77 78 C 86 64, 36 60, 23 51 C 12 44, 64 34, 73 24 C 80 14, 44 9, 24 15 C 4 21, 45 22, 70 54"
+      <rect width="100" height="300" fill="url(#sw-himmel)"/>
+      <!-- Pfad: Reise von unten (Wiese) nach oben (Dorf), durch alle Länder in BIOME_REIHENFOLGE,
+           gleichmäßiger Zickzack (Tangenten an Start/Ziel-x je Segment für weiche S-Schwünge). -->
+      <path class="karte__pfad" d="M 28 276 C 28 262, 70 248, 70 234 C 70 220, 28 206, 28 192 C 28 178, 70 164, 70 150 C 70 136, 28 122, 28 108 C 28 94, 70 80, 70 66 C 70 52, 28 38, 28 24"
             fill="none" stroke="#d9c89a" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="2 5" opacity="0.8"/>
-      <!-- Mengen-Wiese (unten links) -->
-      <ellipse cx="24" cy="133" rx="26" ry="15" fill="#3f6e34"/>
-      <circle cx="11" cy="137" r="2" fill="#ffd166"/><circle cx="37" cy="138" r="2" fill="#ef89b4"/><circle cx="18" cy="126" r="1.6" fill="#ffd166"/>
-      <!-- Würfel-Teich: Wasser + Seerosen (Mitte) -->
-      <ellipse cx="52" cy="105" rx="20" ry="11" fill="#23566a"/>
-      <ellipse cx="52" cy="103" rx="14" ry="6.5" fill="#2f6e86" opacity="0.75"/>
-      <circle cx="45" cy="106" r="3" fill="#3f7a4a"/><circle cx="59" cy="107" r="2.5" fill="#3f7a4a"/><circle cx="54" cy="100" r="2" fill="#3f7a4a"/>
-      <circle cx="45" cy="105" r="1" fill="#ef89b4"/>
-      <path d="M 43 101 q 4 -2 8 0 M 51 108 q 4 -2 8 0" stroke="#bfe3ef" stroke-width="0.6" fill="none" opacity="0.55"/>
-      <!-- Plus-Wald (rechts) -->
-      <ellipse cx="77" cy="78" rx="22" ry="14" fill="#2c4f2a"/>
-      <g fill="#1f3a1f"><polygon points="68,80 72,70 76,80"/><polygon points="81,78 85,68 89,78"/></g>
-      <rect x="71" y="80" width="2" height="4" fill="#5a3a22"/><rect x="84" y="78" width="2" height="4" fill="#5a3a22"/>
-      <!-- Minus-Höhle (links) -->
-      <ellipse cx="23" cy="51" rx="23" ry="14" fill="#33333d"/>
-      <path d="M 17 57 a 6 7 0 0 1 12 0 z" fill="#15151b"/>
-      <rect x="31" y="51" width="6" height="6" rx="1" fill="#44444f"/><rect x="10" y="53" width="5" height="5" rx="1" fill="#44444f"/>
-      <!-- Mal-Berg (oben rechts) -->
-      <ellipse cx="73" cy="24" rx="26" ry="16" fill="#5b4d3e"/>
-      <polygon points="73,5 90,31 56,31" fill="#6b5a48"/>
-      <polygon points="73,5 80,17 66,17" fill="#e8eef2"/>
-      <!-- Geteilt-Schlucht (oben links): Fels-Insel mit teilender Spalte + Bach (Division-Metapher) -->
-      <ellipse cx="24" cy="15" rx="22" ry="12" fill="#3a2f2a"/>
-      <polygon points="24,4 19,15 24,26 29,15" fill="#1a130f"/>
-      <rect x="23" y="6" width="2" height="18" fill="#2f5b66" opacity="0.85"/>
-      <rect x="12" y="13" width="4" height="4" rx="1" fill="#4a3f35"/><rect x="33" y="14" width="3.5" height="3.5" rx="1" fill="#4a3f35"/>
-      <!-- Geschichten-Dorf (rechte Mitte, zwischen Wald und Berg): warme Dorf-Insel mit Häusern + Brunnen -->
-      <ellipse cx="70" cy="54" rx="18" ry="10" fill="#6b5033"/>
-      <rect x="61" y="49" width="5" height="4" fill="#8a6a44"/><polygon points="61,49 63.5,44.5 66,49" fill="#a5432f"/>
-      <rect x="75" y="51" width="5" height="4" fill="#8a6a44"/><polygon points="75,51 77.5,46.5 80,51" fill="#a5432f"/>
-      <circle cx="70" cy="58" r="2" fill="#3a2f2a"/><circle cx="70" cy="58" r="1.2" fill="#5b8a9a"/>
-      <!-- Wolken -->
-      <g fill="#ffffff" opacity="0.15"><ellipse cx="44" cy="70" rx="7" ry="2.6"/></g>
+      <!-- Mengen-Wiese (ganz unten links) -->
+      <ellipse cx="28" cy="276" rx="26" ry="15" fill="#3f6e34"/>
+      <circle cx="15" cy="280" r="2" fill="#ffd166"/><circle cx="41" cy="281" r="2" fill="#ef89b4"/><circle cx="22" cy="269" r="1.6" fill="#ffd166"/>
+      <!-- Würfel-Teich: Wasser + Seerosen (rechts) -->
+      <ellipse cx="70" cy="234" rx="20" ry="11" fill="#23566a"/>
+      <ellipse cx="70" cy="232" rx="14" ry="6.5" fill="#2f6e86" opacity="0.75"/>
+      <circle cx="63" cy="235" r="3" fill="#3f7a4a"/><circle cx="77" cy="236" r="2.5" fill="#3f7a4a"/><circle cx="72" cy="229" r="2" fill="#3f7a4a"/>
+      <circle cx="63" cy="234" r="1" fill="#ef89b4"/>
+      <path d="M 61 230 q 4 -2 8 0 M 69 237 q 4 -2 8 0" stroke="#bfe3ef" stroke-width="0.6" fill="none" opacity="0.55"/>
+      <!-- Plus-Wald (links) -->
+      <ellipse cx="28" cy="192" rx="22" ry="14" fill="#2c4f2a"/>
+      <g fill="#1f3a1f"><polygon points="19,194 23,184 27,194"/><polygon points="32,192 36,182 40,192"/></g>
+      <rect x="22" y="194" width="2" height="4" fill="#5a3a22"/><rect x="35" y="192" width="2" height="4" fill="#5a3a22"/>
+      <!-- Minus-Höhle (rechts) -->
+      <ellipse cx="70" cy="150" rx="23" ry="14" fill="#33333d"/>
+      <path d="M 64 156 a 6 7 0 0 1 12 0 z" fill="#15151b"/>
+      <rect x="78" y="150" width="6" height="6" rx="1" fill="#44444f"/><rect x="57" y="152" width="5" height="5" rx="1" fill="#44444f"/>
+      <!-- Mal-Berg (links) -->
+      <ellipse cx="28" cy="108" rx="26" ry="16" fill="#5b4d3e"/>
+      <polygon points="28,89 45,115 11,115" fill="#6b5a48"/>
+      <polygon points="28,89 35,101 21,101" fill="#e8eef2"/>
+      <!-- Geteilt-Schlucht (rechts): Fels-Insel mit teilender Spalte + Bach (Division-Metapher) -->
+      <ellipse cx="70" cy="66" rx="22" ry="12" fill="#3a2f2a"/>
+      <polygon points="70,55 65,66 70,77 75,66" fill="#1a130f"/>
+      <rect x="69" y="57" width="2" height="18" fill="#2f5b66" opacity="0.85"/>
+      <rect x="58" y="64" width="4" height="4" rx="1" fill="#4a3f35"/><rect x="79" y="65" width="3.5" height="3.5" rx="1" fill="#4a3f35"/>
+      <!-- Geschichten-Dorf (ganz oben links): warme Dorf-Insel mit Häusern + Brunnen -->
+      <ellipse cx="28" cy="24" rx="18" ry="10" fill="#6b5033"/>
+      <rect x="19" y="19" width="5" height="4" fill="#8a6a44"/><polygon points="19,19 21.5,14.5 24,19" fill="#a5432f"/>
+      <rect x="33" y="21" width="5" height="4" fill="#8a6a44"/><polygon points="33,21 35.5,16.5 38,21" fill="#a5432f"/>
+      <circle cx="28" cy="28" r="2" fill="#3a2f2a"/><circle cx="28" cy="28" r="1.2" fill="#5b8a9a"/>
+      <!-- Wolken, über die ganze Reise verteilt -->
+      <g fill="#ffffff" opacity="0.15">
+        <ellipse cx="50" cy="255" rx="7" ry="2.6"/>
+        <ellipse cx="48" cy="170" rx="7" ry="2.6"/>
+        <ellipse cx="50" cy="128" rx="6" ry="2.3"/>
+        <ellipse cx="50" cy="45" rx="7" ry="2.6"/>
+      </g>
     </svg>`;
 }
 
@@ -144,6 +149,12 @@ export async function renderKarte(container) {
   container.querySelector('#karte-burg').addEventListener('click', () => { location.hash = 'burg'; });
 
   const figur = container.querySelector('#karte-figur');
+
+  // Auto-Scroll beim Öffnen: aktives Biom mittig ins Sichtfeld holen (Reise ist ~2× Viewport-Höhe).
+  requestAnimationFrame(() => {
+    figur.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'auto' });
+  });
+
   const fade = container.querySelector('#karte-fade');
   const pfad = container.querySelector('.karte__pfad');
   let unterwegs = false;
@@ -159,11 +170,11 @@ export async function renderKarte(container) {
     }
     return best;
   }
-  // Biom-Position als Pfad-Länge merken (kartenposition in %; viewBox 100×150 → vby = y·1,5).
+  // Biom-Position als Pfad-Länge merken (kartenposition in %; viewBox 100×300 → vby = y·3).
   const biomLaenge = {};
   if (pfad) {
     for (const [bid, b] of Object.entries(manifest)) {
-      biomLaenge[bid] = laengeFuerPunkt(b.kartenposition.x, b.kartenposition.y * 1.5);
+      biomLaenge[bid] = laengeFuerPunkt(b.kartenposition.x, b.kartenposition.y * 3);
     }
   }
 
@@ -179,7 +190,7 @@ export async function renderKarte(container) {
       const t = Math.min(1, (ts - start) / dauer);
       const p = pfad.getPointAtLength(vonLen + (zuLen - vonLen) * t);
       figur.style.left = p.x + '%';
-      figur.style.top = (p.y / 1.5) + '%';
+      figur.style.top = (p.y / 3) + '%';
       if (t < 1) requestAnimationFrame(schritt);
       else onDone();
     }
@@ -190,6 +201,9 @@ export async function renderKarte(container) {
   function wandereUndOeffne(id) {
     if (unterwegs) return;
     unterwegs = true;
+    // Kamera folgt der Figur: Zielinsel ins Sichtfeld scrollen, falls sie außerhalb liegt.
+    container.querySelector(`.karte__biom[data-biom="${id}"]`)
+      ?.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'smooth' });
     laufeEntlangPfad(biomLaenge[aktiv] ?? 0, biomLaenge[id] ?? 0, () => {
       figur.classList.remove('karte__figur--gehen');
       figur.style.transition = ''; // CSS-Transition aus --final wieder aktiv

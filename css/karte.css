@@ -10,11 +10,14 @@
   position: relative; width: 100%; border-radius: var(--radius-md);
   border: 2px solid var(--color-border); overflow: hidden;
 }
-/* Szene im Karten-Seitenverhältnis (2:3) als Untergrenze; am hohen Handy-Screen füllt min-height
-   nach unten auf (statt freiem Bereich), die Seite scrollt dann ein Stück. */
+/* Szene ~2× Viewport-Höhe: die Lernreise (7 Biome, unten→oben) ist bewusst länger als ein
+   Bildschirm und wird vertikal gescrollt (Scroll-Container ist die Seite/`.karte__feld` selbst,
+   Kopfzeile scrollt mit). preserveAspectRatio="none" auf dem SVG streckt unabhängig von der
+   viewBox 100×300 — Höhe hier ist daher fix in vh, nicht an ein Seitenverhältnis gekoppelt.
+   touch-action:pan-y verhindert Pinch-Zoom/horizontales Wischen, nur vertikales Scrollen bleibt. */
 .karte__szene {
-  position: relative; width: 100%; aspect-ratio: 100 / 150;
-  min-height: 84vh;
+  position: relative; width: 100%; height: 200vh;
+  touch-action: pan-y;
   container-type: size; /* erlaubt cqh-Einheiten = % der Szenenhöhe (Namens-Versatz pro Insel) */
 }
 /* Fortschritt zum nächsten (gesperrten) Land — macht das Ziel und den Weg sichtbar. */
