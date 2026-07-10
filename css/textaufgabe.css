@@ -75,12 +75,17 @@ button.text-token {
 }
 button.text-token:hover { border-color: var(--color-action); }
 
-.text-token--zahl-markiert {
+/* Doppel-Selektor nötig: button.text-token (all: unset) ist spezifischer als die
+   einfache Klasse — ohne ihn wäre die Markierung auf den antippbaren Buttons unsichtbar. */
+.text-token--zahl-markiert,
+button.text-token.text-token--zahl-markiert {
   border: 2px solid var(--color-markier-zahl);
   border-radius: 999px;
   color: var(--color-markier-zahl);
   font-weight: bold;
 }
+/* Markierung schlägt Hover — sonst „frisst" die Tablet-Berührung den roten Kreis. */
+button.text-token.text-token--zahl-markiert:hover { border-color: var(--color-markier-zahl); }
 
 .text-weiter {
   align-self: center;
