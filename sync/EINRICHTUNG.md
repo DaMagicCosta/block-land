@@ -54,3 +54,21 @@ Block-Land öffnen → **Eltern-Bereich → Tab 📡 Sync**:
   Script neu deployen (s. o.). Die Web-App-URL bleibt gleich; die ausgelieferten HTML-Clients
   (`BlockLand.html`) brauchen kein Update, der Trigger `taeglicherDigest` wertet die neuen
   Labels sofort aus.
+
+## 8. Spielstand-Sync (geräteübergreifende Profile)
+
+Ab SW v60 wandert der komplette Spielstand über das Sheet-Blatt „Zustand" (legt sich selbst an).
+
+**Einmalig nach dem Update:**
+1. Apps Script im Editor aktualisieren (Inhalt von `sync/familien-sync.gs`) →
+   „Bereitstellen → Bereitstellung verwalten → Bearbeiten → Neue Version" (URL bleibt gleich).
+2. Editor-Smoke-Test: `testZustand()` ausführen → Log zeigt „Zustand-Zeilen: 0".
+3. **Führendes Gerät** (das mit dem richtigen Spielstand): Eltern-Bereich → Tab „📡 Sync" →
+   „⬆️ Spielstand hochladen".
+4. **Alle anderen Geräte:** Tab „📡 Sync" → „⬇️ Familien-Spielstand übernehmen"
+   (ersetzt die dortigen lokalen Profile — Inventar/Gutscheine dieser Geräte gehen bewusst verloren,
+   bei Bedarf danach über die Rohstoff-Korrektur ausgleichen).
+5. Neue Geräte später: nur URL + Schlüssel eintragen, Sync aktivieren → „⬇️ übernehmen".
+
+**Laufender Betrieb:** nichts zu tun. Abgleich beim App-Start, alle 60 Sekunden und bei
+Rückkehr in den Tab. „🔄 Jetzt abgleichen" erzwingt ihn manuell.
