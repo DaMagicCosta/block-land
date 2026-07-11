@@ -149,6 +149,7 @@ function tabBelohnungen(container, neuRendern) {
     ['eisen', '⛏️ Eisen (schwere Aufgaben)'], ['diamant', '💎 Diamant (schwere Aufgaben)'],
   ];
   const ALTER_LABEL = { 'kindergarten': 'Vorschule', 'klasse-1': '1. Klasse', 'klasse-2': '2. Klasse', 'klasse-3': '3. Klasse' };
+  const avatarEmojiMapTimer = Object.fromEntries(AVATARE);
   const timerBloecke = getProfiles().map(p => {
     const std = standardFuer(p.alter);
     const k = wirksameKonfig(p.alter, p.timerKonfig);
@@ -156,7 +157,7 @@ function tabBelohnungen(container, neuRendern) {
     const nacht = istNacht(getTimer(p.id));
     return `
       <div class="eltern__timer-kind">
-        <div class="eltern__timer-titel">${escapeHtml(p.avatar)} <b>${escapeHtml(p.name)}</b> —
+        <div class="eltern__timer-titel">${avatarEmojiMapTimer[p.avatar] ?? '🧒'} <b>${escapeHtml(p.name)}</b> —
           ${eigene ? 'eigene Einstellung' : `Standard (${ALTER_LABEL[p.alter] ?? escapeHtml(p.alter)})`}:
           ${k.uebenMin} Min üben / ${k.pauseMin} Min Pause</div>
         <label class="eltern__timer-feld">Üben (Min)

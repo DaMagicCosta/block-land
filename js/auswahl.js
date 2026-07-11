@@ -5,6 +5,10 @@ import { oeffneModal } from './modal.js';
 import { oeffneElternBereich } from './eltern.js';
 
 export async function renderAuswahl(container) {
+  // Auswahl-Screen = kein Kind aktiv: nullt das persistierte Profil, damit der
+  // Übungs-Timer nach einem App-Neustart nicht auf dem Auswahl-Screen weitertickt.
+  setCurrentProfile(null);
+
   const profile = getProfiles();
 
   let avatare;

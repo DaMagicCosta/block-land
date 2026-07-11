@@ -197,7 +197,9 @@ export async function renderWelt(container) {
     `;
     modal.inhalt.querySelector('.modal__close').addEventListener('click', () => modal.schliessen());
   });
-  container.querySelector('#welt-eltern').addEventListener('click', () => oeffneElternBereich());
+  // onClose-Callback wie in auswahl.js: Eltern-Korrekturen (z.B. „Sonne jetzt aufgehen lassen")
+  // sollen die offene Welt sofort neu rendern, sonst greifen sie in der laufenden Session nicht.
+  container.querySelector('#welt-eltern').addEventListener('click', () => oeffneElternBereich(() => renderWelt(container)));
   container.querySelector('#welt-karte').addEventListener('click', () => { location.hash = 'karte'; });
 
   const weiterBtn = container.querySelector('#welt-weiter');
@@ -258,11 +260,18 @@ export async function renderWelt(container) {
   // bei offener Reihe übernimmt der „▶ Weitermachen"-Knopf das Fortsetzen).
   if (aktivId === 'rechnen10') {
     const ersterBesuch = teichAuswahlGezeigtFuer !== 'rechnen10';
-    teichAuswahlGezeigtFuer = 'rechnen10';
     if (ersterBesuch && !hatReihe) {
-      const teichReward = Object.values(biom.tile_typen).find(t => t.reward)?.reward
-        ?? { item: 'blume', emoji: '🌸', label: 'Blume' };
-      oeffneRechnen10Auswahl(teichReward, { onClose: () => renderWelt(container) });
+      // Nachts KEIN Auto-Start (still übersprungen, kein Schlaf-Modal — das Kind hat nichts
+      // geklickt, die Karte ist bewusst offen und die Welt sichtbar dunkel). Flag bleibt
+      // UNGESETZT, damit die Auswahl beim nächsten Betreten nach Nachtende noch kommt.
+      if (!nachtAktiv) {
+        teichAuswahlGezeigtFuer = 'rechnen10';
+        const teichReward = Object.values(biom.tile_typen).find(t => t.reward)?.reward
+          ?? { item: 'blume', emoji: '🌸', label: 'Blume' };
+        oeffneRechnen10Auswahl(teichReward, { onClose: () => renderWelt(container) });
+      }
+    } else {
+      teichAuswahlGezeigtFuer = 'rechnen10';
     }
   } else {
     teichAuswahlGezeigtFuer = null;
