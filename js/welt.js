@@ -194,7 +194,9 @@ export async function renderWelt(container) {
     location.hash = 'auswahl';
   });
 
-  container.querySelector('#welt-rezeptbuch').addEventListener('click', () => oeffneRezeptbuch());
+  // Callback: nach Werkstatt-Schließen die Welt neu rendern, damit während offener Werkstatt
+  // eingespielte Ereignisse (z.B. Telegram-Freigabe) sofort ihr Feier-Modal zeigen (Final-Review I3).
+  container.querySelector('#welt-rezeptbuch').addEventListener('click', () => oeffneRezeptbuch(() => renderWelt(container)));
 
   // Tafel antippen → kindgerechte Erklärung, was der Tagesauftrag ist (er startet nirgends —
   // jede gelöste Aufgabe zählt; das war ohne Erklärung nicht erkennbar).

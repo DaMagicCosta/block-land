@@ -10,13 +10,21 @@ import { escapeHtml } from './utils.js';
 
 const ITEM_EMOJI = { holz: '🪵', stein: '🪨', blume: '🌸', eisen: '⛏️', diamant: '💎' };
 
-export function oeffneRezeptbuch() {
+// nachSchliessen: optionaler Callback, der NACH dem Aufräumen abgelehnter Anfragen läuft
+// (Final-Review I1: app.js re-rendert bei blockland:zustandEingespielt nur, wenn kein Modal
+// offen ist — die Werkstatt selbst öffnet aber ohne Render-Callback, also blieben Ereignisse,
+// die während offener Werkstatt einliefen (z.B. Telegram-Freigabe), bis zum nächsten Routing-
+// Trigger unsichtbar. Aufrufer (aktuell nur welt.js) übergibt hier renderWelt).
+export function oeffneRezeptbuch(nachSchliessen) {
   const profile = getCurrentProfile();
   if (!profile) return;
   const modal = oeffneModal({
     klassen: 'modal-backdrop--werkstatt',
     inhaltHtml: '<div class="modal modal--werkstatt"></div>',
-    onClose: () => raeumeAbgelehnteAnfragenAuf(profile.id),
+    onClose: () => {
+      raeumeAbgelehnteAnfragenAuf(profile.id);
+      if (nachSchliessen) nachSchliessen();
+    },
   });
   if (!modal) return;
 

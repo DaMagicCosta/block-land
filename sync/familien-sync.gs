@@ -69,26 +69,53 @@ function doPost(e) {
     const zustandEvents = (daten.zustandEvents || []).slice(0, 2000);
     let zustandNeu = 0;
     if (zustandEvents.length) {
-      const blatt = zustandBlatt();
-      // Dedup per Id: verlorene POST-Antwort → Client sendet erneut; ohne Filter
-      // stünden dieselben Ereignisse doppelt im Log und würden doppelt angewendet.
-      const vorhandene = {};
-      if (blatt.getLastRow() > 1) {
-        blatt.getRange(2, 1, blatt.getLastRow() - 1, 1).getValues().forEach(function (z) { vorhandene[String(z[0])] = true; });
+      // Lock (Final-Review I1): derselbe ScriptLock wie im Telegram-Webhook-Pfad
+      // (behandleTelegramUpdate) — der appendet parallel tg_-Zeilen ins Zustand-Blatt.
+      // Ohne gemeinsamen Lock könnten Dedup-Read (hier) und Webhook-appendRow sich
+      // überschneiden (Row-Clobbering, wenn beide zwischen getLastRow() und setValues()
+      // liegen). ACHTUNG Re-Entrancy: innerhalb dieses Blocks NIE erneut denselben
+      // ScriptLock nehmen — deshalb rufen die Anfrage-Anlage/Rückzug unten die lock-freien
+      // Kern-Funktionen direkt auf (legeAnfrageAnUndBenachrichtigeKern, schliesseAnfrage).
+      const lock = LockService.getScriptLock();
+      lock.waitLock(10000);
+      try {
+        const blatt = zustandBlatt();
+        // Dedup per Id: verlorene POST-Antwort → Client sendet erneut; ohne Filter
+        // stünden dieselben Ereignisse doppelt im Log und würden doppelt angewendet.
+        const vorhandene = {};
+        if (blatt.getLastRow() > 1) {
+          blatt.getRange(2, 1, blatt.getLastRow() - 1, 1).getValues().forEach(function (z) { vorhandene[String(z[0])] = true; });
+        }
+        const neue = zustandEvents.filter(function (ev) { return ev && ev.id && !vorhandene[String(ev.id)]; });
+        zustandNeu = neue.length;
+        if (neue.length) {
+          const zeilen = neue.map(function (ev) { return [
+            String(ev.id || ''), String(ev.ts || ''), String(ev.geraet || ''), String(ev.op || ''),
+            JSON.stringify(ev.args || {}),
+          ]; });
+          blatt.getRange(blatt.getLastRow() + 1, 1, zeilen.length, ZUSTAND_SPALTEN.length).setValues(zeilen);
+        }
+        // Frisch angenommene Einlöse-Anfragen sofort an die Eltern melden (Spec 2026-07-11).
+        // Nur die NEUEN (Dedup oben) — Redelivery erzeugt keine Doppel-Nachricht.
+        // try/catch (Final-Review I2): Telegram/Blatt-Fehler dürfen die Zustand-Zeilen (oben
+        // bereits geschrieben) nicht rückgängig machen — doPost muss ok:true liefern, sonst
+        // wiederholt der Client den Flush endlos und die Eltern-Benachrichtigung geht dauerhaft
+        // verloren, obwohl der Zustand serverseitig längst angekommen ist.
+        neue.filter(function (ev) { return ev.op === 'gutscheinEinloesungAngefragt'; })
+            .forEach(function (ev) {
+              try { legeAnfrageAnUndBenachrichtigeKern(ev.args || {}); }
+              catch (err) { Logger.log('Anfrage-Anlage fehlgeschlagen: ' + err); }
+            });
+        // Rückgezogene Anfragen (Kind hat sie storniert, bevor die Eltern entschieden haben):
+        // Anfrage schließen, damit kein Geister-Button mehr doppelt abbuchen kann (Final-Review C1).
+        neue.filter(function (ev) { return ev.op === 'gutscheinAnfrageZurueckgezogen'; })
+            .forEach(function (ev) {
+              try { schliesseAnfrage((ev.args || {}).anfrageId); }
+              catch (err) { Logger.log('Anfrage-Rückzug fehlgeschlagen: ' + err); }
+            });
+      } finally {
+        lock.releaseLock();
       }
-      const neue = zustandEvents.filter(function (ev) { return ev && ev.id && !vorhandene[String(ev.id)]; });
-      zustandNeu = neue.length;
-      if (neue.length) {
-        const zeilen = neue.map(function (ev) { return [
-          String(ev.id || ''), String(ev.ts || ''), String(ev.geraet || ''), String(ev.op || ''),
-          JSON.stringify(ev.args || {}),
-        ]; });
-        blatt.getRange(blatt.getLastRow() + 1, 1, zeilen.length, ZUSTAND_SPALTEN.length).setValues(zeilen);
-      }
-      // Frisch angenommene Einlöse-Anfragen sofort an die Eltern melden (Spec 2026-07-11).
-      // Nur die NEUEN (Dedup oben) — Redelivery erzeugt keine Doppel-Nachricht.
-      neue.filter(function (ev) { return ev.op === 'gutscheinEinloesungAngefragt'; })
-          .forEach(function (ev) { legeAnfrageAnUndBenachrichtige(ev.args || {}); });
     }
     // angenommen zählt weiterhin zustandEvents.length (nicht zustandNeu): der Client muss
     // auch Duplikate als „angenommen" quittiert bekommen, damit er seine Queue leert.
@@ -330,24 +357,35 @@ function telegramApi(methode, payload) {
 }
 
 // Neue Anfrage: Zeile anlegen (idempotent) + Nachricht mit Buttons an beide Eltern.
-// Lock, weil Guard→appendRow Read-then-Write ist: zwei gleichzeitige doPost-Retries mit
-// derselben anfrageId erzeugten sonst Doppel-Nachricht + Doppel-Zeile. Kein Re-Entrancy-
-// Problem — wird nie aufgerufen, während der Callback-Lock gehalten wird.
+// Kern-Variante OHNE eigenen Lock (Final-Review I1): GAS-Script-Locks sind nicht reentrant —
+// ein zweiter waitLock() in derselben Ausführung würde bis zum Timeout blockieren/werfen.
+// Wird jetzt aus dem bereits gelockten zustandEvents-Block in doPost heraus aufgerufen, der
+// denselben ScriptLock hält. Für Aufrufer AUSSERHALB eines bestehenden Locks siehe den
+// Wrapper legeAnfrageAnUndBenachrichtige() direkt darunter (z.B. testCallbackSimulation).
+function legeAnfrageAnUndBenachrichtigeKern(args) {
+  if (!args.anfrageId || findeAnfrage(args.anfrageId)) return;   // idempotent
+  const a = {
+    anfrageId: String(args.anfrageId), ts: new Date().toISOString(), kind: String(args.kindName || ''),
+    profilId: String(args.profilId || ''), rezeptId: String(args.rezeptId || ''),
+    name: String(args.name || ''), emoji: String(args.emoji || ''), anzahl: Number(args.anzahl) || 1,
+    wert: Number(args.wert) || 0, einheit: String(args.einheit || ''),
+    status: 'offen', entschiedenVon: '', entschiedenTs: '', nachrichtenJson: '[]',
+  };
+  const refs = sendeAnfrageNachricht(a, '');
+  a.nachrichtenJson = JSON.stringify(refs);
+  anfrageBlatt().appendRow(ANFRAGE_SPALTEN.map(function (sp) { return a[sp]; }));
+}
+
+// Wrapper mit eigenem Lock — für Aufrufer, die NICHT schon innerhalb eines gehaltenen
+// ScriptLocks laufen (aktuell nur testCallbackSimulation). doPost ruft stattdessen die
+// Kern-Variante oben direkt auf, weil der zustandEvents-Block den Lock bereits hält.
+// Guard→appendRow ist Read-then-Write: zwei gleichzeitige Aufrufe mit derselben anfrageId
+// erzeugten ohne Lock sonst Doppel-Nachricht + Doppel-Zeile.
 function legeAnfrageAnUndBenachrichtige(args) {
   const lock = LockService.getScriptLock();
   lock.waitLock(10000);
   try {
-    if (!args.anfrageId || findeAnfrage(args.anfrageId)) return;   // idempotent
-    const a = {
-      anfrageId: String(args.anfrageId), ts: new Date().toISOString(), kind: String(args.kindName || ''),
-      profilId: String(args.profilId || ''), rezeptId: String(args.rezeptId || ''),
-      name: String(args.name || ''), emoji: String(args.emoji || ''), anzahl: Number(args.anzahl) || 1,
-      wert: Number(args.wert) || 0, einheit: String(args.einheit || ''),
-      status: 'offen', entschiedenVon: '', entschiedenTs: '', nachrichtenJson: '[]',
-    };
-    const refs = sendeAnfrageNachricht(a, '');
-    a.nachrichtenJson = JSON.stringify(refs);
-    anfrageBlatt().appendRow(ANFRAGE_SPALTEN.map(function (sp) { return a[sp]; }));
+    legeAnfrageAnUndBenachrichtigeKern(args);
   } finally {
     lock.releaseLock();
   }
@@ -428,6 +466,22 @@ function editiereAnfrageNachrichten(fund, text) {
   refs.forEach(function (r) {
     telegramApi('editMessageText', { chat_id: r.chat_id, message_id: r.message_id, text: text });
   });
+}
+
+// Kind zieht eine noch offene Anfrage zurück (z.B. schon vor Ort eingelöst, bevor die Eltern
+// entschieden haben) — Final-Review C1. Kein eigener Lock: wird nur aus dem bereits
+// gelockten zustandEvents-Block in doPost aufgerufen (GAS-Locks sind nicht reentrant).
+// Nur bei status 'offen' schließen — bei freigegeben/abgelehnt haben die Eltern längst
+// entschieden, ein verspäteter Rückzug darf das nicht überschreiben.
+function schliesseAnfrage(anfrageId) {
+  if (!anfrageId) return;
+  const fund = findeAnfrage(anfrageId);
+  if (!fund || fund.daten.status !== 'offen') return;   // nicht gefunden oder schon entschieden
+  const jetzt = new Date().toISOString();
+  // Spalten 11-13 = status/entschiedenVon/entschiedenTs (wie in verarbeiteCallback).
+  fund.blatt.getRange(fund.zeile, 11, 1, 3).setValues([['zurueckgezogen', '', jetzt]]);
+  const uhrzeit = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'HH:mm');
+  editiereAnfrageNachrichten(fund, baueAnfrageText(fund.daten, '') + '\n\n↩️ Schon vor Ort eingelöst · ' + uhrzeit);
 }
 
 // Zeit-Trigger-Ziel (~10:00): je OFFENER Anfrage eine Erinnerung mit frischen Buttons.
