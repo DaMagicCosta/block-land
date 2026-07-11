@@ -91,6 +91,7 @@
 .werkstatt__gutscheine { display: flex; flex-direction: column; gap: var(--space-xs); }
 .werkstatt__gutschein {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   align-items: center;
   background: var(--color-surface-2);
@@ -147,7 +148,7 @@
   font-family: var(--font-mono);
   flex-basis: 100%; min-width: 0;
 }
-.werkstatt__anfrage-status--nein { color: var(--color-text-dim); }
+.werkstatt__anfrage-status--nein { color: var(--color-danger); }
 .werkstatt__anfrage-wahl {
   display: flex; align-items: center; gap: var(--space-xs);
   flex-basis: 100%; min-width: 0;
