@@ -10,7 +10,11 @@ import {
   getBiomFreigabe, setBiomElternStatus,
   getSyncConfig, setzeSyncConfig,
 } from './state.js';
-import { flushSync, anzahlWartend } from './sync.js';
+import {
+  flushSync, anzahlWartend,
+  anzahlWartendZustand, zustandCursor, getLetzterPull,
+  ladeSpielstandHoch, logEnthaeltProfile, uebernehmeFamilienstand, pullZustand,
+} from './sync.js';
 import { tabStatistik } from './statistik.js';
 import { escapeHtml } from './utils.js';
 import { loadBiomManifest } from './data.js';
@@ -513,6 +517,17 @@ function tabSync(inhalt, render) {
     <div class="eltern__fehler" hidden></div>
     <button class="eltern__primary" data-aktion="speichern">Speichern</button>
     <button class="eltern__sekundaer" data-aktion="senden">Jetzt senden</button>
+    <h3 class="eltern__untertitel">🧳 Spielstand geräteübergreifend</h3>
+    <p class="eltern__hinweis">Profile, Inventar und Gutscheine wandern automatisch zwischen den Geräten,
+      sobald der Sync aktiv ist. Einmalig nötig: EIN Gerät lädt hoch, alle anderen übernehmen.</p>
+    <div class="eltern__sync-status">
+      Wartende Spielstand-Ereignisse: <b data-zustand="wartend">${anzahlWartendZustand()}</b>
+      · Gelesen bis: <b data-zustand="cursor">${zustandCursor()}</b>
+      · Letzter Abgleich: <b data-zustand="pull">${getLetzterPull() ? (getLetzterPull().grund ?? 'ok') : '–'}</b>
+    </div>
+    <button class="eltern__sekundaer" data-aktion="abgleichen">🔄 Jetzt abgleichen</button>
+    <button class="eltern__sekundaer" data-aktion="hochladen">⬆️ Spielstand hochladen (führendes Gerät)</button>
+    <button class="eltern__sekundaer" data-aktion="uebernehmen">⬇️ Familien-Spielstand übernehmen</button>
   `;
   const meldung = inhalt.querySelector('.eltern__fehler');
   function zeige(text, erfolg = false) {
@@ -538,5 +553,32 @@ function tabSync(inhalt, render) {
       inhalt.querySelector('.eltern__sync-status b').textContent = anzahlWartend();
     }
     else zeige(`⚠️ Senden fehlgeschlagen: ${ergebnis.grund}.`);
+  });
+
+  inhalt.querySelector('[data-aktion="abgleichen"]').addEventListener('click', async () => {
+    await flushSync();
+    await pullZustand();
+    render();
+  });
+
+  inhalt.querySelector('[data-aktion="hochladen"]').addEventListener('click', async () => {
+    try {
+      if (await logEnthaeltProfile()
+        && !confirm('Das Familien-Log enthält bereits Profile. Trotzdem hochladen? (Gefahr doppelter Profile)')) return;
+    } catch {
+      alert('Server nicht erreichbar — Hochladen später erneut versuchen.');
+      return;
+    }
+    if (!confirm('Diesen Spielstand als führenden Familien-Stand hochladen?')) return;
+    const ergebnis = await ladeSpielstandHoch();
+    alert(ergebnis.ok ? `${ergebnis.hochgeladen} Profil(e) hochgeladen.` : `Fehlgeschlagen: ${ergebnis.grund}`);
+    render();
+  });
+
+  inhalt.querySelector('[data-aktion="uebernehmen"]').addEventListener('click', async () => {
+    if (!confirm('ACHTUNG: Alle lokalen Profile dieses Geräts werden durch den Familien-Spielstand ersetzt. Fortfahren?')) return;
+    const ergebnis = await uebernehmeFamilienstand();
+    alert(ergebnis.ok ? `Übernommen — ${ergebnis.angewendet} Ereignisse eingespielt.` : `Fehlgeschlagen: ${ergebnis.grund}`);
+    render();
   });
 }

@@ -2,7 +2,10 @@
 // Queue in eigenem localStorage-Key (getrennt vom App-State), Versand fire-and-forget:
 // Fehler/Offline lassen die Queue liegen — der nächste Flush (Start / nach Ereignis)
 // sendet nach. Der Kind-Flow merkt vom Sync nichts.
-import { getProfile, getSyncConfig, registriereZustandsMelder, wendeZustandsEreignisAn } from './state.js';
+import {
+  getProfile, getSyncConfig, registriereZustandsMelder, wendeZustandsEreignisAn,
+  getState, getRezepte, getDropChancen, istPinGesetzt, ersetzeProfileFuerUebernahme,
+} from './state.js';
 import { ereignisAufgabe, ereignisAufsagen, ereignisEintragen, fuegeInQueue } from './sync-logik.js';
 import { baueZustandsEreignis, fremdeEreignisse, ZUSTAND_QUEUE_MAX } from './zustand-sync-logik.js';
 
@@ -203,4 +206,46 @@ export async function holeFamilienStatistik() {
   const json = await res.json();
   if (!json.ok) throw new Error(json.fehler ?? 'abgelehnt');
   return json;
+}
+
+// --- Migration (Spec §7) ---
+
+// Prüft, ob das Log schon Profile enthält (Schutz vor Doppel-Hochladen). Wirft bei Netzfehler.
+export async function logEnthaeltProfile() {
+  const cfg = getSyncConfig();
+  if (!cfg.url || !cfg.schluessel) throw new Error('nicht konfiguriert');
+  const res = await fetch(`${cfg.url}?schluessel=${encodeURIComponent(cfg.schluessel)}&zustandSeit=0`);
+  const json = await res.json();
+  if (!json.ok) throw new Error(json.fehler ?? 'abgelehnt');
+  return (json.events ?? []).some(e => e.op === 'profilAngelegt');
+}
+
+// Führendes Gerät: kompletten Ist-Zustand als Ereignisse ins Log stellen und sofort senden.
+export async function ladeSpielstandHoch() {
+  const cfg = getSyncConfig();
+  if (!cfg.aktiv || !cfg.url || !cfg.schluessel) return { ok: false, grund: 'nicht konfiguriert' };
+  const st = getState();
+  let hochgeladen = 0;
+  for (const p of Object.values(st.profiles)) {
+    meldeZustand('profilAngelegt', { profil: structuredClone(p) });
+    hochgeladen += 1;
+  }
+  if (st.rezepteVerwaltet) meldeZustand('rezepteGespeichert', { rezepte: getRezepte() });
+  for (const [item, wert] of Object.entries(getDropChancen())) {
+    meldeZustand('dropChanceGesetzt', { item, wert });
+  }
+  if (istPinGesetzt()) meldeZustand('pinGesetzt', { pin: st.parentSettings.pin });
+  const ergebnis = await flushSync();
+  return ergebnis.ok ? { ok: true, hochgeladen } : { ok: false, grund: ergebnis.grund };
+}
+
+// Übernehmendes Gerät: lokale Profile verwerfen, komplettes Log als „fremd" neu abspielen.
+// Neue Geräte-Identität, damit auch frühere eigene Log-Beiträge dieses Geräts angewendet
+// würden (Fremd-Filter greift sonst) — das alte Gerät „stirbt", ein neues liest alles.
+export async function uebernehmeFamilienstand() {
+  localStorage.removeItem(GERAET_KEY);
+  schreibeZustandQueue([]);           // eigene wartende Ereignisse verwerfen — der Log-Stand gilt
+  schreibeCursor(0);
+  ersetzeProfileFuerUebernahme();
+  return pullZustand();
 }
