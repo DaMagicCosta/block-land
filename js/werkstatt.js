@@ -1,6 +1,10 @@
 // Werkstatt / Rezeptbuch: Rohstoffe in Belohnungen "bauen" -> Gutscheine.
 import { oeffneModal } from './modal.js';
-import { getCurrentProfile, getRezepte, getGutscheinStapel, getInventar, kannBauen, baueGutschein } from './state.js';
+import {
+  getCurrentProfile, getRezepte, getGutscheinStapel, getInventar, kannBauen, baueGutschein,
+  getGutscheinAnfragen, stelleGutscheinAnfrage, raeumeAbgelehnteAnfragenAuf, getSyncConfig,
+} from './state.js';
+import { flushSync } from './sync.js';
 import { aktualisiereInventarHeader } from './inventar.js';
 import { escapeHtml } from './utils.js';
 
@@ -12,6 +16,7 @@ export function oeffneRezeptbuch() {
   const modal = oeffneModal({
     klassen: 'modal-backdrop--werkstatt',
     inhaltHtml: '<div class="modal modal--werkstatt"></div>',
+    onClose: () => raeumeAbgelehnteAnfragenAuf(profile.id),
   });
   if (!modal) return;
 
@@ -31,7 +36,7 @@ export function oeffneRezeptbuch() {
     `;
     const inhalt = modal.inhalt.querySelector('.werkstatt__inhalt');
     if (tab === 'bauen') rendereRezepte(inhalt, profile, render);
-    else rendereGutscheine(inhalt, profile);
+    else rendereGutscheine(inhalt, profile, render);
 
     modal.inhalt.querySelectorAll('.werkstatt__tabs button').forEach(b => {
       b.addEventListener('click', () => { tab = b.dataset.tab; render(); });
@@ -94,25 +99,76 @@ function rendereRezepte(container, profile, neuRendern) {
   });
 }
 
-function rendereGutscheine(container, profile) {
+// Gutschein-Tab: Stapel-Anzeige + „Mama & Papa fragen" (nur bei konfiguriertem Sync).
+// Zustände pro Sorte: normal | Anzahl-Wahl offen | ⏳ Anfrage offen | 🌙 abgelehnt.
+// anfrageWahl lebt nur solange die Werkstatt offen ist (Modul-Scope wäre ein Leck).
+function rendereGutscheine(container, profile, neuRendern, anfrageWahl = null) {
   const stapel = getGutscheinStapel(profile.id);
   if (!stapel.length) {
     container.innerHTML = '<div class="werkstatt__leer">Noch keine Gutscheine gebaut.</div>';
     return;
   }
+  const cfg = getSyncConfig();
+  const syncAktiv = !!(cfg.aktiv && cfg.url && cfg.schluessel);
+  const anfragen = getGutscheinAnfragen(profile.id);
+
   container.innerHTML = `
     <div class="werkstatt__gutscheine">
       ${stapel.map(s => {
         const summe = (typeof s.wert === 'number' && s.wert > 0)
           ? `<span class="werkstatt__gutschein-summe">= ${s.anzahl * s.wert} ${escapeHtml(s.einheit ?? '')}</span>`
           : '';
+        const offen = anfragen.find(a => a.status === 'offen' && a.rezeptId === s.rezeptId);
+        const abgelehnt = anfragen.find(a => a.status === 'abgelehnt' && a.rezeptId === s.rezeptId);
+        const wahlOffen = anfrageWahl?.rezeptId === s.rezeptId;
+        let aktion = '';
+        if (offen) {
+          aktion = '<div class="werkstatt__anfrage-status">⏳ Gefragt — warte auf Mama oder Papa</div>';
+        } else if (abgelehnt) {
+          aktion = '<div class="werkstatt__anfrage-status werkstatt__anfrage-status--nein">🌙 Jetzt nicht — frag später nochmal</div>';
+        } else if (wahlOffen) {
+          const n = anfrageWahl.anzahl;
+          const zwischensumme = (typeof s.wert === 'number' && s.wert > 0)
+            ? ` = ${n * s.wert} ${escapeHtml(s.einheit ?? '')}` : '';
+          aktion = `
+            <div class="werkstatt__anfrage-wahl">
+              <button class="werkstatt__stepper" data-schritt="-1" ${n <= 1 ? 'disabled' : ''}>−</button>
+              <span class="werkstatt__anfrage-anzahl">×${n}${zwischensumme}</span>
+              <button class="werkstatt__stepper" data-schritt="1" ${n >= s.anzahl ? 'disabled' : ''}>+</button>
+              <button class="werkstatt__anfrage-senden" data-senden="${escapeHtml(s.rezeptId)}">Abschicken</button>
+            </div>`;
+        } else if (syncAktiv) {
+          aktion = `<button class="werkstatt__anfragen" data-anfragen="${escapeHtml(s.rezeptId)}">📨 Mama &amp; Papa fragen</button>`;
+        }
         return `
           <div class="werkstatt__gutschein">
             <span class="werkstatt__gutschein-name">${s.emoji} ${escapeHtml(s.name)}</span>
             <span class="werkstatt__gutschein-anzahl">×${s.anzahl}</span>
             ${summe}
+            ${aktion}
           </div>`;
       }).join('')}
     </div>
   `;
+
+  const neu = (wahl) => rendereGutscheine(container, profile, neuRendern, wahl);
+  container.querySelectorAll('[data-anfragen]').forEach(btn => {
+    btn.addEventListener('click', () => neu({ rezeptId: btn.dataset.anfragen, anzahl: 1 }));
+  });
+  container.querySelectorAll('.werkstatt__stepper').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const eintrag = stapel.find(s => s.rezeptId === anfrageWahl.rezeptId);
+      const n = Math.min(eintrag?.anzahl ?? 1, Math.max(1, anfrageWahl.anzahl + Number(btn.dataset.schritt)));
+      neu({ ...anfrageWahl, anzahl: n });
+    });
+  });
+  container.querySelectorAll('[data-senden]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const eintrag = stapel.find(s => s.rezeptId === btn.dataset.senden);
+      if (eintrag && stelleGutscheinAnfrage(profile.id, eintrag, anfrageWahl.anzahl)) {
+        flushSync();   // Sofort-Versand: die Nachricht soll unmittelbar bei den Eltern ankommen
+      }
+      neu(null);       // re-rendert — die Sorte zeigt jetzt ⏳ (oder den Button, falls Guard zuschlug)
+    });
+  });
 }

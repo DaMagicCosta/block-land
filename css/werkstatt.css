@@ -134,3 +134,40 @@
   .werkstatt__rezept { flex-wrap: wrap; }
   .werkstatt__inhalt { max-height: 56vh; }
 }
+
+/* --- Gutschein-Anfrage (Kind fragt, Eltern entscheiden per Telegram) --- */
+.werkstatt__anfragen {
+  border: none; border-radius: var(--radius-sm);
+  background: var(--color-action); color: var(--color-bg);
+  padding: var(--space-xs) var(--space-sm);
+  font-family: var(--font-mono); font-weight: bold; cursor: pointer;
+}
+.werkstatt__anfrage-status {
+  color: var(--color-text-dim); font-size: var(--font-size-sm);
+  font-family: var(--font-mono);
+  flex-basis: 100%; min-width: 0;
+}
+.werkstatt__anfrage-status--nein { color: var(--color-text-dim); }
+.werkstatt__anfrage-wahl {
+  display: flex; align-items: center; gap: var(--space-xs);
+  flex-basis: 100%; min-width: 0;
+}
+.werkstatt__stepper {
+  border: none; border-radius: var(--radius-sm);
+  background: var(--color-surface-2);
+  color: var(--color-text); width: 32px; height: 32px;
+  font-family: var(--font-mono); font-size: var(--font-size-base); font-weight: bold; cursor: pointer;
+}
+.werkstatt__stepper:disabled { opacity: 0.4; cursor: default; }
+.werkstatt__anfrage-anzahl { font-family: var(--font-mono); color: var(--color-text); font-weight: bold; min-width: 0; }
+.werkstatt__anfrage-senden {
+  border: none; border-radius: var(--radius-sm);
+  background: var(--color-action); color: var(--color-bg);
+  padding: var(--space-xs) var(--space-sm);
+  font-family: var(--font-mono); font-weight: bold; cursor: pointer;
+  margin-left: auto;
+}
+
+@media (max-width: 480px) {
+  .werkstatt__anfragen, .werkstatt__anfrage-senden { padding: var(--space-xs); }
+}
