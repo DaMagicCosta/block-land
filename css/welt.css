@@ -288,3 +288,36 @@ body:has(.modal-backdrop) .welt__weiter { visibility: hidden; }
   border: 1px solid var(--color-bg);
   animation: welt-weiter-glow 2s ease-in-out infinite;
 }
+
+/* --- Übungs-Timer: Himmel-Leiste, Abend, Nacht (Welt-Atmosphäre — Farben bewusst hartcodiert) --- */
+.welt__himmel {
+  position: relative;
+  width: 100%;
+  max-width: 720px;
+  height: 30px;
+  margin: 0 0 var(--space-sm);
+  border-radius: 8px;
+  background: linear-gradient(#7ec8ff, #bfe6ff);
+  overflow: hidden;
+}
+.welt__sonne {
+  position: absolute;
+  top: 2px;
+  transform: translateX(-50%);
+  font-size: 22px;
+  transition: left 1s linear;
+}
+.welt--abend .welt__himmel { background: linear-gradient(#f2a65a, #ffd9a0); }
+.welt--nacht .welt__himmel { background: linear-gradient(#0d1b3d, #1c2f5e); }
+.welt__mond { position: absolute; top: 2px; left: 12px; font-size: 20px; }
+.welt__sterne { position: absolute; top: 6px; right: 14px; color: #cfd8ff; letter-spacing: 8px; font-size: 12px; }
+.welt--nacht .welt__tile { filter: brightness(0.55) saturate(0.7); }
+.welt--nacht .welt__tile.welt__spielfigur { filter: brightness(0.8); }
+
+.welt__schlaf { text-align: center; }
+.welt__schlaf-emoji { font-size: 44px; }
+
+@media (max-width: 480px) {
+  .welt__himmel { height: 24px; }
+  .welt__sonne { font-size: 18px; }
+}

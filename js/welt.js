@@ -1,4 +1,5 @@
-import { getCurrentProfile, setCurrentProfile, getAktivesBiom, getAktiveReihe, getOffeneReihen, getTagesauftrag, markiereTagesauftragBelohnt, getDropChancen } from './state.js';
+import { getCurrentProfile, setCurrentProfile, getAktivesBiom, getAktiveReihe, getOffeneReihen, getTagesauftrag, markiereTagesauftragBelohnt, getDropChancen, getTimer } from './state.js';
+import { wirksameKonfig, istNacht, istAbend, sonnenPosition, nachtRestMin } from './timer-logik.js';
 import { loadAvatare, loadBiom } from './data.js';
 import { escapeHtml } from './utils.js';
 import { oeffneModal, schliesseAlleModals } from './modal.js';
@@ -110,8 +111,37 @@ export async function renderWelt(container) {
     }).join('');
   }).join('');
 
+  const timer = getTimer(profile.id);
+  const timerKonfig = wirksameKonfig(profile.alter, profile.timerKonfig);
+  const nachtAktiv = timerKonfig.aktiv && istNacht(timer);
+  const abendAktiv = timerKonfig.aktiv && istAbend(timer, timerKonfig);
+
+  // Nacht-Gate: sperrt nur den START von Aufgaben (laufende Aufgaben enden normal).
+  // Gibt true zurück, wenn die Nacht den Klick abgefangen hat.
+  const nachtGate = () => {
+    try {
+      const t = getTimer(profile.id);
+      if (!(timerKonfig.aktiv && istNacht(t))) return false;
+      const modal = oeffneModal({
+        inhaltHtml: `
+          <div class="welt__schlaf">
+            <div class="welt__schlaf-emoji">🌙</div>
+            <h2>Block-Land schläft</h2>
+            <p>Dein Kopf baut gerade das Gelernte ein — starke Arbeit!</p>
+            <p>☀️ In <b>${nachtRestMin(t)} Min</b> geht die Sonne wieder auf.</p>
+            <button class="modal__close">Alles klar!</button>
+          </div>`,
+      });
+      modal?.inhalt.querySelector('.modal__close')?.addEventListener('click', () => modal.schliessen());
+      return true;
+    } catch (err) {
+      console.warn('[welt] Nacht-Gate übersprungen.', err);
+      return false;   // im Zweifel offen — Timer darf den Kind-Flow nie blockieren
+    }
+  };
+
   container.innerHTML = `
-    <div class="welt welt--${escapeHtml(aktivId)}">
+    <div class="welt welt--${escapeHtml(aktivId)}${nachtAktiv ? ' welt--nacht' : (abendAktiv ? ' welt--abend' : '')}">
       <div class="welt__header">
         <div>
           <div class="welt__welt-name">${escapeHtml(profile.weltName)}</div>
@@ -125,6 +155,12 @@ export async function renderWelt(container) {
         <button class="welt__eltern" id="welt-eltern" title="Eltern-Bereich">⚙️</button>
         <button class="welt__back" id="welt-back">Profil wechseln</button>
       </div>
+      ${timerKonfig.aktiv ? `
+      <div class="welt__himmel" aria-hidden="true">
+        ${nachtAktiv
+          ? `<span class="welt__mond">🌙</span><span class="welt__sterne">✦ ✧ ✦ ✧ ✦</span>`
+          : `<span class="welt__sonne" style="left:${Math.round(sonnenPosition(timer, timerKonfig) * 100)}%">☀️</span>`}
+      </div>` : ''}
       <div class="welt__karte" style="grid-template-columns:repeat(${biom.spalten}, var(--track, 1fr))">
         ${tilesHtml}
       </div>
@@ -166,11 +202,15 @@ export async function renderWelt(container) {
 
   const weiterBtn = container.querySelector('#welt-weiter');
   if (weiterBtn) {
-    weiterBtn.addEventListener('click', () => oeffneAufgabe(null, { onClose: () => renderWelt(container) }));
+    weiterBtn.addEventListener('click', () => {
+      if (nachtGate()) return;
+      oeffneAufgabe(null, { onClose: () => renderWelt(container) });
+    });
   }
 
   container.querySelectorAll('.welt__tile.is-interaktiv').forEach(el => {
     el.addEventListener('click', () => {
+      if (nachtGate()) return;
       const typZeichen = el.dataset.tileTyp;
       const typ = biom.tile_typen[typZeichen];
       if (!typ) return;
@@ -227,4 +267,12 @@ export async function renderWelt(container) {
   } else {
     teichAuswahlGezeigtFuer = null;
   }
+
+  // Sonne alle 30 s nachführen — Positions-Update direkt am Element, kein Re-Render.
+  clearInterval(container.__sonnenIntervall);
+  container.__sonnenIntervall = setInterval(() => {
+    const sonne = container.querySelector('.welt__sonne');
+    if (!sonne) return;
+    sonne.style.left = `${Math.round(sonnenPosition(getTimer(profile.id), timerKonfig) * 100)}%`;
+  }, 30000);
 }
