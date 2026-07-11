@@ -5,6 +5,7 @@ import { fuegeEintragHinzu } from './aufsage-protokoll-logik.js';
 import { offeneBiome } from './reihe-logik.js';
 import { zielFuer, neuerAuftrag, aktualisiereTagesauftrag } from './tagesauftrag-logik.js';
 import { klemmeInventar, deserialisiereAnzahl, serialisiereAnzahl } from './zustand-sync-logik.js';
+import { normalisiereTimer } from './timer-logik.js';
 
 // --- Spielstand-Sync: Melde-Hook (sync.js registriert sich hier — kein Import-Zyklus).
 // Im Einspiel-Modus (fremde Ereignisse anwenden) wird NICHT erneut gemeldet (Echo-Schutz).
@@ -529,8 +530,11 @@ export function wendeZustandsEreignisAn(ereignis) {
       }
       case 'timerStandGesetzt': {
         const p = state.profiles[args?.profilId];
-        if (!p || !args?.timer) return false;
-        p.timer = structuredClone(args.timer);
+        // Shape-Sicherung: fremde Geräte könnten ein kaputtes timer-Objekt melden —
+        // normalisiereTimer erzwingt das dokumentierte Format (weich degradierend).
+        const timer = normalisiereTimer(args?.timer);
+        if (!p || !timer) return false;
+        p.timer = timer;
         save(state);
         return true;
       }

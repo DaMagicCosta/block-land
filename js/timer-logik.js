@@ -49,6 +49,26 @@ export function sonnenPosition(timer, konfig) {
   return Math.min(1, (timer?.tagSekunden ?? 0) / (konfig.uebenMin * 60));
 }
 
+// Anzeige-Position in Prozent, auf 2..98 geklemmt: bei left:0% / left:100% hinge das
+// Sonnen-Emoji sonst halb außerhalb des Himmels (Final-Review-Follow-up).
+export function sonnenAnzeigeProzent(timer, konfig) {
+  return Math.min(98, Math.max(2, Math.round(sonnenPosition(timer, konfig) * 100)));
+}
+
+// Shape-Sicherung für fremde Timer-Stände (Sync-Einspielung anderer Geräte): erzwingt das
+// dokumentierte Format { tagSekunden, nachtBis, zuletztAktiv }; kaputte Felder degradieren
+// weich (0 bzw. null), statt den lokalen State zu vergiften. Kein Objekt → null.
+export function normalisiereTimer(timer) {
+  if (!timer || typeof timer !== 'object') return null;
+  const isoOderNull = (w) => (typeof w === 'string' && !Number.isNaN(Date.parse(w))) ? w : null;
+  const sek = Number(timer.tagSekunden);
+  return {
+    tagSekunden: Number.isFinite(sek) && sek >= 0 ? Math.round(sek) : 0,
+    nachtBis: isoOderNull(timer.nachtBis),
+    zuletztAktiv: isoOderNull(timer.zuletztAktiv),
+  };
+}
+
 // Letztes Fünftel des Tages: Abendrot als sanfte Vorwarnung (Spec §5).
 export function istAbend(timer, konfig, jetzt = new Date()) {
   return !istNacht(timer, jetzt) && sonnenPosition(timer, konfig) >= 0.8;

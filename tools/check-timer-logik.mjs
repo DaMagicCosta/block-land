@@ -2,8 +2,8 @@
 // Lauf: node tools/check-timer-logik.mjs  (aus dem Block-Land-Root)
 import {
   GRENZEN, standardFuer, wirksameKonfig, frischerTag,
-  istNacht, istAbend, sonnenPosition, nachtRestMin,
-  wendeAbwesenheitAn, ticke,
+  istNacht, istAbend, sonnenPosition, sonnenAnzeigeProzent, nachtRestMin,
+  wendeAbwesenheitAn, ticke, normalisiereTimer,
 } from '../js/timer-logik.js';
 
 let fehler = 0;
@@ -27,6 +27,9 @@ pruefe('konfig: Override greift', wirksameKonfig('klasse-2', { uebenMin: 30, pau
 pruefe('konfig: Klemme oben (99 → 45)', wirksameKonfig('klasse-2', { uebenMin: 99, pauseMin: 5 }).uebenMin === GRENZEN.ueben[1]);
 pruefe('konfig: Klemme unten (1 → 5)', wirksameKonfig('klasse-2', { uebenMin: 1, pauseMin: 5 }).uebenMin === GRENZEN.ueben[0]);
 pruefe('konfig: kaputter Wert → Standard-Wert', wirksameKonfig('klasse-2', { uebenMin: 'x', pauseMin: 5 }).uebenMin === 20);
+pruefe('konfig: pauseMin Klemme oben (99 → 15)', wirksameKonfig('klasse-2', { uebenMin: 20, pauseMin: 99 }).pauseMin === GRENZEN.pause[1]);
+pruefe('konfig: pauseMin Klemme unten (1 → 3)', wirksameKonfig('klasse-2', { uebenMin: 20, pauseMin: 1 }).pauseMin === GRENZEN.pause[0]);
+pruefe('konfig: pauseMin kaputt → Standard-Wert', wirksameKonfig('klasse-2', { uebenMin: 20, pauseMin: 'x' }).pauseMin === 5);
 pruefe('konfig: aktiv default true, false bleibt false', wirksameKonfig('klasse-2', { uebenMin: 20, pauseMin: 5 }).aktiv === true && wirksameKonfig('klasse-2', { uebenMin: 20, pauseMin: 5, aktiv: false }).aktiv === false);
 
 // Phasen
@@ -40,6 +43,9 @@ pruefe('sonne: 0 / halb / Kappe 1', sonnenPosition(frisch, konfig) === 0
   && sonnenPosition({ tagSekunden: 600 }, konfig) === 0.5
   && sonnenPosition({ tagSekunden: 99999 }, konfig) === 1);
 pruefe('abend: ab 80%', istAbend({ tagSekunden: 960 }, konfig, jetzt) === true && istAbend({ tagSekunden: 900 }, konfig, jetzt) === false);
+pruefe('sonnenAnzeige: 2..98 geklemmt, Mitte roh', sonnenAnzeigeProzent(frisch, konfig) === 2
+  && sonnenAnzeigeProzent({ tagSekunden: 99999 }, konfig) === 98
+  && sonnenAnzeigeProzent({ tagSekunden: 600 }, konfig) === 50);
 pruefe('nachtRest: aufgerundet, min 1', nachtRestMin({ nachtBis: '2026-07-11T15:04:30.000Z' }, jetzt) === 5
   && nachtRestMin({ nachtBis: '2026-07-11T15:00:01.000Z' }, jetzt) === 1
   && nachtRestMin(frisch, jetzt) === 0);
@@ -63,6 +69,16 @@ pruefe('ticke: Übergang bei 20 Min → Nacht beginnt', t2.nachtBegonnen === tru
   && t2.timer.nachtBis === new Date(jetzt.getTime() + 5 * 60000).toISOString());
 const nachts = { tagSekunden: 1200, nachtBis: '2026-07-11T15:05:00.000Z', zuletztAktiv: null };
 pruefe('ticke: nachts unverändert', ticke(nachts, konfig, jetzt).timer === nachts);
+
+// Shape-Sicherung fremder Timer-Stände (Sync-Einspielung)
+const gueltig = { tagSekunden: 600, nachtBis: '2026-07-11T15:05:00.000Z', zuletztAktiv: jetzt.toISOString() };
+pruefe('normalisiere: gültiger Stand bleibt inhaltsgleich', JSON.stringify(normalisiereTimer(gueltig)) === JSON.stringify(gueltig));
+pruefe('normalisiere: kein Objekt → null', normalisiereTimer(null) === null && normalisiereTimer('x') === null && normalisiereTimer(42) === null);
+const kaputt = normalisiereTimer({ tagSekunden: -5, nachtBis: 'kein-datum', zuletztAktiv: { x: 1 } });
+pruefe('normalisiere: kaputte Felder degradieren weich', kaputt.tagSekunden === 0 && kaputt.nachtBis === null && kaputt.zuletztAktiv === null);
+pruefe('normalisiere: tagSekunden gerundet, NaN → 0', normalisiereTimer({ tagSekunden: 4.6 }).tagSekunden === 5
+  && normalisiereTimer({ tagSekunden: 'x' }).tagSekunden === 0
+  && normalisiereTimer({}).tagSekunden === 0);
 
 if (fehler) { console.error(`\n${fehler} Check(s) fehlgeschlagen.`); process.exit(1); }
 console.log('\nAlle timer-logik-Checks grün.');

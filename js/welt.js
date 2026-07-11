@@ -1,5 +1,5 @@
 import { getCurrentProfile, setCurrentProfile, getAktivesBiom, getAktiveReihe, getOffeneReihen, getTagesauftrag, markiereTagesauftragBelohnt, getDropChancen, getTimer } from './state.js';
-import { wirksameKonfig, istNacht, istAbend, sonnenPosition, nachtRestMin } from './timer-logik.js';
+import { wirksameKonfig, istNacht, istAbend, sonnenAnzeigeProzent, nachtRestMin } from './timer-logik.js';
 import { loadAvatare, loadBiom } from './data.js';
 import { escapeHtml } from './utils.js';
 import { oeffneModal, schliesseAlleModals } from './modal.js';
@@ -159,7 +159,7 @@ export async function renderWelt(container) {
       <div class="welt__himmel" aria-hidden="true">
         ${nachtAktiv
           ? `<span class="welt__mond">🌙</span><span class="welt__sterne">✦ ✧ ✦ ✧ ✦</span>`
-          : `<span class="welt__sonne" style="left:${Math.round(sonnenPosition(timer, timerKonfig) * 100)}%">☀️</span>`}
+          : `<span class="welt__sonne" style="left:${sonnenAnzeigeProzent(timer, timerKonfig)}%">☀️</span>`}
       </div>` : ''}
       <div class="welt__karte" style="grid-template-columns:repeat(${biom.spalten}, var(--track, 1fr))">
         ${tilesHtml}
@@ -282,6 +282,6 @@ export async function renderWelt(container) {
   container.__sonnenIntervall = setInterval(() => {
     const sonne = container.querySelector('.welt__sonne');
     if (!sonne) return;
-    sonne.style.left = `${Math.round(sonnenPosition(getTimer(profile.id), timerKonfig) * 100)}%`;
+    sonne.style.left = `${sonnenAnzeigeProzent(getTimer(profile.id), timerKonfig)}%`;
   }, 30000);
 }
