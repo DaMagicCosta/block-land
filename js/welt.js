@@ -1,4 +1,4 @@
-import { getCurrentProfile, setCurrentProfile, getAktivesBiom, getAktiveReihe, getOffeneReihen, getTagesauftrag, markiereTagesauftragBelohnt, getDropChancen, getTimer } from './state.js';
+import { getCurrentProfile, setCurrentProfile, getAktivesBiom, getAktiveReihe, getOffeneReihen, getTagesauftrag, markiereTagesauftragBelohnt, getDropChancen, getTimer, getGutscheinAnfragen, quittiereGutscheinAnfrage } from './state.js';
 import { wirksameKonfig, istNacht, istAbend, sonnenAnzeigeProzent, nachtRestMin } from './timer-logik.js';
 import { loadAvatare, loadBiom } from './data.js';
 import { escapeHtml } from './utils.js';
@@ -51,6 +51,28 @@ function zeigeTruhenModal(profileId, container) {
   modal.inhalt.querySelector('.modal__truhen-inhalt').innerHTML = emojis;
   modal.inhalt.querySelector('.modal__truhen-text').innerHTML = `Du hast <strong>${escapeHtml(labels)}</strong> gefunden!`;
 
+  modal.inhalt.querySelector('.modal__close').addEventListener('click', () => modal.schliessen());
+}
+
+// Telegram-Freigabe angekommen → Feier beim nächsten Welt-Render (Muster Truhen-Modal:
+// erst Modal öffnen, nur bei Erfolg quittieren — sonst versucht es der nächste Render erneut).
+function zeigeAnfrageFeierModal(profileId, anfrage, container) {
+  const summe = (typeof anfrage.wert === 'number' && anfrage.wert > 0)
+    ? ` (= ${anfrage.anzahl * anfrage.wert} ${escapeHtml(anfrage.einheit ?? '')})` : '';
+  const modal = oeffneModal({
+    inhaltHtml: `
+      <div class="modal modal--erfolg">
+        <div class="modal__emoji feier__huepf">${anfrage.emoji ?? '🎟️'}</div>
+        <div class="feier__konfetti">✨🎊⭐🎉✨</div>
+        <div class="modal__titel">Freigegeben!</div>
+        <p class="modal__text">${anfrage.emoji ?? ''} <strong>${escapeHtml(anfrage.name ?? 'Gutschein')} ×${anfrage.anzahl}</strong>${summe}<br>Viel Spaß!</p>
+        <button class="modal__close">Juhu!</button>
+      </div>
+    `,
+    onClose: () => renderWelt(container),
+  });
+  if (!modal) return;
+  quittiereGutscheinAnfrage(profileId, anfrage.anfrageId);
   modal.inhalt.querySelector('.modal__close').addEventListener('click', () => modal.schliessen());
 }
 
@@ -253,6 +275,13 @@ export async function renderWelt(container) {
   // NICHT mitten in einer Aufgabe (dieser Punkt läuft nur beim (Re-)Rendern der Welt selbst).
   if (auftragErfuellt) {
     zeigeTruhenModal(profile.id, container);
+    return;
+  }
+
+  // Freigegebene Gutschein-Anfrage? Feier zeigen (eine pro Render; onClose re-rendert → nächste).
+  const freigegeben = getGutscheinAnfragen(profile.id).find(a => a.status === 'freigegeben');
+  if (freigegeben) {
+    zeigeAnfrageFeierModal(profile.id, freigegeben, container);
     return;
   }
 
