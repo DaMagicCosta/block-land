@@ -565,8 +565,11 @@ function tabSync(inhalt, render) {
     try {
       if (await logEnthaeltProfile()
         && !confirm('Das Familien-Log enthält bereits Profile. Trotzdem hochladen? (Gefahr doppelter Profile)')) return;
-    } catch {
-      alert('Server nicht erreichbar — Hochladen später erneut versuchen.');
+    } catch (err) {
+      // Fehlerursache unterscheiden: fehlende Konfiguration ist kein Netzproblem.
+      alert(err && err.message === 'nicht konfiguriert'
+        ? 'Sync ist nicht konfiguriert — zuerst Web-App-URL und Familien-Schlüssel speichern (Sync aktiv).'
+        : 'Server nicht erreichbar — Hochladen später erneut versuchen.');
       return;
     }
     if (!confirm('Diesen Spielstand als führenden Familien-Stand hochladen?')) return;
