@@ -4,6 +4,7 @@ import { renderKarte }  from './karte.js';
 import { renderBurg }   from './burg.js';
 import { initSync } from './sync.js';
 import { istModalOffen } from './modal.js';
+import { starteTimerLaufzeit } from './uebungs-timer.js';
 
 const root = document.getElementById('app');
 
@@ -25,12 +26,12 @@ function route() {
 
 window.addEventListener('hashchange', route);
 
-// Frisch eingespielten Familien-Spielstand sofort zeigen — aber nie mitten in einer
-// offenen Aufgabe re-rendern (nächster Pull/Screenwechsel holt es nach).
-window.addEventListener('blockland:zustandEingespielt', () => {
-  if (!istModalOffen()) route();
-});
+// Frisch eingespielten Familien-Spielstand und Timer-Phasenwechsel sofort zeigen —
+// aber nie mitten in einer offenen Aufgabe re-rendern.
+['blockland:zustandEingespielt', 'blockland:timerPhase'].forEach(ereignis =>
+  window.addEventListener(ereignis, () => { if (!istModalOffen()) route(); }));
 
 initSync();
+starteTimerLaufzeit();
 route();
 console.log('[Block-Land] Routing aktiv.');
