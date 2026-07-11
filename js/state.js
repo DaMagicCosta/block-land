@@ -184,8 +184,13 @@ export function trackeAufgabe(profileId, aufgabentyp, war_richtig, zeit_ms = 0, 
   state.profiles[profileId].statistik = stat;
   const p = state.profiles[profileId];
   p.verlauf = aktualisiereVerlauf(p.verlauf, aufgabentyp, war_richtig, datum, 60, zeit_ms);
-  // Tagesauftrag: jede final beantwortete Aufgabe zählt (richtig oder falsch — Anstrengung zählt).
-  p.tagesauftrag = aktualisiereTagesauftrag(p.tagesauftrag, tagesSchluessel(datum));
+  // Tagesauftrag nur für HEUTE zählen: ein nachträglich eingespieltes Ereignis von
+  // gestern (Gerät war offline) darf den heutigen Fortschritt nicht durch einen
+  // veralteten Auftrag ersetzen („im Zweifel zugunsten des Kindes").
+  const heute = tagesSchluessel(new Date());
+  if (tagesSchluessel(datum) === heute) {
+    p.tagesauftrag = aktualisiereTagesauftrag(p.tagesauftrag, heute);
+  }
   save(state);
   melde('aufgabeGetrackt', { profilId: profileId, typ: aufgabentyp, richtig: !!war_richtig, zeitMs: zeit_ms });
 }

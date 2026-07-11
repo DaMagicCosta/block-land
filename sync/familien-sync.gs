@@ -59,14 +59,27 @@ function doPost(e) {
     // kann nie mehr schicken; ohne dieses Alignment würde der Client bei ok:true
     // ungesendete Ereignisse aus der Queue löschen (stiller Verlust).
     const zustandEvents = (daten.zustandEvents || []).slice(0, 2000);
+    let zustandNeu = 0;
     if (zustandEvents.length) {
-      const zeilen = zustandEvents.map(ev => [
-        String(ev.id || ''), String(ev.ts || ''), String(ev.geraet || ''), String(ev.op || ''),
-        JSON.stringify(ev.args || {}),
-      ]);
       const blatt = zustandBlatt();
-      blatt.getRange(blatt.getLastRow() + 1, 1, zeilen.length, ZUSTAND_SPALTEN.length).setValues(zeilen);
+      // Dedup per Id: verlorene POST-Antwort → Client sendet erneut; ohne Filter
+      // stünden dieselben Ereignisse doppelt im Log und würden doppelt angewendet.
+      const vorhandene = {};
+      if (blatt.getLastRow() > 1) {
+        blatt.getRange(2, 1, blatt.getLastRow() - 1, 1).getValues().forEach(function (z) { vorhandene[String(z[0])] = true; });
+      }
+      const neue = zustandEvents.filter(function (ev) { return ev && ev.id && !vorhandene[String(ev.id)]; });
+      zustandNeu = neue.length;
+      if (neue.length) {
+        const zeilen = neue.map(function (ev) { return [
+          String(ev.id || ''), String(ev.ts || ''), String(ev.geraet || ''), String(ev.op || ''),
+          JSON.stringify(ev.args || {}),
+        ]; });
+        blatt.getRange(blatt.getLastRow() + 1, 1, zeilen.length, ZUSTAND_SPALTEN.length).setValues(zeilen);
+      }
     }
+    // angenommen zählt weiterhin zustandEvents.length (nicht zustandNeu): der Client muss
+    // auch Duplikate als „angenommen" quittiert bekommen, damit er seine Queue leert.
     return antwortJson({ ok: true, angenommen: events.length + zustandEvents.length });
   } catch (err) {
     return antwortJson({ ok: false, fehler: String(err) });
@@ -91,6 +104,7 @@ function doGet(e) {
 // Zustands-Ereignisse ab „cursor" (= Anzahl bereits gelesener) in Log-Reihenfolge.
 // Antwort-cursor = Gesamtanzahl — der Client schreibt ihn nach erfolgreichem Einspielen fort.
 function zustandSeit(cursor) {
+  cursor = Math.max(0, Number(cursor) || 0);
   const blatt = zustandBlatt();
   const gesamt = Math.max(0, blatt.getLastRow() - 1);
   if (cursor >= gesamt) return { ok: true, events: [], cursor: gesamt };

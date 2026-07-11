@@ -153,13 +153,17 @@ export function pullZustand() {
 async function fuehrePullAus() {
   const cfg = getSyncConfig();
   if (!cfg.aktiv || !cfg.url || !cfg.schluessel) return { ok: false, grund: 'nicht konfiguriert' };
+  const cursorVorher = leseCursor();
   try {
-    const res = await fetch(`${cfg.url}?schluessel=${encodeURIComponent(cfg.schluessel)}&zustandSeit=${leseCursor()}`);
+    const res = await fetch(`${cfg.url}?schluessel=${encodeURIComponent(cfg.schluessel)}&zustandSeit=${cursorVorher}`);
     const json = await res.json();
     if (!json.ok) {
       letzterPull = { ts: new Date().toISOString(), angewendet: 0, grund: json.fehler ?? 'abgelehnt' };
       return { ok: false, grund: letzterPull.grund };
     }
+    // Cursor wurde währenddessen extern zurückgesetzt (Übernahme)? Dann ist diese
+    // Antwort veraltet — nichts anwenden, der nächste Pull holt ab Cursor 0 neu.
+    if (leseCursor() !== cursorVorher) return { ok: false, grund: 'cursor zurückgesetzt' };
     // Cursor PRO Ereignis fortschreiben (nicht erst nach dem Batch): schließt das
     // Redelivery-Fenster — ein Tab-Schließen mitten im Bootstrap darf additive
     // Ereignisse (inventarPlus, aufgabeGetrackt) beim nächsten Pull nicht doppelt anwenden.
@@ -243,6 +247,18 @@ export async function ladeSpielstandHoch() {
 // Neue Geräte-Identität, damit auch frühere eigene Log-Beiträge dieses Geräts angewendet
 // würden (Fremd-Filter greift sonst) — das alte Gerät „stirbt", ein neues liest alles.
 export async function uebernehmeFamilienstand() {
+  const cfg = getSyncConfig();
+  if (!cfg.aktiv || !cfg.url || !cfg.schluessel) return { ok: false, grund: 'nicht konfiguriert' };
+  // Erst sicherstellen, dass das Log wirklich einen Familien-Spielstand enthält —
+  // sonst würde ein Fehlklick (leeres Log, Server down) die lokalen Profile
+  // unwiederbringlich löschen. Danach einen laufenden Pull ausfahren lassen,
+  // damit er nicht mit altem Cursor in die zurückgesetzten Daten schreibt.
+  try {
+    if (!(await logEnthaeltProfile())) return { ok: false, grund: 'kein Familien-Spielstand im Log — zuerst auf dem führenden Gerät hochladen' };
+  } catch {
+    return { ok: false, grund: 'Server nicht erreichbar' };
+  }
+  if (laufenderPull) { try { await laufenderPull; } catch { /* Fehler des alten Laufs egal */ } }
   localStorage.removeItem(GERAET_KEY);
   schreibeZustandQueue([]);           // eigene wartende Ereignisse verwerfen — der Log-Stand gilt
   schreibeCursor(0);
