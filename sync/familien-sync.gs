@@ -31,6 +31,15 @@ function ereignisBlatt() {
   return blatt;
 }
 
+const ZUSTAND_SPALTEN = ['id', 'ts', 'geraet', 'op', 'argsJson'];
+
+function zustandBlatt() {
+  const doc = SpreadsheetApp.openById(prop('SHEET_ID'));
+  let blatt = doc.getSheetByName('Zustand');
+  if (!blatt) { blatt = doc.insertSheet('Zustand'); blatt.appendRow(ZUSTAND_SPALTEN); }
+  return blatt;
+}
+
 // Ereignisse von der App annehmen (Queue-Flush).
 function doPost(e) {
   try {
@@ -46,7 +55,19 @@ function doPost(e) {
       const blatt = ereignisBlatt();
       blatt.getRange(blatt.getLastRow() + 1, 1, zeilen.length, SPALTEN.length).setValues(zeilen);
     }
-    return antwortJson({ ok: true, angenommen: events.length });
+    // Spielstand-Ereignisse (Spec 2026-07-11): Cap 2000 = Client-Queue-Cap — ein Flush
+    // kann nie mehr schicken; ohne dieses Alignment würde der Client bei ok:true
+    // ungesendete Ereignisse aus der Queue löschen (stiller Verlust).
+    const zustandEvents = (daten.zustandEvents || []).slice(0, 2000);
+    if (zustandEvents.length) {
+      const zeilen = zustandEvents.map(ev => [
+        String(ev.id || ''), String(ev.ts || ''), String(ev.geraet || ''), String(ev.op || ''),
+        JSON.stringify(ev.args || {}),
+      ]);
+      const blatt = zustandBlatt();
+      blatt.getRange(blatt.getLastRow() + 1, 1, zeilen.length, ZUSTAND_SPALTEN.length).setValues(zeilen);
+    }
+    return antwortJson({ ok: true, angenommen: events.length + zustandEvents.length });
   } catch (err) {
     return antwortJson({ ok: false, fehler: String(err) });
   }
@@ -58,10 +79,34 @@ function doGet(e) {
     if (((e && e.parameter && e.parameter.schluessel) || '') !== prop('FAMILIEN_SCHLUESSEL')) {
       return antwortJson({ ok: false, fehler: 'schluessel' });
     }
+    if (e.parameter.zustandSeit !== undefined) {
+      return antwortJson(zustandSeit(Number(e.parameter.zustandSeit) || 0));
+    }
     return antwortJson({ ok: true, kinder: aggregiere(leseEreignisse(30)) });
   } catch (err) {
     return antwortJson({ ok: false, fehler: String(err) });
   }
+}
+
+// Zustands-Ereignisse ab „cursor" (= Anzahl bereits gelesener) in Log-Reihenfolge.
+// Antwort-cursor = Gesamtanzahl — der Client schreibt ihn nach erfolgreichem Einspielen fort.
+function zustandSeit(cursor) {
+  const blatt = zustandBlatt();
+  const gesamt = Math.max(0, blatt.getLastRow() - 1);
+  if (cursor >= gesamt) return { ok: true, events: [], cursor: gesamt };
+  const werte = blatt.getRange(2 + cursor, 1, gesamt - cursor, ZUSTAND_SPALTEN.length).getValues();
+  const events = werte.map(function (z) {
+    let args = {};
+    try { args = JSON.parse(z[4] || '{}'); } catch (err) { /* kaputte Zeile → leere args, Client überspringt */ }
+    return { id: String(z[0]), ts: String(z[1]), geraet: String(z[2]), op: String(z[3]), args: args };
+  });
+  return { ok: true, events: events, cursor: gesamt };
+}
+
+// Editor-Testlauf: Zeilenzahl + erste Ereignisse ins Log.
+function testZustand() {
+  Logger.log('Zustand-Zeilen: ' + Math.max(0, zustandBlatt().getLastRow() - 1));
+  Logger.log(JSON.stringify(zustandSeit(0)).slice(0, 800));
 }
 
 function tagVon(datum) {
