@@ -72,3 +72,34 @@ Ab SW v60 wandert der komplette Spielstand über das Sheet-Blatt „Zustand" (le
 
 **Laufender Betrieb:** nichts zu tun. Abgleich beim App-Start, alle 60 Sekunden und bei
 Rückkehr in den Tab. „🔄 Jetzt abgleichen" erzwingt ihn manuell.
+
+## 9. Gutschein-Anfragen (Approve/Deny per Telegram)
+
+Ab SW v64 können die Kinder eine Gutschein-Einlösung direkt aus der Werkstatt anfragen
+(„📨 Mama & Papa fragen") — Mama/Papa entscheiden per Telegram-Buttons, ohne die App
+zu öffnen.
+
+**Einmalig einrichten:**
+
+1. Apps Script im Editor durch die neue Version von `sync/familien-sync.gs` ersetzen →
+   „Bereitstellen → Bereitstellung verwalten → Bearbeiten → Neue Version" (die Web-App-URL
+   bleibt wie gehabt erhalten).
+2. Zwei neue Skript-Eigenschaften anlegen:
+   - `TELEGRAM_SECRET` = frei gewählte Zeichenkette (z.B. aus einem Passwort-Generator).
+   - `CHAT_NAMEN` = Anzeigenamen je Chat-ID, Format `12345=Mama, 67890=Papa`
+     (die IDs stehen schon in `CHAT_IDS`).
+3. Im Editor einmal `setzeWebhook()` ausführen — im Log muss `"ok":true` von Telegram
+   stehen. Gegenstück (z.B. zum Umziehen des Bots): `loescheWebhook()`.
+4. Zeit-Trigger anlegen: Funktion `erinnereOffeneAnfragen`, Ereignisquelle „Zeitgesteuert" →
+   „Tagestimer" → **9:00–10:00 Uhr** (analog zum Digest-Trigger auf `taeglicherDigest`).
+
+**Testen:**
+`testAnfrageNachricht()` schreibt Beispiel-Nachrichtentexte ins Log (reine Sichtprüfung,
+sendet nichts). `testCallbackSimulation()` geht dagegen den kompletten Pfad durch: legt
+eine Test-Anfrage an, entscheidet sie und **schickt dabei echte Telegram-Nachrichten an
+beide Eltern**.
+
+⚠️ **Wichtig:** Nach `testCallbackSimulation()` die Test-Zeilen in den Blättern „Anfragen"
+und „Zustand" **von Hand löschen, BEVOR die Kinder-Geräte das nächste Mal synchronisieren**.
+Sonst wenden die Geräte die `p_test`-Ereignisse an — die laufen ins Leere, weil das
+zugehörige Profil nicht existiert, hinterlassen aber Log-Müll in der Browser-Konsole.
