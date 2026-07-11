@@ -122,6 +122,8 @@ export function addProfile({ name, weltName, avatar, alter, kindPin = null }) {
     statistik: { plus: { gesamt: 0, richtig: 0 } },
     biome: { aktiv: null, autoFrei: [], elternFrei: [], elternGesperrt: [] },
     tagesauftrag: neuerAuftrag(tagesSchluessel(new Date())),  // Tafel-Fortschritt „N/Ziel", lazy Reset pro Tag
+    timer: { tagSekunden: 0, nachtBis: null, zuletztAktiv: null },  // Übungs-Timer „Wandernde Sonne"
+    timerKonfig: null,   // null = Studien-Standard nach alter (timer-logik.standardFuer)
   };
   save(state);
   melde('profilAngelegt', { profil: structuredClone(state.profiles[id]) });
@@ -218,6 +220,29 @@ export function markiereTagesauftragBelohnt(profileId) {
   p.tagesauftrag.belohnt = true;
   save(state);
   melde('tagesauftragBelohnt', { profilId: profileId });
+}
+
+// --- Übungs-Timer (Wandernde Sonne) ---
+// Defensive Init für Altprofile ohne die Felder (Muster wie sichereBiom).
+function sichereTimer(p) {
+  if (!p.timer) p.timer = { tagSekunden: 0, nachtBis: null, zuletztAktiv: null };
+  return p.timer;
+}
+
+export function getTimer(profileId) {
+  const p = state.profiles[profileId];
+  if (!p) return null;
+  return structuredClone(sichereTimer(p));
+}
+
+// Persistiert den Timer-Stand. melden:true NUR bei Phasenwechseln und Verlassen-Checkpoint
+// (Spec §4) — 15-s-Raster-Ticks laufen mit melden:false, sonst spammt der Timer das Familien-Log.
+export function setzeTimerStand(profileId, timer, { melden = false } = {}) {
+  const p = state.profiles[profileId];
+  if (!p || !timer) return;
+  p.timer = structuredClone(timer);
+  save(state);
+  if (melden) melde('timerStandGesetzt', { profilId: profileId, timer: structuredClone(timer) });
 }
 
 // --- Aufsage-Protokoll (Mal-Reihen) ---
@@ -500,6 +525,13 @@ export function wendeZustandsEreignisAn(ereignis) {
         if (!p?.tagesauftrag) return false;
         // Nur derselbe Tag: ein gestriges „belohnt" darf den heutigen Auftrag nicht schließen.
         if (p.tagesauftrag.datum === tagesSchluessel(datum)) { p.tagesauftrag.belohnt = true; save(state); }
+        return true;
+      }
+      case 'timerStandGesetzt': {
+        const p = state.profiles[args?.profilId];
+        if (!p || !args?.timer) return false;
+        p.timer = structuredClone(args.timer);
+        save(state);
         return true;
       }
       case 'aufsagenProtokolliert':
