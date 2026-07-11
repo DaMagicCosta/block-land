@@ -63,7 +63,13 @@ export function starteTimerLaufzeit() {
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) {
       // Verlassen-Checkpoint: Stand sichern + melden (Übergabe an andere Geräte).
-      if (lauf) { setzeTimerStand(lauf.profilId, lauf.timer, { melden: true }); sekundenSeitPersist = 0; }
+      // Nur für das AKTUELL gewählte Profil: nach einem Profilwechsel wäre lauf veraltet
+      // (Review-Befund Timer-Task 3) — tick() lädt ohnehin lazy neu, max. 15 s Verlust
+      // zugunsten des Kindes.
+      if (lauf && lauf.profilId === getCurrentProfile()?.id) {
+        setzeTimerStand(lauf.profilId, lauf.timer, { melden: true });
+        sekundenSeitPersist = 0;
+      }
     } else {
       verwerfeLaufzeitStand();   // beim Zurückkommen greift die Abwesenheits-Regel im tick()
     }
