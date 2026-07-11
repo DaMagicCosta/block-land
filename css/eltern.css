@@ -270,3 +270,16 @@
 .eltern__sync-label--zeile { display: flex; align-items: center; gap: var(--space-sm); }
 .eltern__sync-status { margin: var(--space-md) 0; font-size: 14px; opacity: 0.85; }
 .eltern__regler-step:active { background: var(--color-surface); }
+
+/* Übungs-Timer (Wandernde Sonne) — Zeilen-Layout analog .eltern__regler-zeile */
+.eltern__timer-kind {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  margin-bottom: var(--space-md);
+}
+.eltern__timer-feld {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
