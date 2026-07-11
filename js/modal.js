@@ -1,5 +1,8 @@
 let aktivesBackdrop = null;
 
+// Für Auffrisch-Entscheidungen von außen (Sync-Pull): rendert nicht mitten in eine Aufgabe.
+export function istModalOffen() { return aktivesBackdrop !== null; }
+
 // backdropSchliesst: false → Klick/Tipp neben das Modal schließt NICHT (nur Button/Escape).
 // Für Bereiche mit Zugangs-Hürde (Eltern-PIN), damit ein Wisch-Versehen nicht rauswirft.
 export function oeffneModal({ inhaltHtml, onClose, klassen = '', backdropSchliesst = true }) {

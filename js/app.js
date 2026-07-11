@@ -3,6 +3,7 @@ import { renderWelt }    from './welt.js';
 import { renderKarte }  from './karte.js';
 import { renderBurg }   from './burg.js';
 import { initSync } from './sync.js';
+import { istModalOffen } from './modal.js';
 
 const root = document.getElementById('app');
 
@@ -23,6 +24,13 @@ function route() {
 }
 
 window.addEventListener('hashchange', route);
+
+// Frisch eingespielten Familien-Spielstand sofort zeigen — aber nie mitten in einer
+// offenen Aufgabe re-rendern (nächster Pull/Screenwechsel holt es nach).
+window.addEventListener('blockland:zustandEingespielt', () => {
+  if (!istModalOffen()) route();
+});
+
 initSync();
 route();
 console.log('[Block-Land] Routing aktiv.');

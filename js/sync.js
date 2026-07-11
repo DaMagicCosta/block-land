@@ -2,9 +2,9 @@
 // Queue in eigenem localStorage-Key (getrennt vom App-State), Versand fire-and-forget:
 // Fehler/Offline lassen die Queue liegen — der nächste Flush (Start / nach Ereignis)
 // sendet nach. Der Kind-Flow merkt vom Sync nichts.
-import { getProfile, getSyncConfig, registriereZustandsMelder } from './state.js';
+import { getProfile, getSyncConfig, registriereZustandsMelder, wendeZustandsEreignisAn } from './state.js';
 import { ereignisAufgabe, ereignisAufsagen, ereignisEintragen, fuegeInQueue } from './sync-logik.js';
-import { baueZustandsEreignis, ZUSTAND_QUEUE_MAX } from './zustand-sync-logik.js';
+import { baueZustandsEreignis, fremdeEreignisse, ZUSTAND_QUEUE_MAX } from './zustand-sync-logik.js';
 
 const QUEUE_KEY = 'block-land-sync-queue-v1';
 const ZUSTAND_QUEUE_KEY = 'block-land-zustand-queue-v1';
@@ -125,11 +125,73 @@ async function fuehreFlushAus() {
   }
 }
 
-// Beim App-Start: Nachzügler der letzten Session senden (leicht verzögert,
-// damit der Start-Render nicht mit dem Netz-Roundtrip konkurriert).
+const CURSOR_KEY = 'block-land-zustand-cursor-v1';
+let letzterPull = null;   // { ts, angewendet, grund } — Diagnose im Eltern-Tab
+
+function leseCursor() {
+  const n = Number(localStorage.getItem(CURSOR_KEY));
+  return Number.isFinite(n) && n > 0 ? n : 0;
+}
+function schreibeCursor(n) { localStorage.setItem(CURSOR_KEY, String(n)); }
+
+export function zustandCursor() { return leseCursor(); }
+export function getLetzterPull() { return letzterPull; }
+
+let laufenderPull = null;
+
+// Fremde Ereignisse holen und einspielen. Fire-and-forget: Fehler → lokaler Stand gilt,
+// nächster Pull versucht es erneut. Parallelaufrufe teilen sich denselben Lauf.
+export function pullZustand() {
+  if (laufenderPull) return laufenderPull;
+  laufenderPull = fuehrePullAus().finally(() => { laufenderPull = null; });
+  return laufenderPull;
+}
+
+async function fuehrePullAus() {
+  const cfg = getSyncConfig();
+  if (!cfg.aktiv || !cfg.url || !cfg.schluessel) return { ok: false, grund: 'nicht konfiguriert' };
+  try {
+    const res = await fetch(`${cfg.url}?schluessel=${encodeURIComponent(cfg.schluessel)}&zustandSeit=${leseCursor()}`);
+    const json = await res.json();
+    if (!json.ok) {
+      letzterPull = { ts: new Date().toISOString(), angewendet: 0, grund: json.fehler ?? 'abgelehnt' };
+      return { ok: false, grund: letzterPull.grund };
+    }
+    // Cursor PRO Ereignis fortschreiben (nicht erst nach dem Batch): schließt das
+    // Redelivery-Fenster — ein Tab-Schließen mitten im Bootstrap darf additive
+    // Ereignisse (inventarPlus, aufgabeGetrackt) beim nächsten Pull nicht doppelt anwenden.
+    // (Review-Befund Task 2: Idempotenz-Guards decken Redelivery nicht vollständig ab.)
+    const events = Array.isArray(json.events) ? json.events : [];
+    const fremdeIds = new Set(fremdeEreignisse(events, geraetId()).map(e => e.id));
+    let angewendet = 0;
+    let position = leseCursor();
+    for (const ev of events) {
+      position += 1;
+      if (ev && fremdeIds.has(ev.id)) {
+        if (wendeZustandsEreignisAn(ev)) angewendet += 1;
+        else console.warn('[sync] Zustands-Ereignis übersprungen:', ev.op, ev.id);
+      }
+      schreibeCursor(position);    // auch eigene/übersprungene zählen als gelesen (Spec §8)
+    }
+    schreibeCursor(json.cursor);   // Endstand vom Server (deckt auch events=[] ab)
+    letzterPull = { ts: new Date().toISOString(), angewendet, grund: null };
+    if (angewendet > 0) {
+      window.dispatchEvent(new CustomEvent('blockland:zustandEingespielt', { detail: { angewendet } }));
+    }
+    return { ok: true, angewendet };
+  } catch {
+    letzterPull = { ts: new Date().toISOString(), angewendet: 0, grund: 'netzwerk' };
+    return { ok: false, grund: 'netzwerk' };
+  }
+}
+
+// Beim App-Start: Melder registrieren, Nachzügler senden, fremden Spielstand holen.
+// Danach: Pull periodisch und bei Rückkehr in den Tab (Spec §4).
 export function initSync() {
   registriereZustandsMelder(meldeZustand);
-  setTimeout(() => { flushSync(); }, 2000);
+  setTimeout(() => { flushSync(); pullZustand(); }, 2000);
+  setInterval(() => { pullZustand(); }, 60000);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) pullZustand(); });
 }
 
 // Holt die aggregierte Familien-Statistik (letzte 30 Tage) vom Sync-Server.
