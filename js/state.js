@@ -4,6 +4,20 @@ import { aktualisiereVerlauf, tagesSchluessel } from './statistik-logik.js';
 import { fuegeEintragHinzu } from './aufsage-protokoll-logik.js';
 import { offeneBiome } from './reihe-logik.js';
 import { zielFuer, neuerAuftrag, aktualisiereTagesauftrag } from './tagesauftrag-logik.js';
+import { klemmeInventar, deserialisiereAnzahl, serialisiereAnzahl } from './zustand-sync-logik.js';
+
+// --- Spielstand-Sync: Melde-Hook (sync.js registriert sich hier — kein Import-Zyklus).
+// Im Einspiel-Modus (fremde Ereignisse anwenden) wird NICHT erneut gemeldet (Echo-Schutz).
+let zustandsMelder = null;   // (op, args) => void
+let einspielModus = false;
+
+export function registriereZustandsMelder(fn) { zustandsMelder = fn; }
+
+function melde(op, args) {
+  if (einspielModus || !zustandsMelder) return;
+  try { zustandsMelder(op, args); }
+  catch (err) { console.warn('[state] Zustands-Meldung fehlgeschlagen.', err); }
+}
 
 const STORAGE_KEY = 'block-land-state-v1';
 
@@ -110,6 +124,7 @@ export function addProfile({ name, weltName, avatar, alter, kindPin = null }) {
     tagesauftrag: neuerAuftrag(tagesSchluessel(new Date())),  // Tafel-Fortschritt „N/Ziel", lazy Reset pro Tag
   };
   save(state);
+  melde('profilAngelegt', { profil: structuredClone(state.profiles[id]) });
   return id;
 }
 
@@ -117,6 +132,7 @@ export function updateProfile(id, updates) {
   if (!state.profiles[id]) throw new Error(`[state] Profil ${id} existiert nicht`);
   state.profiles[id] = { ...state.profiles[id], ...updates };
   save(state);
+  melde('profilGeaendert', { id, updates: structuredClone(updates) });
 }
 
 export function deleteProfile(id) {
@@ -124,6 +140,7 @@ export function deleteProfile(id) {
   delete state.profiles[id];
   if (state.currentProfileId === id) state.currentProfileId = null;
   save(state);
+  melde('profilGeloescht', { id });
 }
 
 export function resetAll() {
@@ -138,6 +155,7 @@ export function addInventar(profileId, item, anzahl = 1) {
   inv[item] = (inv[item] ?? 0) + anzahl;
   state.profiles[profileId].inventar = inv;
   save(state);
+  melde('inventarPlus', { profilId: profileId, item, anzahl });
 }
 
 export function getInventar(profileId) {
@@ -153,9 +171,10 @@ export function setSchwierigkeit(profileId, aufgabentyp, stufe) {
   state.profiles[profileId].schwierigkeit = state.profiles[profileId].schwierigkeit ?? {};
   state.profiles[profileId].schwierigkeit[aufgabentyp] = stufe;
   save(state);
+  melde('schwierigkeitGesetzt', { profilId: profileId, typ: aufgabentyp, stufe });
 }
 
-export function trackeAufgabe(profileId, aufgabentyp, war_richtig, zeit_ms = 0) {
+export function trackeAufgabe(profileId, aufgabentyp, war_richtig, zeit_ms = 0, datum = new Date()) {
   if (!state.profiles[profileId]) throw new Error(`[state] Profil ${profileId} existiert nicht`);
   const stat = state.profiles[profileId].statistik ?? {};
   stat[aufgabentyp] = stat[aufgabentyp] ?? { gesamt: 0, richtig: 0, zeit_summe_ms: 0 };
@@ -164,10 +183,11 @@ export function trackeAufgabe(profileId, aufgabentyp, war_richtig, zeit_ms = 0) 
   stat[aufgabentyp].zeit_summe_ms = (stat[aufgabentyp].zeit_summe_ms ?? 0) + (zeit_ms || 0);
   state.profiles[profileId].statistik = stat;
   const p = state.profiles[profileId];
-  p.verlauf = aktualisiereVerlauf(p.verlauf, aufgabentyp, war_richtig, new Date(), 60, zeit_ms);
+  p.verlauf = aktualisiereVerlauf(p.verlauf, aufgabentyp, war_richtig, datum, 60, zeit_ms);
   // Tagesauftrag: jede final beantwortete Aufgabe zählt (richtig oder falsch — Anstrengung zählt).
-  p.tagesauftrag = aktualisiereTagesauftrag(p.tagesauftrag, tagesSchluessel(new Date()));
+  p.tagesauftrag = aktualisiereTagesauftrag(p.tagesauftrag, tagesSchluessel(datum));
   save(state);
+  melde('aufgabeGetrackt', { profilId: profileId, typ: aufgabentyp, richtig: !!war_richtig, zeitMs: zeit_ms });
 }
 
 export function getVerlauf(profileId) {
@@ -192,6 +212,7 @@ export function markiereTagesauftragBelohnt(profileId) {
   if (!p || !p.tagesauftrag) return;
   p.tagesauftrag.belohnt = true;
   save(state);
+  melde('tagesauftragBelohnt', { profilId: profileId });
 }
 
 // --- Aufsage-Protokoll (Mal-Reihen) ---
@@ -202,6 +223,7 @@ export function protokolliereAufsagen(profileId, eintrag) {
   if (!p) return;
   p.aufsagenProtokoll = fuegeEintragHinzu(p.aufsagenProtokoll ?? [], eintrag, 50);
   save(state);
+  melde('aufsagenProtokolliert', { profilId: profileId, eintrag: structuredClone(eintrag) });
 }
 
 export function getAufsagenProtokoll(profileId) {
@@ -214,6 +236,7 @@ export function protokolliereEintragen(profileId, eintrag) {
   if (!p) return;
   p.eintragenProtokoll = fuegeEintragHinzu(p.eintragenProtokoll ?? [], eintrag, 50);
   save(state);
+  melde('eintragenProtokolliert', { profilId: profileId, eintrag: structuredClone(eintrag) });
 }
 
 export function getEintragenProtokoll(profileId) {
@@ -235,6 +258,7 @@ export function setzeAktiveReihe(profileId, biom, reihe) {
   if (reihe) p.aktiveReihen[biom] = structuredClone(reihe);
   else delete p.aktiveReihen[biom];
   save(state);
+  melde('aktiveReiheGesetzt', { profilId: profileId, biom, reihe: reihe ? structuredClone(reihe) : null });
 }
 
 // Biom-Ids mit offener Reihe (für Karten-Flaggen + Welt-Hinweispunkt).
@@ -292,6 +316,7 @@ export function baueGutschein(profileId, rezept) {
   p.gutscheine = p.gutscheine ?? [];
   p.gutscheine.push(gutschein);
   save(state);
+  melde('gutscheinGebaut', { profilId: profileId, gutschein: structuredClone(gutschein), kosten: structuredClone(rezept.kosten) });
   return gutschein;
 }
 
@@ -300,12 +325,14 @@ export function speichereRezepte(rezepte) {
   state.rezepte = rezepte.map(r => structuredClone(r));
   state.rezepteVerwaltet = true;
   save(state);
+  melde('rezepteGespeichert', { rezepte: state.rezepte.map(r => structuredClone(r)) });
 }
 
 export function setzeRezepteStandard() {
   state.rezepteVerwaltet = false;
   state.rezepte = STANDARD_REZEPTE;
   save(state);
+  melde('rezepteStandard', {});
 }
 
 // --- PIN (Soft-Lock) ---
@@ -322,6 +349,7 @@ export function setzePin(pin) {
   state.parentSettings.pin = String(pin);
   state.parentSettings.pinEnabled = true;
   save(state);
+  melde('pinGesetzt', { pin: String(pin) });
 }
 
 // --- Gutschein-Verwaltung (Eltern) ---
@@ -345,6 +373,7 @@ export function loeseGutscheineEin(profileId, rezeptId, anzahl) {
   if (!p || !p.gutscheine) return;
   p.gutscheine = entferneAusStapel(p.gutscheine, rezeptId, anzahl);
   save(state);
+  melde('gutscheineEingeloest', { profilId: profileId, rezeptId, anzahl: serialisiereAnzahl(anzahl) });
 }
 
 // Ganzen offenen Stapel einer Sorte entfernen (Eltern-Korrektur).
@@ -360,6 +389,7 @@ export function setzeRohstoff(profileId, item, anzahl) {
   if (anzahl > 0) p.inventar[item] = anzahl;
   else delete p.inventar[item];
   save(state);
+  melde('rohstoffGesetzt', { profilId: profileId, item, anzahl });
 }
 
 // --- Kind-PIN (optional pro Profil, Soft-Lock gegen versehentliches Üben beim anderen) ---
@@ -376,6 +406,7 @@ export function setzeKindPin(profileId, pin) {
   if (!p) return;
   p.kindPin = pin ? String(pin) : null;
   save(state);
+  melde('kindPinGesetzt', { profilId: profileId, pin: pin ? String(pin) : null });
 }
 
 // --- Drop-Häufigkeit pro Material (Eltern-Regler) ---
@@ -390,6 +421,7 @@ export function setzeDropChance(item, wert) {
   state.parentSettings.dropChancen = { ...DEFAULT_DROP, ...(state.parentSettings.dropChancen ?? {}) };
   state.parentSettings.dropChancen[item] = wert;
   save(state);
+  melde('dropChanceGesetzt', { item, wert });
 }
 
 // --- Familien-Sync (Konfiguration pro Gerät, Eltern-Bereich) ---
@@ -405,6 +437,127 @@ export function setzeSyncConfig({ url, schluessel, aktiv }) {
     schluessel: String(schluessel ?? '').trim(),
     aktiv: !!aktiv,
   };
+  save(state);
+}
+
+// --- Spielstand-Sync: fremdes Ereignis anwenden (Spec §3–§5) ---
+// Einspiel-Modus unterdrückt melde() — sonst Echo-Schleife über die Geräte.
+// true = angewendet oder idempotent übersprungen; false = unbekannt/kaputt/Profil fehlt
+// (Aufrufer überspringt mit console.warn und schreibt den Cursor trotzdem fort — Spec §8).
+export function wendeZustandsEreignisAn(ereignis) {
+  const { op, args, ts } = ereignis ?? {};
+  const datum = ts ? new Date(ts) : new Date();
+  einspielModus = true;
+  try {
+    switch (op) {
+      case 'profilAngelegt': {
+        const profil = args?.profil;
+        if (!profil?.id) return false;
+        // Idempotent: existiert die Id schon (eigener Upload, doppelter Pull), nichts tun.
+        if (!state.profiles[profil.id]) { state.profiles[profil.id] = structuredClone(profil); save(state); }
+        return true;
+      }
+      case 'profilGeaendert':
+        if (!state.profiles[args?.id]) return false;
+        updateProfile(args.id, args.updates ?? {});
+        return true;
+      case 'profilGeloescht':
+        deleteProfile(args?.id);
+        return true;
+      case 'inventarPlus':
+        if (!state.profiles[args?.profilId]) return false;
+        addInventar(args.profilId, args.item, args.anzahl);
+        return true;
+      case 'aufgabeGetrackt':
+        if (!state.profiles[args?.profilId]) return false;
+        trackeAufgabe(args.profilId, args.typ, !!args.richtig, args.zeitMs ?? 0, datum);
+        return true;
+      case 'gutscheinGebaut': {
+        const p = state.profiles[args?.profilId];
+        if (!p || !args?.gutschein?.id) return false;
+        p.gutscheine = p.gutscheine ?? [];
+        if (p.gutscheine.some(g => g.id === args.gutschein.id)) return true; // idempotent
+        p.inventar = p.inventar ?? {};
+        for (const [item, n] of Object.entries(args.kosten ?? {})) {
+          p.inventar[item] = (p.inventar[item] ?? 0) - n;
+        }
+        p.inventar = klemmeInventar(p.inventar); // Beschluss: parallele Ausgaben → bei 0 kappen
+        p.gutscheine.push(structuredClone(args.gutschein));
+        save(state);
+        return true;
+      }
+      case 'gutscheineEingeloest':
+        if (!state.profiles[args?.profilId]) return false;
+        loeseGutscheineEin(args.profilId, args.rezeptId, deserialisiereAnzahl(args.anzahl));
+        return true;
+      case 'tagesauftragBelohnt': {
+        const p = state.profiles[args?.profilId];
+        if (!p?.tagesauftrag) return false;
+        // Nur derselbe Tag: ein gestriges „belohnt" darf den heutigen Auftrag nicht schließen.
+        if (p.tagesauftrag.datum === tagesSchluessel(datum)) { p.tagesauftrag.belohnt = true; save(state); }
+        return true;
+      }
+      case 'aufsagenProtokolliert':
+        if (!state.profiles[args?.profilId]) return false;
+        protokolliereAufsagen(args.profilId, args.eintrag);
+        return true;
+      case 'eintragenProtokolliert':
+        if (!state.profiles[args?.profilId]) return false;
+        protokolliereEintragen(args.profilId, args.eintrag);
+        return true;
+      case 'aktiveReiheGesetzt':
+        if (!state.profiles[args?.profilId]) return false;
+        setzeAktiveReihe(args.profilId, args.biom, args.reihe ?? null);
+        return true;
+      case 'schwierigkeitGesetzt':
+        if (!state.profiles[args?.profilId]) return false;
+        setSchwierigkeit(args.profilId, args.typ, args.stufe);
+        return true;
+      case 'rohstoffGesetzt':
+        if (!state.profiles[args?.profilId]) return false;
+        setzeRohstoff(args.profilId, args.item, args.anzahl);
+        return true;
+      case 'rezepteGespeichert': speichereRezepte(args?.rezepte ?? []); return true;
+      case 'rezepteStandard':    setzeRezepteStandard(); return true;
+      case 'pinGesetzt':         setzePin(args?.pin); return true;
+      case 'kindPinGesetzt':
+        if (!state.profiles[args?.profilId]) return false;
+        setzeKindPin(args.profilId, args.pin);
+        return true;
+      case 'dropChanceGesetzt':  setzeDropChance(args?.item, args?.wert); return true;
+      case 'biomAktivGesetzt':
+        if (!state.profiles[args?.profilId]) return false;
+        setAktivesBiom(args.profilId, args.id);
+        return true;
+      case 'biomAutoFrei': {
+        const p = state.profiles[args?.profilId];
+        if (!p || !args?.id) return false;
+        const b = sichereBiom(p);
+        if (!b.autoFrei.includes(args.id)) { b.autoFrei.push(args.id); save(state); } // idempotent
+        return true;
+      }
+      case 'biomElternStatus':
+        if (!state.profiles[args?.profilId]) return false;
+        setBiomElternStatus(args.profilId, args.id, !!args.offen);
+        return true;
+      default:
+        return false;
+    }
+  } catch (err) {
+    console.warn('[state] Zustands-Ereignis übersprungen.', op, err);
+    return false;
+  } finally {
+    einspielModus = false;
+  }
+}
+
+// Übernahme „Familien-Spielstand" (Spec §7): lokale Profile + Rezept-Katalog verwerfen,
+// OHNE Ereignisse zu melden — der anschließende Pull ab Cursor 0 baut alles aus dem Log auf.
+export function ersetzeProfileFuerUebernahme() {
+  state.profiles = {};
+  state.currentProfileId = null;
+  state.rezepte = STANDARD_REZEPTE;
+  state.rezepteVerwaltet = false;
   save(state);
 }
 
@@ -444,6 +597,7 @@ export function setAktivesBiom(profileId, id) {
   if (!p) return;
   sichereBiom(p).aktiv = id;
   save(state);
+  melde('biomAktivGesetzt', { profilId: profileId, id });
 }
 
 // Liste freigeschalteter Biom-Ids (für die Karte).
@@ -462,6 +616,7 @@ export function schalteNaechstesBiomFrei(profileId, vonId) {
   const b = sichereBiom(p);
   b.autoFrei.push(next);
   save(state);
+  melde('biomAutoFrei', { profilId: profileId, id: next });
   return next;
 }
 
@@ -475,6 +630,7 @@ export function setBiomElternStatus(profileId, id, offen) {
   if (offen) b.elternFrei.push(id);
   else b.elternGesperrt.push(id);
   save(state);
+  melde('biomElternStatus', { profilId: profileId, id, offen: !!offen });
 }
 
 // Summe aller richtig gelösten Aufgaben eines Profils (über alle Aufgabentypen) — Antrieb der Burg.
