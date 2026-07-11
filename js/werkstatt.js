@@ -11,7 +11,7 @@ import { escapeHtml } from './utils.js';
 const ITEM_EMOJI = { holz: '🪵', stein: '🪨', blume: '🌸', eisen: '⛏️', diamant: '💎' };
 
 // nachSchliessen: optionaler Callback, der NACH dem Aufräumen abgelehnter Anfragen läuft
-// (Final-Review I1: app.js re-rendert bei blockland:zustandEingespielt nur, wenn kein Modal
+// (Final-Review I3: app.js re-rendert bei blockland:zustandEingespielt nur, wenn kein Modal
 // offen ist — die Werkstatt selbst öffnet aber ohne Render-Callback, also blieben Ereignisse,
 // die während offener Werkstatt einliefen (z.B. Telegram-Freigabe), bis zum nächsten Routing-
 // Trigger unsichtbar. Aufrufer (aktuell nur welt.js) übergibt hier renderWelt).
