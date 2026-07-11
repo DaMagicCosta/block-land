@@ -330,18 +330,27 @@ function telegramApi(methode, payload) {
 }
 
 // Neue Anfrage: Zeile anlegen (idempotent) + Nachricht mit Buttons an beide Eltern.
+// Lock, weil Guard→appendRow Read-then-Write ist: zwei gleichzeitige doPost-Retries mit
+// derselben anfrageId erzeugten sonst Doppel-Nachricht + Doppel-Zeile. Kein Re-Entrancy-
+// Problem — wird nie aufgerufen, während der Callback-Lock gehalten wird.
 function legeAnfrageAnUndBenachrichtige(args) {
-  if (!args.anfrageId || findeAnfrage(args.anfrageId)) return;   // idempotent
-  const a = {
-    anfrageId: String(args.anfrageId), ts: new Date().toISOString(), kind: String(args.kindName || ''),
-    profilId: String(args.profilId || ''), rezeptId: String(args.rezeptId || ''),
-    name: String(args.name || ''), emoji: String(args.emoji || ''), anzahl: Number(args.anzahl) || 1,
-    wert: Number(args.wert) || 0, einheit: String(args.einheit || ''),
-    status: 'offen', entschiedenVon: '', entschiedenTs: '', nachrichtenJson: '[]',
-  };
-  const refs = sendeAnfrageNachricht(a, '');
-  a.nachrichtenJson = JSON.stringify(refs);
-  anfrageBlatt().appendRow(ANFRAGE_SPALTEN.map(function (sp) { return a[sp]; }));
+  const lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+  try {
+    if (!args.anfrageId || findeAnfrage(args.anfrageId)) return;   // idempotent
+    const a = {
+      anfrageId: String(args.anfrageId), ts: new Date().toISOString(), kind: String(args.kindName || ''),
+      profilId: String(args.profilId || ''), rezeptId: String(args.rezeptId || ''),
+      name: String(args.name || ''), emoji: String(args.emoji || ''), anzahl: Number(args.anzahl) || 1,
+      wert: Number(args.wert) || 0, einheit: String(args.einheit || ''),
+      status: 'offen', entschiedenVon: '', entschiedenTs: '', nachrichtenJson: '[]',
+    };
+    const refs = sendeAnfrageNachricht(a, '');
+    a.nachrichtenJson = JSON.stringify(refs);
+    anfrageBlatt().appendRow(ANFRAGE_SPALTEN.map(function (sp) { return a[sp]; }));
+  } finally {
+    lock.releaseLock();
+  }
 }
 
 // Nachricht mit Buttons an alle CHAT_IDS senden; gibt [{chat_id, message_id}] zurück.
@@ -389,11 +398,11 @@ function verarbeiteCallback(cb) {
   const freigegeben = aktion === 'f';
   const status = freigegeben ? 'freigegeben' : 'abgelehnt';
 
-  // 1) Status im Anfragen-Blatt (Spalten status/entschiedenVon/entschiedenTs = 11..13)
-  fund.blatt.getRange(fund.zeile, 11, 1, 3).setValues([[status, von, jetzt]]);
-
-  // 2) Ereignisse ans Zustand-Log — Reihenfolge ist bindend: ERST entschieden (_e),
+  // 1) Ereignisse ans Zustand-Log — Reihenfolge ist bindend: ERST entschieden (_e),
   //    DANN eingelöst (_g). Deterministische Ids: Webhook-Retries laufen in die App-Dedup.
+  //    Bewusst VOR dem Blatt-Status: scheitert danach das Status-Schreiben, bleibt die
+  //    Anfrage 'offen' und ein zweiter Klick re-appendet dieselben Ids (App-Dedup fängt sie).
+  //    Umgekehrt stünde die Anfrage auf entschieden, ohne dass die App je davon erfährt.
   const z = zustandBlatt();
   z.appendRow(['tg_' + anfrageId + '_e', jetzt, 'telegram', 'gutscheinAnfrageEntschieden',
     JSON.stringify({ anfrageId: anfrageId, profilId: fund.daten.profilId, entscheidung: status, von: von })]);
@@ -401,6 +410,9 @@ function verarbeiteCallback(cb) {
     z.appendRow(['tg_' + anfrageId + '_g', jetzt, 'telegram', 'gutscheineEingeloest',
       JSON.stringify({ profilId: fund.daten.profilId, rezeptId: fund.daten.rezeptId, anzahl: Number(fund.daten.anzahl) || 1 })]);
   }
+
+  // 2) Status im Anfragen-Blatt (Spalten status/entschiedenVon/entschiedenTs = 11..13)
+  fund.blatt.getRange(fund.zeile, 11, 1, 3).setValues([[status, von, jetzt]]);
 
   // 3) Alle zugehörigen Nachrichten editieren (Original + Erinnerungen) — Buttons weg.
   const uhrzeit = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'HH:mm');
