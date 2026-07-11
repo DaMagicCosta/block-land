@@ -5,6 +5,8 @@
 //   SHEET_ID             ID des Google Sheets (aus der Sheet-URL)
 //   BOT_TOKEN            Token des Telegram-Bots (@BotFather)
 //   CHAT_IDS             Telegram-Chat-IDs der Eltern, kommagetrennt (zeigeChatIds() hilft)
+//   TELEGRAM_SECRET      frei gewählter Schlüssel im Webhook-Query-Parameter (setzeWebhook())
+//   CHAT_NAMEN           Anzeigenamen je Chat-ID, z.B. "12345=Mama, 67890=Papa"
 
 const SPALTEN = ['ts', 'kind', 'alter', 'art', 'typ', 'richtig', 'gesamt', 'zeit_ms', 'detail'];
 const TYP_NAMEN = {
@@ -43,6 +45,12 @@ function zustandBlatt() {
 // Ereignisse von der App annehmen (Queue-Flush).
 function doPost(e) {
   try {
+    // Telegram-Webhook? (Button-Klicks) — eigener Pfad, erkannt am Secret-Query-Parameter.
+    // Apps Script kann keine HTTP-Header lesen, deshalb steckt das Secret in der URL.
+    if (e.parameter && e.parameter.telegram !== undefined) {
+      if (e.parameter.telegram !== prop('TELEGRAM_SECRET')) return antwortJson({ ok: false });
+      return behandleTelegramUpdate(JSON.parse(e.postData.contents));
+    }
     const daten = JSON.parse(e.postData.contents);
     if (daten.schluessel !== prop('FAMILIEN_SCHLUESSEL')) return antwortJson({ ok: false, fehler: 'schluessel' });
     const events = (daten.events || []).slice(0, 500);
@@ -77,6 +85,10 @@ function doPost(e) {
         ]; });
         blatt.getRange(blatt.getLastRow() + 1, 1, zeilen.length, ZUSTAND_SPALTEN.length).setValues(zeilen);
       }
+      // Frisch angenommene Einlöse-Anfragen sofort an die Eltern melden (Spec 2026-07-11).
+      // Nur die NEUEN (Dedup oben) — Redelivery erzeugt keine Doppel-Nachricht.
+      neue.filter(function (ev) { return ev.op === 'gutscheinEinloesungAngefragt'; })
+          .forEach(function (ev) { legeAnfrageAnUndBenachrichtige(ev.args || {}); });
     }
     // angenommen zählt weiterhin zustandEvents.length (nicht zustandNeu): der Client muss
     // auch Duplikate als „angenommen" quittiert bekommen, damit er seine Queue leert.
@@ -254,4 +266,203 @@ function testDigest() {
 // Digest des heutigen Tages wirklich senden (Ende-zu-Ende-Test).
 function testSenden() {
   taeglicherDigest();
+}
+
+// --- Gutschein-Anfragen (Spec docs/superpowers/specs/2026-07-11-gutschein-anfrage-design.md) ---
+
+const ANFRAGE_SPALTEN = ['anfrageId', 'ts', 'kind', 'profilId', 'rezeptId', 'name', 'emoji',
+  'anzahl', 'wert', 'einheit', 'status', 'entschiedenVon', 'entschiedenTs', 'nachrichtenJson'];
+
+function anfrageBlatt() {
+  const doc = SpreadsheetApp.openById(prop('SHEET_ID'));
+  let blatt = doc.getSheetByName('Anfragen');
+  if (!blatt) { blatt = doc.insertSheet('Anfragen'); blatt.appendRow(ANFRAGE_SPALTEN); }
+  return blatt;
+}
+
+// Zeile per anfrageId finden → { zeile: 1-basierter Sheet-Index, daten: Objekt } oder null.
+function findeAnfrage(anfrageId) {
+  const blatt = anfrageBlatt();
+  if (blatt.getLastRow() < 2) return null;
+  const werte = blatt.getRange(2, 1, blatt.getLastRow() - 1, ANFRAGE_SPALTEN.length).getValues();
+  for (let i = 0; i < werte.length; i++) {
+    if (String(werte[i][0]) === String(anfrageId)) {
+      const daten = {};
+      ANFRAGE_SPALTEN.forEach(function (sp, j) { daten[sp] = werte[i][j]; });
+      return { zeile: i + 2, daten: daten, blatt: blatt };
+    }
+  }
+  return null;
+}
+
+// Anzeigename des Entscheiders aus CHAT_NAMEN ("12345=Mama, 67890=Papa"), sonst 'Familie'.
+function chatName(chatId) {
+  const paare = (prop('CHAT_NAMEN') || '').split(',');
+  for (let i = 0; i < paare.length; i++) {
+    const teile = paare[i].split('=');
+    if (teile.length === 2 && teile[0].trim() === String(chatId)) return teile[1].trim();
+  }
+  return 'Familie';
+}
+
+// Nachrichtentext einer Anfrage (pure — testAnfrageNachricht() prüft sie im Editor).
+function baueAnfrageText(a, prefix) {
+  const summe = (Number(a.wert) > 0) ? ' (= ' + (Number(a.anzahl) * Number(a.wert)) + ' ' + (a.einheit || '') + ')' : '';
+  return (prefix || '') + '🎟️ ' + a.kind + ' möchte einlösen:\n'
+    + (a.emoji || '') + ' ' + a.name + ' ×' + a.anzahl + summe;
+}
+
+function anfrageButtons(anfrageId) {
+  return { inline_keyboard: [[
+    { text: '✅ Freigeben', callback_data: 'f:' + anfrageId },
+    { text: '🌙 Jetzt nicht', callback_data: 'a:' + anfrageId },
+  ]] };
+}
+
+// Telegram-API-Helfer (POST beliebiger Methoden), loggt Fehler statt zu werfen.
+function telegramApi(methode, payload) {
+  const res = UrlFetchApp.fetch('https://api.telegram.org/bot' + prop('BOT_TOKEN') + '/' + methode, {
+    method: 'post', contentType: 'application/json',
+    payload: JSON.stringify(payload), muteHttpExceptions: true,
+  });
+  if (res.getResponseCode() !== 200) Logger.log('Telegram ' + methode + ': HTTP ' + res.getResponseCode() + ' — ' + res.getContentText().slice(0, 200));
+  try { return JSON.parse(res.getContentText()); } catch (err) { return { ok: false }; }
+}
+
+// Neue Anfrage: Zeile anlegen (idempotent) + Nachricht mit Buttons an beide Eltern.
+function legeAnfrageAnUndBenachrichtige(args) {
+  if (!args.anfrageId || findeAnfrage(args.anfrageId)) return;   // idempotent
+  const a = {
+    anfrageId: String(args.anfrageId), ts: new Date().toISOString(), kind: String(args.kindName || ''),
+    profilId: String(args.profilId || ''), rezeptId: String(args.rezeptId || ''),
+    name: String(args.name || ''), emoji: String(args.emoji || ''), anzahl: Number(args.anzahl) || 1,
+    wert: Number(args.wert) || 0, einheit: String(args.einheit || ''),
+    status: 'offen', entschiedenVon: '', entschiedenTs: '', nachrichtenJson: '[]',
+  };
+  const refs = sendeAnfrageNachricht(a, '');
+  a.nachrichtenJson = JSON.stringify(refs);
+  anfrageBlatt().appendRow(ANFRAGE_SPALTEN.map(function (sp) { return a[sp]; }));
+}
+
+// Nachricht mit Buttons an alle CHAT_IDS senden; gibt [{chat_id, message_id}] zurück.
+function sendeAnfrageNachricht(a, prefix) {
+  const refs = [];
+  (prop('CHAT_IDS') || '').split(',').map(function (s) { return s.trim(); }).filter(Boolean)
+    .forEach(function (chatId) {
+      const res = telegramApi('sendMessage', {
+        chat_id: chatId, text: baueAnfrageText(a, prefix), reply_markup: anfrageButtons(a.anfrageId),
+      });
+      if (res.ok && res.result) refs.push({ chat_id: chatId, message_id: res.result.message_id });
+    });
+  return refs;
+}
+
+// Webhook-Eingang: nur callback_query interessiert (Button-Klick). Alles andere ignorieren.
+function behandleTelegramUpdate(update) {
+  const cb = update && update.callback_query;
+  if (!cb) return antwortJson({ ok: true });
+  const lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+  try {
+    verarbeiteCallback(cb);
+  } finally {
+    lock.releaseLock();
+  }
+  return antwortJson({ ok: true });
+}
+
+function verarbeiteCallback(cb) {
+  const daten = String(cb.data || '');                      // 'f:<anfrageId>' | 'a:<anfrageId>'
+  const aktion = daten.slice(0, 1);
+  const anfrageId = daten.slice(2);
+  const chatId = String(cb.message && cb.message.chat && cb.message.chat.id || '');
+  const erlaubte = (prop('CHAT_IDS') || '').split(',').map(function (s) { return s.trim(); });
+  const toast = function (text) { telegramApi('answerCallbackQuery', { callback_query_id: cb.id, text: text }); };
+
+  if (erlaubte.indexOf(chatId) < 0) { toast(''); return; }  // fremder Chat → still ignorieren
+  const fund = findeAnfrage(anfrageId);
+  if (!fund) { toast('Anfrage nicht gefunden.'); return; }
+  if (fund.daten.status !== 'offen') { toast('Schon entschieden: ' + fund.daten.status + ' 👍'); return; }
+
+  const von = chatName(chatId);
+  const jetzt = new Date().toISOString();
+  const freigegeben = aktion === 'f';
+  const status = freigegeben ? 'freigegeben' : 'abgelehnt';
+
+  // 1) Status im Anfragen-Blatt (Spalten status/entschiedenVon/entschiedenTs = 11..13)
+  fund.blatt.getRange(fund.zeile, 11, 1, 3).setValues([[status, von, jetzt]]);
+
+  // 2) Ereignisse ans Zustand-Log — Reihenfolge ist bindend: ERST entschieden (_e),
+  //    DANN eingelöst (_g). Deterministische Ids: Webhook-Retries laufen in die App-Dedup.
+  const z = zustandBlatt();
+  z.appendRow(['tg_' + anfrageId + '_e', jetzt, 'telegram', 'gutscheinAnfrageEntschieden',
+    JSON.stringify({ anfrageId: anfrageId, profilId: fund.daten.profilId, entscheidung: status, von: von })]);
+  if (freigegeben) {
+    z.appendRow(['tg_' + anfrageId + '_g', jetzt, 'telegram', 'gutscheineEingeloest',
+      JSON.stringify({ profilId: fund.daten.profilId, rezeptId: fund.daten.rezeptId, anzahl: Number(fund.daten.anzahl) || 1 })]);
+  }
+
+  // 3) Alle zugehörigen Nachrichten editieren (Original + Erinnerungen) — Buttons weg.
+  const uhrzeit = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'HH:mm');
+  const schluss = freigegeben ? ('\n\n✅ Von ' + von + ' freigegeben · ' + uhrzeit)
+                              : ('\n\n🌙 Von ' + von + ': jetzt nicht · ' + uhrzeit);
+  editiereAnfrageNachrichten(fund, baueAnfrageText(fund.daten, '') + schluss);
+  toast(freigegeben ? 'Freigegeben ✅' : 'Abgelehnt 🌙');
+}
+
+function editiereAnfrageNachrichten(fund, text) {
+  let refs = [];
+  try { refs = JSON.parse(fund.daten.nachrichtenJson || '[]'); } catch (err) { refs = []; }
+  refs.forEach(function (r) {
+    telegramApi('editMessageText', { chat_id: r.chat_id, message_id: r.message_id, text: text });
+  });
+}
+
+// Zeit-Trigger-Ziel (~10:00): je OFFENER Anfrage eine Erinnerung mit frischen Buttons.
+// Keine offenen Anfragen → Stille. Neue message_ids werden angehängt (mit-editierbar).
+function erinnereOffeneAnfragen() {
+  const blatt = anfrageBlatt();
+  if (blatt.getLastRow() < 2) return;
+  const werte = blatt.getRange(2, 1, blatt.getLastRow() - 1, ANFRAGE_SPALTEN.length).getValues();
+  werte.forEach(function (zeile, i) {
+    if (String(zeile[10]) !== 'offen') return;   // Spalte 11 = status
+    const a = {};
+    ANFRAGE_SPALTEN.forEach(function (sp, j) { a[sp] = zeile[j]; });
+    const neueRefs = sendeAnfrageNachricht(a, '⏰ Erinnerung — hier wartet noch eine Anfrage:\n\n');
+    let refs = [];
+    try { refs = JSON.parse(a.nachrichtenJson || '[]'); } catch (err) { refs = []; }
+    blatt.getRange(i + 2, 14).setValue(JSON.stringify(refs.concat(neueRefs)));  // Spalte 14 = nachrichtenJson
+  });
+}
+
+// --- Einmalige Setup-/Test-Helfer (im Apps-Script-Editor ausführen) ---
+
+// Webhook beim Bot registrieren (einmalig nach dem Deployment; Log prüfen!).
+function setzeWebhook() {
+  const url = ScriptApp.getService().getUrl() + '?telegram=' + encodeURIComponent(prop('TELEGRAM_SECRET') || '');
+  if (!prop('TELEGRAM_SECRET')) { Logger.log('FEHLER: Skript-Eigenschaft TELEGRAM_SECRET fehlt.'); return; }
+  Logger.log(JSON.stringify(telegramApi('setWebhook', { url: url })));
+  Logger.log('Webhook-URL: ' + url);
+}
+
+function loescheWebhook() {
+  Logger.log(JSON.stringify(telegramApi('deleteWebhook', {})));
+}
+
+// Nachrichtentext im Log prüfen (ohne zu senden).
+function testAnfrageNachricht() {
+  Logger.log(baueAnfrageText({ kind: 'Arthur', emoji: '⏱️', name: '15 Min Spielen', anzahl: 2, wert: 15, einheit: 'Min' }, ''));
+  Logger.log(baueAnfrageText({ kind: 'Ilian', emoji: '🍫', name: 'Nasch-Gutschein', anzahl: 1, wert: 0, einheit: '' }, '⏰ Erinnerung — hier wartet noch eine Anfrage:\n\n'));
+}
+
+// Kompletten Callback-Pfad ohne Telegram durchspielen: legt eine Test-Anfrage an,
+// entscheidet sie und prüft die Zustand-Zeilen. Räumt NICHT auf (Sichtkontrolle im Sheet).
+function testCallbackSimulation() {
+  legeAnfrageAnUndBenachrichtige({ anfrageId: 'a_test_sim', profilId: 'p_test', kindName: 'Testkind',
+    rezeptId: 'r_spiel15', name: '15 Min Spielen', emoji: '⏱️', anzahl: 2, wert: 15, einheit: 'Min' });
+  const chatId = (prop('CHAT_IDS') || '').split(',')[0].trim();
+  verarbeiteCallback({ id: 'test', data: 'f:a_test_sim', message: { chat: { id: chatId } } });
+  const fund = findeAnfrage('a_test_sim');
+  Logger.log('Status: ' + fund.daten.status + ' von ' + fund.daten.entschiedenVon);
+  Logger.log('Erwartung: freigegeben; Zustand-Blatt hat tg_a_test_sim_e und tg_a_test_sim_g als letzte Zeilen.');
 }
