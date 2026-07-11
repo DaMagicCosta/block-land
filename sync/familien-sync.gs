@@ -504,9 +504,13 @@ function erinnereOffeneAnfragen() {
 // --- Einmalige Setup-/Test-Helfer (im Apps-Script-Editor ausführen) ---
 
 // Webhook beim Bot registrieren (einmalig nach dem Deployment; Log prüfen!).
+// getUrl() liefert beim Lauf aus dem Editor die /dev-URL (nur mit Google-Login erreichbar,
+// für Telegram-Server nutzlos) — deshalb hart auf die deployte /exec-URL umschreiben.
 function setzeWebhook() {
-  const url = ScriptApp.getService().getUrl() + '?telegram=' + encodeURIComponent(prop('TELEGRAM_SECRET') || '');
   if (!prop('TELEGRAM_SECRET')) { Logger.log('FEHLER: Skript-Eigenschaft TELEGRAM_SECRET fehlt.'); return; }
+  const url = ScriptApp.getService().getUrl().replace(/\/dev$/, '/exec')
+    + '?telegram=' + encodeURIComponent(prop('TELEGRAM_SECRET'));
+  if (!/\/exec\?/.test(url)) { Logger.log('FEHLER: Web-App-URL endet nicht auf /exec — ist die Web-App deployt? URL: ' + url); return; }
   Logger.log(JSON.stringify(telegramApi('setWebhook', { url: url })));
   Logger.log('Webhook-URL: ' + url);
 }
