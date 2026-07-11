@@ -9,6 +9,7 @@ import {
   addProfile, deleteProfile, setzeKindPin,
   getBiomFreigabe, setBiomElternStatus,
   getSyncConfig, setzeSyncConfig,
+  updateProfile, getTimer, setzeTimerStand,
 } from './state.js';
 import {
   flushSync, anzahlWartend,
@@ -19,6 +20,8 @@ import { tabStatistik } from './statistik.js';
 import { escapeHtml } from './utils.js';
 import { loadBiomManifest } from './data.js';
 import { istFrei, BIOME_REIHENFOLGE } from './biome-logik.js';
+import { standardFuer, wirksameKonfig, GRENZEN, istNacht, frischerTag } from './timer-logik.js';
+import { verwerfeLaufzeitStand } from './uebungs-timer.js';
 
 const ITEM_KEYS = ['holz', 'stein', 'blume', 'eisen', 'diamant'];
 const ITEM_EMOJI = { holz: '🪵', stein: '🪨', blume: '🌸', eisen: '⛏️', diamant: '💎' };
@@ -145,6 +148,26 @@ function tabBelohnungen(container, neuRendern) {
     ['holz', '🪵 Holz'], ['stein', '🪨 Stein'], ['blume', '🌸 Blume'],
     ['eisen', '⛏️ Eisen (schwere Aufgaben)'], ['diamant', '💎 Diamant (schwere Aufgaben)'],
   ];
+  const ALTER_LABEL = { 'kindergarten': 'Vorschule', 'klasse-1': '1. Klasse', 'klasse-2': '2. Klasse', 'klasse-3': '3. Klasse' };
+  const timerBloecke = getProfiles().map(p => {
+    const std = standardFuer(p.alter);
+    const k = wirksameKonfig(p.alter, p.timerKonfig);
+    const eigene = !!p.timerKonfig;
+    const nacht = istNacht(getTimer(p.id));
+    return `
+      <div class="eltern__timer-kind">
+        <div class="eltern__timer-titel">${escapeHtml(p.avatar)} <b>${escapeHtml(p.name)}</b> —
+          ${eigene ? 'eigene Einstellung' : `Standard (${ALTER_LABEL[p.alter] ?? escapeHtml(p.alter)})`}:
+          ${k.uebenMin} Min üben / ${k.pauseMin} Min Pause</div>
+        <label class="eltern__timer-feld">Üben (Min)
+          <input type="number" min="${GRENZEN.ueben[0]}" max="${GRENZEN.ueben[1]}" data-timer-ueben="${p.id}" value="${k.uebenMin}" /></label>
+        <label class="eltern__timer-feld">Pause (Min)
+          <input type="number" min="${GRENZEN.pause[0]}" max="${GRENZEN.pause[1]}" data-timer-pause="${p.id}" value="${k.pauseMin}" /></label>
+        <label class="eltern__timer-feld"><input type="checkbox" data-timer-aktiv="${p.id}" ${k.aktiv ? 'checked' : ''} /> Sonne aktiv</label>
+        <button class="eltern__sekundaer" data-timer-standard="${p.id}">Zurück auf Standard (${std.uebenMin}/${std.pauseMin})</button>
+        ${nacht ? `<button class="eltern__sekundaer" data-timer-aufgang="${p.id}">☀️ Sonne jetzt aufgehen lassen</button>` : ''}
+      </div>`;
+  }).join('');
   container.innerHTML = `
     <div class="eltern__abschnitt-titel">Häufigkeit der Materialien</div>
     <div class="eltern__regler">
@@ -162,6 +185,11 @@ function tabBelohnungen(container, neuRendern) {
       }).join('')}
     </div>
     <p class="eltern__hinweis">Fällt mal nichts, gibt's eine kleine Gratulation. 🎉</p>
+
+    <h3 class="eltern__untertitel">☀️ Übungs-Timer (wandernde Sonne)</h3>
+    <p class="eltern__hinweis">Standardzeiten folgen Empfehlungen zur Konzentrationsdauer je Altersstufe.
+      Änderungen gelten nur für dieses Kind; „Zurück auf Standard" übernimmt auch künftige Anpassungen der Standards.</p>
+    ${timerBloecke}
 
     <div class="eltern__abschnitt-titel">Eigene Belohnung</div>
     <p class="eltern__hinweis eltern__hinweis--links">Lege selbst fest, was es zu gewinnen gibt — eigener Name, Emoji und wie viel das Kind dafür sammeln muss.</p>
@@ -194,6 +222,30 @@ function tabBelohnungen(container, neuRendern) {
   });
   container.querySelector('.eltern__standard').addEventListener('click', () => {
     if (confirm('Alle Belohnungen auf die Standard-Liste zurücksetzen?')) { setzeRezepteStandard(); neuRendern(); }
+  });
+
+  // Übungs-Timer: Konfig speichern (jede Änderung an einem der drei Felder schreibt timerKonfig).
+  const speichereTimerKonfig = (profilId) => {
+    const lese = (sel) => container.querySelector(`[${sel}="${profilId}"]`);
+    updateProfile(profilId, { timerKonfig: {
+      uebenMin: Number(lese('data-timer-ueben').value),
+      pauseMin: Number(lese('data-timer-pause').value),
+      aktiv: lese('data-timer-aktiv').checked,
+    } });
+    neuRendern();
+  };
+  container.querySelectorAll('[data-timer-ueben],[data-timer-pause],[data-timer-aktiv]').forEach(el => {
+    el.addEventListener('change', () => speichereTimerKonfig(el.dataset.timerUeben ?? el.dataset.timerPause ?? el.dataset.timerAktiv));
+  });
+  container.querySelectorAll('[data-timer-standard]').forEach(btn => {
+    btn.addEventListener('click', () => { updateProfile(btn.dataset.timerStandard, { timerKonfig: null }); neuRendern(); });
+  });
+  container.querySelectorAll('[data-timer-aufgang]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      setzeTimerStand(btn.dataset.timerAufgang, frischerTag(), { melden: true });  // synct: Nacht endet überall
+      verwerfeLaufzeitStand();
+      neuRendern();
+    });
   });
 
   const liste = container.querySelector('.eltern__rezepte');
