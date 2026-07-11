@@ -2,10 +2,13 @@
 // Queue in eigenem localStorage-Key (getrennt vom App-State), Versand fire-and-forget:
 // Fehler/Offline lassen die Queue liegen — der nächste Flush (Start / nach Ereignis)
 // sendet nach. Der Kind-Flow merkt vom Sync nichts.
-import { getProfile, getSyncConfig } from './state.js';
+import { getProfile, getSyncConfig, registriereZustandsMelder } from './state.js';
 import { ereignisAufgabe, ereignisAufsagen, ereignisEintragen, fuegeInQueue } from './sync-logik.js';
+import { baueZustandsEreignis, ZUSTAND_QUEUE_MAX } from './zustand-sync-logik.js';
 
 const QUEUE_KEY = 'block-land-sync-queue-v1';
+const ZUSTAND_QUEUE_KEY = 'block-land-zustand-queue-v1';
+const GERAET_KEY = 'block-land-geraet-v1';
 const FLUSH_VERZOEGERUNG_MS = 5000;
 let flushTimer = null;
 
@@ -17,6 +20,39 @@ function leseQueue() {
 function schreibeQueue(queue) {
   try { localStorage.setItem(QUEUE_KEY, JSON.stringify(queue)); }
   catch (err) { console.warn('[sync] Queue speichern fehlgeschlagen.', err); }
+}
+
+// Stabile Geräte-Identität — nur zur Fremd-Erkennung beim Pull und für die Diagnose.
+export function geraetId() {
+  let id = localStorage.getItem(GERAET_KEY);
+  if (!id) {
+    id = `d_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+    localStorage.setItem(GERAET_KEY, id);
+  }
+  return id;
+}
+
+function leseZustandQueue() {
+  try { return JSON.parse(localStorage.getItem(ZUSTAND_QUEUE_KEY)) ?? []; }
+  catch { return []; }
+}
+
+function schreibeZustandQueue(queue) {
+  try { localStorage.setItem(ZUSTAND_QUEUE_KEY, JSON.stringify(queue)); }
+  catch (err) { console.warn('[sync] Zustand-Queue speichern fehlgeschlagen.', err); }
+}
+
+// Melder für state.js: Mutation → Ereignis → Queue → entprellter Flush.
+// Überlauf (wochenlang offline) verwirft die ältesten — akzeptiertes Restrisiko (Spec §4).
+export function meldeZustand(op, args) {
+  const vorher = leseZustandQueue();
+  if (vorher.length >= ZUSTAND_QUEUE_MAX) console.warn('[sync] Zustand-Queue voll — ältestes Ereignis wird verworfen.');
+  schreibeZustandQueue(fuegeInQueue(vorher, baueZustandsEreignis(geraetId(), op, args), ZUSTAND_QUEUE_MAX));
+  planeFlush();
+}
+
+export function anzahlWartendZustand() {
+  return leseZustandQueue().length;
 }
 
 function melde(bauFn, profileId, daten) {
@@ -70,17 +106,20 @@ async function fuehreFlushAus() {
   const cfg = getSyncConfig();
   if (!cfg.aktiv || !cfg.url || !cfg.schluessel) return { ok: false, grund: 'nicht konfiguriert' };
   const queue = leseQueue();
-  if (!queue.length) return { ok: true, gesendet: 0 };
+  const zustandQueue = leseZustandQueue();
+  if (!queue.length && !zustandQueue.length) return { ok: true, gesendet: 0 };
   try {
     const res = await fetch(cfg.url, {
       method: 'POST',
-      body: JSON.stringify({ schluessel: cfg.schluessel, events: queue }),
+      body: JSON.stringify({ schluessel: cfg.schluessel, events: queue, zustandEvents: zustandQueue }),
     });
     const json = await res.json();
     if (!json.ok) return { ok: false, grund: json.fehler ?? 'abgelehnt' };
     const gesendeteIds = new Set(queue.map(e => e.id));
     schreibeQueue(leseQueue().filter(e => !gesendeteIds.has(e.id)));
-    return { ok: true, gesendet: queue.length };
+    const gesendeteZustandIds = new Set(zustandQueue.map(e => e.id));
+    schreibeZustandQueue(leseZustandQueue().filter(e => !gesendeteZustandIds.has(e.id)));
+    return { ok: true, gesendet: queue.length + zustandQueue.length };
   } catch {
     return { ok: false, grund: 'netzwerk' };
   }
@@ -89,6 +128,7 @@ async function fuehreFlushAus() {
 // Beim App-Start: Nachzügler der letzten Session senden (leicht verzögert,
 // damit der Start-Render nicht mit dem Netz-Roundtrip konkurriert).
 export function initSync() {
+  registriereZustandsMelder(meldeZustand);
   setTimeout(() => { flushSync(); }, 2000);
 }
 

@@ -23,6 +23,6 @@ function route() {
 }
 
 window.addEventListener('hashchange', route);
-route();
 initSync();
+route();
 console.log('[Block-Land] Routing aktiv.');
