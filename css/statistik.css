@@ -106,3 +106,44 @@
   .stat-diagramm { height: 120px; }
   .stat-balken__label { font-size: 10px; }
 }
+
+/* --- 🕒 Sitzungen: 7-Tage-Zeitleiste (Spec 2026-07-12) --- */
+.stat-sitzung__kennzahlen {
+  display: flex; gap: var(--space-lg); flex-wrap: wrap;
+  color: var(--color-text-dim); font-size: 13px; margin-bottom: var(--space-sm);
+}
+.stat-sitzung__kennzahlen b { color: var(--color-text); }
+.stat-sitzung { margin-bottom: var(--space-md); }
+.stat-sitzung__zeile { display: flex; align-items: center; gap: var(--space-sm); }
+.stat-sitzung__tag {
+  width: 52px; flex: none; text-align: right;
+  font-size: 11px; color: var(--color-text-dim); white-space: nowrap;
+}
+.stat-sitzung__track {
+  position: relative; flex: 1; min-width: 0; height: 16px;
+  background: var(--color-surface); border-radius: 3px; overflow: hidden;
+}
+.stat-sitzung__tick {
+  position: absolute; top: 0; bottom: 0; width: 1px;
+  background: var(--color-border); opacity: 0.6;
+}
+.stat-sitzung__block {
+  position: absolute; top: 2px; bottom: 2px;
+  background: var(--color-sitzung); border-radius: 3px;
+  border-left: 2px solid var(--color-bg);   /* 2px-Spacer: angrenzende Blöcke bleiben unterscheidbar */
+}
+.stat-sitzung__caption {
+  margin: 2px 0 var(--space-sm) calc(52px + var(--space-sm));
+  font-size: 11px; color: var(--color-text-dim);
+}
+.stat-sitzung__achse { display: flex; gap: var(--space-sm); }
+.stat-sitzung__achse-track { position: relative; flex: 1; min-width: 0; height: 14px; }
+.stat-sitzung__stunde {
+  position: absolute; transform: translateX(-50%);
+  font-size: 11px; color: var(--color-text-dim);
+}
+
+@media (max-width: 480px) {
+  .stat-sitzung__tag { width: 42px; }
+  .stat-sitzung__caption { margin-left: calc(42px + var(--space-sm)); }
+}

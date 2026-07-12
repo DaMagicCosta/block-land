@@ -18,6 +18,7 @@
   --color-zehner:    #4a9eff;   /* Stellenwert: Zehner (blau)  */
   --color-markier-zahl:  #ff4d4d;  /* Textaufgabe: Zahl-Markierung (kräftiges Rot) */
   --color-markier-frage: #3d8bff;  /* Textaufgabe: Frage-Markierung (kräftiges Blau) */
+  --color-sitzung:    #4a9eff;   /* Sitzungs-Zeitleiste (Statistik) — bewusst keine Ampel-Farbe */
 
   /* Spacings */
   --space-xs: 4px;

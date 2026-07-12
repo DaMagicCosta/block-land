@@ -7,6 +7,7 @@ import { summen, quoteFarbe, verlaufTage, verlaufWochen } from './statistik-logi
 import { escapeHtml } from './utils.js';
 import { holeFamilienStatistik } from './sync.js';
 import { erzeugeBefunde } from './befund-logik.js';
+import { clustereTag, sitzungsKennzahlen, minutenVon } from './sitzungs-logik.js';
 
 const AVATAR_EMOJI = {
   krieger: '🗡️', bergmann: '⛏️', magier: '🧙', ninja: '🥷',
@@ -83,6 +84,77 @@ function eintragenProtokollHtml(profileId) {
     </li>`;
   }).join('');
   return `<ul class="stat-aufsagen">${zeilen}</ul>`;
+}
+
+// „🕒 Sitzungen": 7-Tage-Zeitleiste (wann hingesetzt, wie lange, Pausen) aus Server-Rohzeiten.
+// Festes Fenster 7-20 Uhr → Tage sind auf einen Blick vergleichbar (Spec 2026-07-12).
+// Bekannte Grenze: Sitzungen über Mitternacht werden durch die Tages-Buckets geteilt —
+// praktisch irrelevant, weil die Ruhezeit (20–8 Uhr) das Gerät nachts sperrt.
+const SITZUNG_VON = 7 * 60, SITZUNG_BIS = 20 * 60;   // Minuten seit 0:00
+function sitzungenHtml(zeiten) {
+  if (!zeiten) return `
+    <div class="stat-detail__abschnitt">🕒 Sitzungen (letzte 7 Tage)</div>
+    <div class="stat-quelle">Sitzungs-Zeiten kommen nach dem Server-Update.</div>`;
+
+  const heute = new Date();
+  const tage = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(heute); d.setDate(heute.getDate() - i);
+    const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    // de-AT liefert bei day:'numeric' bereits einen Punkt nach der Zahl ("Sa., 11.") — kein
+    // zusätzliches ".": sonst Doppelpunkt-Artefakt "Sa., 11.." (per Screenshot-Sichtprüfung gefunden).
+    const label = i === 0 ? 'Heute' : d.toLocaleDateString('de-AT', { weekday: 'short', day: 'numeric' });
+    tage.push({ iso, label });
+  }
+  const spanne = SITZUNG_BIS - SITZUNG_VON;
+  const prozentZeit = (min) => Math.max(0, Math.min(100, ((min - SITZUNG_VON) / spanne) * 100));
+
+  const kz = sitzungsKennzahlen(zeiten);
+  const startTxt = kz.ersterStartMin === null ? '–'
+    : `${String(Math.floor(kz.ersterStartMin / 60)).padStart(2, '0')}:${String(kz.ersterStartMin % 60).padStart(2, '0')}`;
+  const wiederTxt = kz.wiederaufnahmeMin === null ? '–' : `${kz.wiederaufnahmeMin} Min`;
+
+  const zeilen = tage.map(({ iso, label }) => {
+    const { bloecke, luecken } = clustereTag(zeiten[iso]);
+    const segmente = bloecke.map(b => {
+      const links = prozentZeit(minutenVon(b.start));
+      const breite = Math.max(prozentZeit(minutenVon(b.ende)) - links, 1.2);   // Mindestbreite ~6px
+      return `<div class="stat-sitzung__block" style="left:${links}%;width:${breite}%"
+        title="${b.start}–${b.ende} · ${b.anzahl} Aufgaben"></div>`;
+    }).join('');
+    const caption = bloecke.length
+      ? bloecke.map((b, i) => {
+          const teil = `${b.start}–${b.ende} (${b.anzahl})`;
+          const l = luecken[i];
+          return l ? `${teil}${l.pause ? ` · ☕ ${l.minuten} Min · ` : ' · '}` : teil;
+        }).join('')
+      : '—';
+    return `
+      <div class="stat-sitzung__zeile">
+        <span class="stat-sitzung__tag">${label}</span>
+        <div class="stat-sitzung__track">
+          ${[8, 12, 16, 20].map(h => `<span class="stat-sitzung__tick" style="left:${prozentZeit(h * 60)}%"></span>`).join('')}
+          ${segmente}
+        </div>
+      </div>
+      <div class="stat-sitzung__caption">${caption}</div>`;
+  }).join('');
+
+  return `
+    <div class="stat-detail__abschnitt">🕒 Sitzungen (letzte 7 Tage)</div>
+    <div class="stat-sitzung__kennzahlen">
+      <span>⌀ erster Start: <b>${startTxt}</b></span>
+      <span>⌀ Wiederaufnahme nach Pause: <b>${wiederTxt}</b></span>
+    </div>
+    <div class="stat-sitzung">
+      ${zeilen}
+      <div class="stat-sitzung__achse">
+        <span class="stat-sitzung__tag"></span>
+        <div class="stat-sitzung__achse-track">
+          ${[8, 12, 16, 20].map(h => `<span class="stat-sitzung__stunde" style="left:${prozentZeit(h * 60)}%">${h}</span>`).join('')}
+        </div>
+      </div>
+    </div>`;
 }
 
 const ALTER_LABEL = { 'kindergarten': 'Vorschule', 'klasse-1': '1. Klasse', 'klasse-2': '2. Klasse', 'klasse-3': '3. Klasse' };
@@ -281,6 +353,7 @@ export function tabStatistik(container, neuRendern) {
         <div class="stat-chips">${chips}</div>
         ${diagrammHtml(reihe, view.metrik)}
         ${LEGENDE}
+        ${server.kinder ? sitzungenHtml(k?.zeiten) : ''}
         ${geraeteTeil}
       </div>`;
 
