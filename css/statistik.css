@@ -27,7 +27,8 @@
 .stat-detail__alter { font-weight: 400; color: var(--color-text-dim); font-size: 15px; }
 .stat-quelle { color: var(--color-text-dim); font-size: 13px; margin-bottom: var(--space-md); }
 .stat-detail__abschnitt {
-  font-weight: 600; color: var(--color-text); margin: var(--space-md) 0 var(--space-sm);
+  font-weight: 600; color: var(--color-text); margin: var(--space-lg) 0 var(--space-sm);
+  border-top: 1px solid var(--color-border); padding-top: var(--space-md);   /* klarer Übergang zwischen den Abschnitten */
 }
 
 .stat-tabelle {
@@ -120,8 +121,11 @@
   font-size: 11px; color: var(--color-text-dim); white-space: nowrap;
 }
 .stat-sitzung__track {
-  position: relative; flex: 1; min-width: 0; height: 16px;
-  background: var(--color-surface); border-radius: 3px; overflow: hidden;
+  position: relative; flex: 1; min-width: 0; height: 20px;
+  /* Bewusst dunkler als das Modal (--color-surface) + Rahmen: die Schiene muss als
+     „Tag von 7 bis 20 Uhr" sichtbar sein, sonst schweben die Blöcke im Nichts. */
+  background: var(--color-bg); border: 1px solid var(--color-border);
+  border-radius: 3px; overflow: hidden;
 }
 .stat-sitzung__tick {
   position: absolute; top: 0; bottom: 0; width: 1px;
@@ -134,9 +138,11 @@
   min-width: 6px;   /* Plan-Vorgabe: 1.2%-Klemmung allein ist auf Mobile nur ~3px (Final-Review F4) */
 }
 .stat-sitzung__caption {
-  margin: 2px 0 var(--space-sm) calc(52px + var(--space-sm));
+  margin: 2px 0 var(--space-md) calc(52px + var(--space-sm));   /* Luft nach unten: Tag+Caption lesen sich als Einheit */
   font-size: 11px; color: var(--color-text-dim);
 }
+/* Erste Zeile = Heute: hervorheben, da liegt der Blick zuerst. */
+.stat-sitzung__zeile:first-child .stat-sitzung__tag { color: var(--color-text); font-weight: 700; }
 .stat-sitzung__achse { display: flex; gap: var(--space-sm); }
 .stat-sitzung__achse-track { position: relative; flex: 1; min-width: 0; height: 14px; }
 .stat-sitzung__stunde {
