@@ -84,12 +84,18 @@ zu öffnen.
 1. Apps Script im Editor durch die neue Version von `sync/familien-sync.gs` ersetzen →
    „Bereitstellen → Bereitstellung verwalten → Bearbeiten → Neue Version" (die Web-App-URL
    bleibt wie gehabt erhalten).
-2. Zwei neue Skript-Eigenschaften anlegen:
+2. Drei neue Skript-Eigenschaften anlegen:
    - `TELEGRAM_SECRET` = frei gewählte Zeichenkette (z.B. aus einem Passwort-Generator).
    - `CHAT_NAMEN` = Anzeigenamen je Chat-ID, Format `12345=Mama, 67890=Papa`
      (die IDs stehen schon in `CHAT_IDS`).
+   - `WEB_APP_URL` = die echte Web-App-URL (endet auf `/exec`) — steht unter
+     „Bereitstellen → Bereitstellung verwalten" und ist dieselbe wie im Sync-Tab der App.
+     ⚠️ Nicht weglassen: der Editor kennt sonst nur die Test-URL, und Telegram bekommt
+     beim Button-Klick „401 Unauthorized" (Klicks kommen nie an).
 3. Im Editor einmal `setzeWebhook()` ausführen — im Log muss `"ok":true` von Telegram
-   stehen. Gegenstück (z.B. zum Umziehen des Bots): `loescheWebhook()`.
+   stehen UND die geloggte Webhook-URL muss die `WEB_APP_URL` sein. Gegenstück
+   (z.B. zum Umziehen des Bots): `loescheWebhook()`. Diagnose bei Problemen:
+   `zeigeWebhookStatus()` zeigt Telegrams letzte Fehlermeldung (`last_error_message`).
 4. Zeit-Trigger anlegen: Funktion `erinnereOffeneAnfragen`, Ereignisquelle „Zeitgesteuert" →
    „Tagestimer" → **9:00–10:00 Uhr** (analog zum Digest-Trigger auf `taeglicherDigest`).
 

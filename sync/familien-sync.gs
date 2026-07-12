@@ -6,6 +6,7 @@
 //   BOT_TOKEN            Token des Telegram-Bots (@BotFather)
 //   CHAT_IDS             Telegram-Chat-IDs der Eltern, kommagetrennt (zeigeChatIds() hilft)
 //   TELEGRAM_SECRET      frei gewählter Schlüssel im Webhook-Query-Parameter (setzeWebhook())
+//   WEB_APP_URL          echte Web-App-URL .../exec (aus „Bereitstellung verwalten"; für setzeWebhook())
 //   CHAT_NAMEN           Anzeigenamen je Chat-ID, z.B. "12345=Mama, 67890=Papa"
 
 const SPALTEN = ['ts', 'kind', 'alter', 'art', 'typ', 'richtig', 'gesamt', 'zeit_ms', 'detail'];
@@ -514,15 +515,27 @@ function erinnereOffeneAnfragen() {
 // --- Einmalige Setup-/Test-Helfer (im Apps-Script-Editor ausführen) ---
 
 // Webhook beim Bot registrieren (einmalig nach dem Deployment; Log prüfen!).
-// getUrl() liefert beim Lauf aus dem Editor die /dev-URL (nur mit Google-Login erreichbar,
-// für Telegram-Server nutzlos) — deshalb hart auf die deployte /exec-URL umschreiben.
+// WICHTIG (Live-Befund 2026-07-12, Telegram-Fehler „401 Unauthorized"):
+// ScriptApp.getService().getUrl() liefert beim Editor-Lauf die URL der TEST-Bereitstellung —
+// auch nach /dev→/exec-Umschreibung bleibt deren Deployment-ID falsch, die Adresse existiert
+// öffentlich nicht. Deshalb kommt die echte Web-App-URL aus der Property WEB_APP_URL
+// (dieselbe /exec-URL, die auch die App im Sync-Tab nutzt).
 function setzeWebhook() {
   if (!prop('TELEGRAM_SECRET')) { Logger.log('FEHLER: Skript-Eigenschaft TELEGRAM_SECRET fehlt.'); return; }
-  const url = ScriptApp.getService().getUrl().replace(/\/dev$/, '/exec')
-    + '?telegram=' + encodeURIComponent(prop('TELEGRAM_SECRET'));
-  if (!/\/exec\?/.test(url)) { Logger.log('FEHLER: Web-App-URL endet nicht auf /exec — ist die Web-App deployt? URL: ' + url); return; }
+  const basis = String(prop('WEB_APP_URL') || '').trim();
+  if (!/^https:\/\/script\.google\.com\/macros\/s\/[^/]+\/exec$/.test(basis)) {
+    Logger.log('FEHLER: Skript-Eigenschaft WEB_APP_URL fehlt oder ist keine .../exec-Adresse.');
+    Logger.log('Bitte die Web-App-URL eintragen (Bereitstellen → Bereitstellung verwalten → URL, endet auf /exec — dieselbe wie im Sync-Tab der App).');
+    return;
+  }
+  const url = basis + '?telegram=' + encodeURIComponent(prop('TELEGRAM_SECRET'));
   Logger.log(JSON.stringify(telegramApi('setWebhook', { url: url })));
   Logger.log('Webhook-URL: ' + url);
+}
+
+// Webhook-Diagnose: registrierte URL, Update-Stau und Telegrams letzte Fehlermeldung ins Log.
+function zeigeWebhookStatus() {
+  Logger.log(JSON.stringify(telegramApi('getWebhookInfo', {})));
 }
 
 function loescheWebhook() {
