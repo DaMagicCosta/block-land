@@ -37,15 +37,20 @@ export function renderInfo(container, seiteId = 'ueber') {
     link.addEventListener('click', (e) => { e.preventDefault(); renderInfo(container, link.dataset.infoZiel); }));
 
   // „Link kopieren" (Weitergeben-Kapitel): Clipboard-API, kurzes Erfolgs-Feedback am Knopf.
+  // Reset-Timer wird am Button selbst gemerkt, damit Doppelklicks den alten Timer canceln
+  // statt sich zu ueberlagern (sonst flackert der Text).
   container.querySelectorAll('[data-kopieren]').forEach(btn =>
     btn.addEventListener('click', async () => {
+      clearTimeout(btn._kopierenResetTimer);
+      let anzeigeDauerMs = 2000;
       try {
         await navigator.clipboard.writeText(btn.dataset.kopieren);
         btn.textContent = '✓ Kopiert!';
       } catch {
         btn.textContent = 'Kopieren nicht möglich — Link oben markieren';
+        anzeigeDauerMs = 4000;
       }
-      setTimeout(() => { btn.textContent = '📋 Link kopieren'; }, 2000);
+      btn._kopierenResetTimer = setTimeout(() => { btn.textContent = '📋 Link kopieren'; }, anzeigeDauerMs);
     }));
 
   container.querySelector('.info__zurueck').addEventListener('click', () => {

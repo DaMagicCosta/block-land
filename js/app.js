@@ -31,7 +31,10 @@ window.addEventListener('hashchange', route);
 // Frisch eingespielten Familien-Spielstand und Timer-Phasenwechsel sofort zeigen —
 // aber nie mitten in einer offenen Aufgabe re-rendern.
 ['blockland:zustandEingespielt', 'blockland:timerPhase'].forEach(ereignis =>
-  window.addEventListener(ereignis, () => { if (!istModalOffen()) route(); }));
+  window.addEventListener(ereignis, () => {
+    // #info zeigt nur statische Texte — ein Re-Render wuerde dem Leser Tab/Scroll klauen.
+    if (!istModalOffen() && location.hash.replace('#', '') !== 'info') route();
+  }));
 
 initSync();
 starteTimerLaufzeit();

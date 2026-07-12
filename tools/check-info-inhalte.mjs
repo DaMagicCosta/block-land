@@ -37,6 +37,11 @@ const EINRICHTUNG = 'https://github.com/DaMagicCosta/block-land/blob/main/sync/E
 pruefe('genau 1 externer Link (EINRICHTUNG.md)', externe.length === 1 && externe[0] === EINRICHTUNG);
 pruefe('kein http:// (nur https)', !gesamt.includes('http://'));
 
+// Guard: href="#" ohne data-info-ziel wuerde den Hash auf '' setzen und den Leser
+// unbeabsichtigt auf den Auswahl-Screen werfen (Routing-Default bei leerem Hash).
+const ankerTags = [...gesamt.matchAll(/<a\s[^>]*href="#"[^>]*>/g)].map(m => m[0]);
+pruefe('jeder href="#" traegt data-info-ziel', ankerTags.every(tag => tag.includes('data-info-ziel="')));
+
 // Querverweise zeigen auf existierende Seiten-Ids
 const ziele = [...gesamt.matchAll(/data-info-ziel="([^"]+)"/g)].map(m => m[1]);
 pruefe('Querverweise vorhanden (Seite 3 verweist)', ziele.length >= 2);
