@@ -131,6 +131,7 @@
   position: absolute; top: 2px; bottom: 2px;
   background: var(--color-sitzung); border-radius: 3px;
   border-left: 2px solid var(--color-bg);   /* 2px-Spacer: angrenzende Blöcke bleiben unterscheidbar */
+  min-width: 6px;   /* Plan-Vorgabe: 1.2%-Klemmung allein ist auf Mobile nur ~3px (Final-Review F4) */
 }
 .stat-sitzung__caption {
   margin: 2px 0 var(--space-sm) calc(52px + var(--space-sm));

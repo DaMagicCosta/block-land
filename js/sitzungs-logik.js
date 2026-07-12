@@ -14,9 +14,13 @@ export function minutenVon(hhmm) {
 
 // Uhrzeiten eines Tages → Blöcke (aktives Üben) + Lücken dazwischen.
 // luecken[i] liegt zwischen bloecke[i] und bloecke[i+1]; pause = (5 < minuten ≤ 30).
+// Nur echte 'HH:mm' (00-23:00-59) — filtert kaputte Formate wie '10:00:x' aus, BEVOR
+// sie unescaped in title-Attribut/Caption landen (js/statistik.js:sitzungenHtml).
+const HHMM_REGEX = /^([01]\d|2[0-3]):[0-5]\d$/;
+
 export function clustereTag(zeitenListe) {
   const zeiten = (zeitenListe ?? [])
-    .filter(z => Number.isFinite(minutenVon(z)))
+    .filter(z => HHMM_REGEX.test(z))
     .slice()
     .sort((a, b) => minutenVon(a) - minutenVon(b));
   const bloecke = [];

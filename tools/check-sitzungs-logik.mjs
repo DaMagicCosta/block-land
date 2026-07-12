@@ -39,6 +39,10 @@ pruefe('leer = keine Blöcke', clustereTag([]).bloecke.length === 0 && clustereT
 // Unsortierte Eingabe wird sortiert
 pruefe('unsortiert wird sortiert', clustereTag(['10:08', '10:00', '10:03']).bloecke[0].start === '10:00');
 
+// Kaputtes Format wird gefiltert (F1 Final-Review): '10:00:x' und '25:99' fallen raus
+pruefe('kaputtes Format wird gefiltert', clustereTag(['10:00:x', '25:99', '10:05']).bloecke.length === 1
+  && clustereTag(['10:00:x']).bloecke.length === 0);
+
 // Kennzahlen: ⌀ erster Start über aktive Tage, ⌀ Pausen
 const kz = sitzungsKennzahlen({
   '2026-07-11': ['10:00', '10:02', '10:11'],   // erster Start 10:00 = 600, eine 9-Min-Pause

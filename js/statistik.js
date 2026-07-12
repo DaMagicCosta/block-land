@@ -118,13 +118,17 @@ function sitzungenHtml(zeiten) {
     const { bloecke, luecken } = clustereTag(zeiten[iso]);
     const segmente = bloecke.map(b => {
       const links = prozentZeit(minutenVon(b.start));
-      const breite = Math.max(prozentZeit(minutenVon(b.ende)) - links, 1.2);   // Mindestbreite ~6px
-      return `<div class="stat-sitzung__block" style="left:${links}%;width:${breite}%"
-        title="${b.start}–${b.ende} · ${b.anzahl} Aufgaben"></div>`;
+      const breite = Math.max(prozentZeit(minutenVon(b.ende)) - links, 1.2);   // Mindestbreite ~6px (css: min-width 6px)
+      // Klemm-Reserve ≥3%: CSS min-width (6px, border-box) kann die tatsächliche Breite über die
+      // hier berechnete % anheben (z.B. schmalster Mobile-Track ~230px -> 6px ≈ 2,6%) — ohne Reserve
+      // würde der rechte Rand knapp über den Track hinausragen (Final-Review F3/F4-Interaktion).
+      const linksGeklemmt = Math.min(links, 100 - Math.max(breite, 3));
+      return `<div class="stat-sitzung__block" style="left:${linksGeklemmt}%;width:${breite}%"
+        title="${escapeHtml(b.start)}–${escapeHtml(b.ende)} · ${b.anzahl} Aufgaben"></div>`;
     }).join('');
     const caption = bloecke.length
       ? bloecke.map((b, i) => {
-          const teil = `${b.start}–${b.ende} (${b.anzahl})`;
+          const teil = `${escapeHtml(b.start)}–${escapeHtml(b.ende)} (${b.anzahl})`;
           const l = luecken[i];
           return l ? `${teil}${l.pause ? ` · ☕ ${l.minuten} Min · ` : ' · '}` : teil;
         }).join('')
@@ -353,7 +357,7 @@ export function tabStatistik(container, neuRendern) {
         <div class="stat-chips">${chips}</div>
         ${diagrammHtml(reihe, view.metrik)}
         ${LEGENDE}
-        ${server.kinder ? sitzungenHtml(k?.zeiten) : ''}
+        ${server.kinder && k ? sitzungenHtml(k.zeiten) : ''}
         ${geraeteTeil}
       </div>`;
 
