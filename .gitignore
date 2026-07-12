@@ -16,6 +16,7 @@ node_modules/
 !/sw.js
 !/icon.svg
 !/og-card.png
+!/qr-app.svg
 !/js
 !/css
 !/data

@@ -2,6 +2,7 @@ import { renderAuswahl } from './auswahl.js';
 import { renderWelt }    from './welt.js';
 import { renderKarte }  from './karte.js';
 import { renderBurg }   from './burg.js';
+import { renderInfo } from './info.js';
 import { initSync } from './sync.js';
 import { istModalOffen } from './modal.js';
 import { starteTimerLaufzeit } from './uebungs-timer.js';
@@ -16,6 +17,7 @@ const routes = {
   'welt':    () => renderWelt(root),
   'karte':   () => renderKarte(root),
   'burg':    () => renderBurg(root),
+  'info':    () => renderInfo(root),
 };
 
 function route() {
