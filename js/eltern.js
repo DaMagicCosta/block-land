@@ -263,7 +263,7 @@ function tabBelohnungen(container, neuRendern) {
       </div>
       <div class="eltern__rezept-zeile">
         <span class="eltern__rezept-kosten">${kostenText(r.kosten)}</span>
-        <button class="eltern__mini" data-edit>✏️ Preis</button>
+        <button class="eltern__mini" data-edit>✏️ Bearbeiten</button>
         <button class="eltern__mini eltern__mini--rot" data-del>✕</button>
       </div>
       <div class="eltern__preis-form" hidden></div>
@@ -283,11 +283,38 @@ function tabBelohnungen(container, neuRendern) {
       const form = row.querySelector('.eltern__preis-form');
       if (!form.hidden) { form.hidden = true; form.innerHTML = ''; return; }
       const r = getRezepte().find(x => x.id === id);
+      if (!r) return;
       form.hidden = false;
-      form.innerHTML = preisFormHtml(r ? r.kosten : {}) + '<button class="eltern__mini" data-save>Speichern</button>';
+      form.innerHTML = `
+        <label class="eltern__form-label">Name</label>
+        <input class="eltern__feld" data-name maxlength="30" value="${escapeHtml(r.name)}" />
+        <label class="eltern__form-label">Aussehen</label>
+        <input class="eltern__feld eltern__feld--emoji" data-emoji maxlength="4" value="${escapeHtml(r.emoji ?? '🎁')}" />
+        <label class="eltern__form-label">Wert (optional) — fürs Aufsummieren gleicher Gutscheine</label>
+        <div class="eltern__neu-zeile">
+          <input class="eltern__feld" data-wert type="number" min="0" placeholder="z.B. 15" value="${(typeof r.wert === 'number' && r.wert > 0) ? r.wert : ''}" />
+          <input class="eltern__feld" data-einheit maxlength="12" placeholder="Einheit (z.B. Min)" value="${escapeHtml(r.einheit ?? '')}" />
+        </div>
+        <label class="eltern__form-label">Preis (mind. 1 Rohstoff)</label>
+        ${preisFormHtml(r.kosten)}
+        <button class="eltern__mini" data-save>Speichern</button>
+      `;
       form.querySelector('[data-save]').addEventListener('click', () => {
+        const name = form.querySelector('[data-name]').value.trim();
+        if (!name) { form.querySelector('[data-name]').focus(); return; }
+        const emoji = form.querySelector('[data-emoji]').value.trim() || '🎁';
         const kosten = leseKostenForm(form);
-        speichereRezepte(getRezepte().map(x => x.id === id ? { ...x, kosten } : x));
+        if (Object.keys(kosten).length === 0) { alert('Bitte mindestens einen Rohstoff als Preis setzen.'); return; }
+        const wertRoh = parseInt(form.querySelector('[data-wert]').value, 10);
+        const einheit = form.querySelector('[data-einheit]').value.trim();
+        speichereRezepte(getRezepte().map(x => {
+          if (x.id !== id) return x;
+          const { wert: _w, einheit: _e, ...basis } = x;
+          // Geleerter Wert wird als 0 gespeichert (nicht weggelassen): der Seed-Merge in
+          // getRezepte füllt fehlende wert-Felder bei Standard-Sorten sonst wieder auf.
+          const wertFelder = (wertRoh > 0) ? { wert: wertRoh, einheit: einheit || 'Stück' } : { wert: 0 };
+          return { ...basis, name, emoji, kosten, ...wertFelder };
+        }));
         neuRendern();
       });
     });
