@@ -44,6 +44,15 @@
   font-size: var(--font-size-sm);
   letter-spacing: 1px;
   text-transform: uppercase;
+  /* Klarer Übergang zwischen Abschnitten (Muster aus der Statistik übernommen). */
+  margin-top: var(--space-lg);
+  border-top: 1px solid var(--color-border);
+  padding-top: var(--space-md);
+}
+/* Erster Abschnitt eines Tabs braucht keine Trennlinie nach oben. */
+.eltern__inhalt > .eltern__abschnitt-titel:first-child {
+  border-top: none;
+  padding-top: 0;
   margin-top: var(--space-sm);
 }
 .eltern__alter { color: var(--color-text-dim); text-transform: none; letter-spacing: 0; }

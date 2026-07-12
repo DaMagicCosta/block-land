@@ -192,7 +192,7 @@ function tabBelohnungen(container, neuRendern) {
     </div>
     <p class="eltern__hinweis">Fällt mal nichts, gibt's eine kleine Gratulation. 🎉</p>
 
-    <h3 class="eltern__untertitel">☀️ Übungs-Timer (wandernde Sonne)</h3>
+    <div class="eltern__abschnitt-titel">☀️ Übungs-Timer (wandernde Sonne)</div>
     <p class="eltern__hinweis">Standardzeiten folgen Empfehlungen zur Konzentrationsdauer je Altersstufe.
       Änderungen gelten nur für dieses Kind; „Zurück auf Standard" übernimmt auch künftige Anpassungen der Standards.</p>
     ${timerBloecke}
@@ -602,7 +602,7 @@ function tabSync(inhalt, render) {
     <div class="eltern__fehler" hidden></div>
     <button class="eltern__primary" data-aktion="speichern">Speichern</button>
     <button class="eltern__sekundaer" data-aktion="senden">Jetzt senden</button>
-    <h3 class="eltern__untertitel">🧳 Spielstand geräteübergreifend</h3>
+    <div class="eltern__abschnitt-titel">🧳 Spielstand geräteübergreifend</div>
     <p class="eltern__hinweis">Profile, Inventar und Gutscheine wandern automatisch zwischen den Geräten,
       sobald der Sync aktiv ist. Einmalig nötig: EIN Gerät lädt hoch, alle anderen übernehmen.</p>
     <div class="eltern__sync-status">

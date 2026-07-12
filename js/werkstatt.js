@@ -18,15 +18,23 @@ const ITEM_EMOJI = { holz: '🪵', stein: '🪨', blume: '🌸', eisen: '⛏️'
 export function oeffneRezeptbuch(nachSchliessen) {
   const profile = getCurrentProfile();
   if (!profile) return;
+  // Live-Umschwung (Live-Test-Befund 2026-07-12): app.js re-rendert bei offenem Modal bewusst
+  // nicht — kommt die Telegram-Entscheidung, während das Kind in der Werkstatt wartet, muss
+  // die Werkstatt selbst auffrischen, sonst bleibt ⏳ stehen und der Gutschein verschwindet
+  // später wortlos. Listener lebt nur solange die Werkstatt offen ist.
+  const aufSyncEreignis = () => render();
+  window.addEventListener('blockland:zustandEingespielt', aufSyncEreignis);
+
   const modal = oeffneModal({
     klassen: 'modal-backdrop--werkstatt',
     inhaltHtml: '<div class="modal modal--werkstatt"></div>',
     onClose: () => {
+      window.removeEventListener('blockland:zustandEingespielt', aufSyncEreignis);
       raeumeAbgelehnteAnfragenAuf(profile.id);
       if (nachSchliessen) nachSchliessen();
     },
   });
-  if (!modal) return;
+  if (!modal) { window.removeEventListener('blockland:zustandEingespielt', aufSyncEreignis); return; }
 
   let tab = 'bauen';
 
@@ -108,17 +116,24 @@ function rendereRezepte(container, profile, neuRendern) {
 }
 
 // Gutschein-Tab: Stapel-Anzeige + „Mama & Papa fragen" (nur bei konfiguriertem Sync).
-// Zustände pro Sorte: normal | Anzahl-Wahl offen | ⏳ Anfrage offen | 🌙 abgelehnt.
+// Zustände pro Sorte: normal | Anzahl-Wahl offen | ⏳ Anfrage offen | ✅ freigegeben | 🌙 abgelehnt.
 // anfrageWahl lebt nur solange die Werkstatt offen ist (Modul-Scope wäre ein Leck).
 function rendereGutscheine(container, profile, neuRendern, anfrageWahl = null) {
   const stapel = getGutscheinStapel(profile.id);
-  if (!stapel.length) {
-    container.innerHTML = '<div class="werkstatt__leer">Noch keine Gutscheine gebaut.</div>';
-    return;
-  }
   const cfg = getSyncConfig();
   const syncAktiv = !!(cfg.aktiv && cfg.url && cfg.schluessel);
   const anfragen = getGutscheinAnfragen(profile.id);
+
+  // Freigegebene Anfragen, deren Sorte nicht mehr im Stapel liegt (die Einlösung hat die
+  // letzte Karte abgebucht): als eigene Bestätigungs-Zeile zeigen — ein Gutschein darf nie
+  // wortlos verschwinden (Live-Test-Befund 2026-07-12). Felder sind Anfrage-Snapshots.
+  const nurFreigegeben = anfragen.filter(a =>
+    a.status === 'freigegeben' && !stapel.some(s => s.rezeptId === a.rezeptId));
+
+  if (!stapel.length && !nurFreigegeben.length) {
+    container.innerHTML = '<div class="werkstatt__leer">Noch keine Gutscheine gebaut.</div>';
+    return;
+  }
 
   container.innerHTML = `
     <div class="werkstatt__gutscheine">
@@ -127,10 +142,13 @@ function rendereGutscheine(container, profile, neuRendern, anfrageWahl = null) {
           ? `<span class="werkstatt__gutschein-summe">= ${s.anzahl * s.wert} ${escapeHtml(s.einheit ?? '')}</span>`
           : '';
         const offen = anfragen.find(a => a.status === 'offen' && a.rezeptId === s.rezeptId);
+        const freigegeben = anfragen.find(a => a.status === 'freigegeben' && a.rezeptId === s.rezeptId);
         const abgelehnt = anfragen.find(a => a.status === 'abgelehnt' && a.rezeptId === s.rezeptId);
         const wahlOffen = anfrageWahl?.rezeptId === s.rezeptId;
         let aktion = '';
-        if (offen) {
+        if (freigegeben) {
+          aktion = '<div class="werkstatt__anfrage-status werkstatt__anfrage-status--ja">✅ Freigegeben — viel Spaß!</div>';
+        } else if (offen) {
           aktion = '<div class="werkstatt__anfrage-status">⏳ Gefragt — warte auf Mama oder Papa</div>';
         } else if (abgelehnt) {
           aktion = '<div class="werkstatt__anfrage-status werkstatt__anfrage-status--nein">🌙 Jetzt nicht — frag später nochmal</div>';
@@ -156,6 +174,12 @@ function rendereGutscheine(container, profile, neuRendern, anfrageWahl = null) {
             ${aktion}
           </div>`;
       }).join('')}
+      ${nurFreigegeben.map(a => `
+        <div class="werkstatt__gutschein">
+          <span class="werkstatt__gutschein-name">${a.emoji ?? '🎟️'} ${escapeHtml(a.name ?? 'Gutschein')}</span>
+          <span class="werkstatt__gutschein-anzahl">×${Number(a.anzahl) || 1}</span>
+          <div class="werkstatt__anfrage-status werkstatt__anfrage-status--ja">✅ Freigegeben — viel Spaß!</div>
+        </div>`).join('')}
     </div>
   `;
 

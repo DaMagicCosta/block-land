@@ -149,6 +149,7 @@
   flex-basis: 100%; min-width: 0;
 }
 .werkstatt__anfrage-status--nein { color: var(--color-danger); }
+.werkstatt__anfrage-status--ja { color: var(--color-success); font-weight: bold; }
 .werkstatt__anfrage-wahl {
   display: flex; align-items: center; gap: var(--space-xs);
   flex-basis: 100%; min-width: 0;
