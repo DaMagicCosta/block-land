@@ -63,7 +63,7 @@
 .eltern__feld:focus { outline: none; border-color: var(--color-action); }
 .eltern__feld--emoji { width: 80px; text-align: center; }
 .eltern__neu-zeile { display: flex; gap: var(--space-sm); }
-.eltern__neu-zeile .eltern__feld { width: auto; flex: 1; }
+.eltern__neu-zeile .eltern__feld { width: auto; flex: 1; min-width: 0; } /* min-width: 0 — sonst sprengt die Input-Mindestbreite die Zeile am Handy */
 
 .eltern__fehler { color: var(--color-danger); font-family: var(--font-mono); font-size: var(--font-size-sm); }
 .eltern__erfolg { color: var(--color-success); font-family: var(--font-mono); font-size: var(--font-size-sm); }
