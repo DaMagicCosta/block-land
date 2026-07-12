@@ -189,12 +189,20 @@ function leseEreignisse(maxTage) {
 // Server-Daten mit denselben Funktionen rendert wie lokale.
 function aggregiere(events) {
   const map = {};
+  // Sitzungs-Zeiten: nur die letzten 7 Tage (Payload klein halten), Spec 2026-07-12.
+  const grenzeZeiten = new Date();
+  grenzeZeiten.setDate(grenzeZeiten.getDate() - 6);
+  grenzeZeiten.setHours(0, 0, 0, 0);
   events.forEach(ev => {
     const k = map[ev.kind] = map[ev.kind] || {
-      kind: ev.kind, alter: ev.alter, gesamt: 0, richtig: 0, zeit_ms: 0, aufsagen: 0, proTyp: {}, verlauf: {},
+      kind: ev.kind, alter: ev.alter, gesamt: 0, richtig: 0, zeit_ms: 0, aufsagen: 0, proTyp: {}, verlauf: {}, zeiten: {},
     };
     k.alter = ev.alter;
     k.zeit_ms += ev.zeit_ms;
+    if (ev.ts >= grenzeZeiten) {
+      const tagZ = tagVon(ev.ts);
+      (k.zeiten[tagZ] = k.zeiten[tagZ] || []).push(Utilities.formatDate(ev.ts, Session.getScriptTimeZone(), 'HH:mm'));
+    }
     if (ev.art === 'aufsagen') { k.aufsagen += 1; return; }
     k.gesamt += ev.gesamt;
     k.richtig += ev.richtig;
@@ -211,11 +219,13 @@ function aggregiere(events) {
   });
   return Object.keys(map).map(name => {
     const k = map[name];
+    Object.keys(k.zeiten).forEach(function (t) { k.zeiten[t].sort(); });
     return {
       kind: k.kind, alter: k.alter, gesamt: k.gesamt, richtig: k.richtig,
       zeit_ms: k.zeit_ms, aufsagen: k.aufsagen,
       proTyp: Object.keys(k.proTyp).map(t => k.proTyp[t]),
       verlauf: k.verlauf,
+      zeiten: k.zeiten,
     };
   });
 }
