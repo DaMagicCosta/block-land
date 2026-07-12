@@ -280,15 +280,36 @@
 .eltern__sync-status { margin: var(--space-md) 0; font-size: 14px; opacity: 0.85; }
 .eltern__regler-step:active { background: var(--color-surface); }
 
-/* Übungs-Timer (Wandernde Sonne) — Zeilen-Layout analog .eltern__regler-zeile */
+/* Übungs-Timer (Wandernde Sonne) — pro Kind eine Karte, Werte rechtsbündig ausgerichtet */
 .eltern__timer-kind {
   display: flex;
   flex-direction: column;
-  gap: var(--space-xs);
-  margin-bottom: var(--space-md);
+  gap: var(--space-sm);
+  background: var(--color-surface);
+  border-radius: var(--radius-sm);
+  padding: var(--space-sm) var(--space-md);
+  margin-bottom: var(--space-sm);
 }
+.eltern__timer-titel { color: var(--color-text); font-size: var(--font-size-sm); }
 .eltern__timer-feld {
   display: flex;
   align-items: center;
   gap: var(--space-sm);
+  color: var(--color-text-dim);
+  font-size: var(--font-size-sm);
 }
+/* Zahlenfelder im App-Look (statt weißer Browser-Defaults) und rechtsbündig —
+   dadurch stehen Üben- und Pause-Wert exakt untereinander. */
+.eltern__timer-feld input[type="number"] {
+  margin-left: auto;
+  width: 84px;
+  background: var(--color-surface-2);
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-base);
+  padding: var(--space-xs) var(--space-sm);
+  text-align: center;
+}
+.eltern__timer-feld input[type="number"]:focus { outline: none; border-color: var(--color-action); }
