@@ -105,6 +105,8 @@
   background: var(--color-surface-2);
   border-radius: var(--radius-sm);
   padding: var(--space-xs) var(--space-sm);
+  -webkit-user-select: text; /* Copy-Fallback: „Link markieren" muss hier gehen (reset.css sperrt global) */
+  user-select: text;
 }
 .info__kopieren {
   display: block;

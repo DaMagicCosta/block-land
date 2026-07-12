@@ -8,3 +8,16 @@ body {
 }
 button { font: inherit; cursor: pointer; }
 input { font: inherit; }
+
+/* Textauswahl app-weit aus: Langdruck löst sonst Markieren + Google-Suche aus (stört Kinder
+   beim Spielen). Wieder AN nur, wo Auswahl echten Nutzen hat: Eingabefelder (tippen/einfügen)
+   und gezielt markierte Stellen (z.B. .info__link-zeile code — Copy-Fallback im Info-Bereich). */
+body {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+input, textarea {
+  -webkit-user-select: text;
+  user-select: text;
+}
