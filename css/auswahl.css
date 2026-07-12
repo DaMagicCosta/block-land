@@ -90,3 +90,19 @@
   cursor: pointer;
 }
 .profil-karte__bild:hover { border-color: var(--color-action); color: var(--color-action); }
+
+/* ℹ️ Einstieg in den Info-Bereich — bewusst leise (Fußzeilen-Link, kein Kind-Magnet) */
+.auswahl__info {
+  border: none;
+  background: none;
+  color: var(--color-text-faint);
+  font-family: var(--font-body);
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+  margin-top: var(--space-sm);
+  text-decoration: underline;
+}
+
+@media (max-width: 480px) {
+  .auswahl__info { font-size: var(--font-size-xs); }
+}

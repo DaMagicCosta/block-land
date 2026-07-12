@@ -46,6 +46,7 @@ export async function renderAuswahl(container) {
       ${leer}
       <div class="auswahl__grid">${karten}</div>
       <button class="auswahl__eltern" id="auswahl-eltern">⚙️ Eltern-Bereich</button>
+      <button class="auswahl__info" id="auswahl-info">ℹ️ Über diese App &amp; Anleitung</button>
     </div>
   `;
 
@@ -65,6 +66,8 @@ export async function renderAuswahl(container) {
   // Nach Schließen des Eltern-Bereichs die Startseite neu rendern — neu angelegte
   // (oder gelöschte/umbenannte) Kinder erscheinen so sofort, ohne manuelles Reload.
   container.querySelector('#auswahl-eltern').addEventListener('click', () => oeffneElternBereich(() => renderAuswahl(container)));
+
+  container.querySelector('#auswahl-info').addEventListener('click', () => { location.hash = 'info'; });
 
   function kindPinAbfrage(id) {
     const modal = oeffneModal({ klassen: 'modal-backdrop--eltern', inhaltHtml: '<div class="modal modal--eltern"></div>' });

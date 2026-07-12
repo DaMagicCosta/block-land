@@ -105,6 +105,7 @@ function dashboard(modal) {
           </button>`).join('')}
       </div>
       <div class="eltern__inhalt"></div>
+      <button class="eltern__sekundaer eltern__info-link">ℹ️ Über Block-Land &amp; Anleitung</button>
       <button class="eltern__sekundaer eltern__schliessen">Fertig</button>
     `;
     const inhalt = modal.inhalt.querySelector('.eltern__inhalt');
@@ -119,6 +120,10 @@ function dashboard(modal) {
       b.addEventListener('click', () => { tab = b.dataset.tab; render(); });
     });
     modal.inhalt.querySelector('.eltern__schliessen').addEventListener('click', () => modal.schliessen());
+    modal.inhalt.querySelector('.eltern__info-link').addEventListener('click', () => {
+      modal.schliessen();
+      location.hash = 'info';
+    });
   }
   render();
 }
