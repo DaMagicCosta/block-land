@@ -10,7 +10,8 @@ import { rendereStellenwert } from './stellenwert.js';
 import { verteileBelohnung } from './belohnung.js';
 import { loadAufgabenPool, loadBiomManifest } from './data.js';
 import { waehleMechanik, aktuelleStufe, rapportiereErgebnis } from './adaptiv.js';
-import { getCurrentProfile, getAktivesBiom, schalteNaechstesBiomFrei, getAktiveReihe, setzeAktiveReihe } from './state.js';
+import { getCurrentProfile, getAktivesBiom, schalteNaechstesBiomFrei, getAktiveReihe, setzeAktiveReihe, getFehlerbox, setzeFehlerboxEintrag } from './state.js';
+import { aufgabeSchluessel, neuerEintrag, planeWieder, naechsteFaellige, hilfeStufeFuer } from './fehlerbox-logik.js';
 import { reihenLaenge, istReiheFertig, fortschrittPunkte } from './reihe-logik.js';
 import { BIOME_REIHENFOLGE, baselineMaxIndex } from './biome-logik.js';
 import { escapeHtml, sprich } from './utils.js';
@@ -88,7 +89,30 @@ export async function oeffneAufgabe(reward, { onClose, festeStufe = null } = {})
     if (typ === 'geteilt') return generiereGeteiltAufgabe(stufenConfig, pool.geteilt.distraktoren);
     return generierePlusAufgabe(stufenConfig, pool.plus.distraktoren);
   }
+  // Wiedervorlage aus der Fehler-Box (Leitner). Bewusst NUR jede zweite Aufgabe:
+  // Bestünde eine Reihe nur aus alten Fehlern, wäre sie für das Kind eine Strafrunde.
+  // Erfolg und Wiederholung müssen sich abwechseln, sonst bricht die Motivation weg.
+  let letzteWarAusBox = false;
+
+  function ausFehlerbox() {
+    if (letzteWarAusBox) return null;
+    const eintrag = naechsteFaellige(getFehlerbox(profile.id), typ);
+    if (!eintrag) return null;
+    return {
+      ...structuredClone(eintrag.aufgabe),
+      // Marker für antwortPruefen(). Fährt mit der Reihe mit (wird persistiert).
+      box: { schluessel: eintrag.schluessel, fach: eintrag.fach, hilfe: hilfeStufeFuer(eintrag) },
+    };
+  }
+
   function generiere() {
+    const wieder = ausFehlerbox();
+    if (wieder) {
+      letzteWarAusBox = true;
+      letzteAufgabeKey = aufgabeKey(wieder);
+      return wieder;
+    }
+    letzteWarAusBox = false;
     let a = einmalGenerieren();
     // Nicht zweimal hintereinander dieselbe Aufgabe (wirkt sonst monoton).
     for (let v = 0; v < 6 && aufgabeKey(a) === letzteAufgabeKey; v++) a = einmalGenerieren();
@@ -145,6 +169,36 @@ function fortschrittHtml(position, laenge) {
 }
 
 // Rendert die aktuelle Frage der Reihe ins (eine) Modal und verdrahtet die Beantwortung.
+// Hilfe-Ausschleichen für Aufgaben aus der Fehler-Box (fehlerbox-logik.js: HILFE).
+// Der Sinn der Box ist Abruf, nicht Wiedererkennen — deshalb wird die Anschauung von Fach
+// zu Fach zurückgenommen, bis das Kind die Aufgabe aus dem Kopf holt:
+//   Fach 1 'voll'    → Würfelbild wie immer (er hat sie gerade erst nicht gekonnt)
+//   Fach 2 'anstoss' → Bild ist da, aber verborgen. Er muss aktiv danach greifen.
+//                      Selbst entscheiden „ich brauche noch Hilfe" ist der halbe Weg zum Abruf.
+//   Fach 3 'keine'   → nichts. Jetzt muss es aus dem Kopf kommen.
+//
+// WICHTIG: Angefasst wird nur die Anschauung VOR dem Fehler. Die Leitplanke „nach 2
+// Fehlversuchen wird die Lösung gezeigt" bleibt unangetastet — es entsteht kein Frust-Loop.
+// Der geführte Stellenwert-Fall (.aufgabe__stellenwert) und das Legen der B-Mechanik
+// (.aufgabe__legebereich) sind keine Hilfe, sondern die Aufgabe selbst — Finger weg.
+function schleifeHilfeAus(inhalt, aufgabe) {
+  const stufe = aufgabe.box?.hilfe;
+  if (!stufe || stufe === 'voll') return;
+
+  const bild = inhalt.querySelector('.aufgabe__visualisierung');
+  if (!bild) return;
+
+  if (stufe === 'keine') { bild.remove(); return; }
+
+  // 'anstoss': verbergen, Kind kann sie sich selbst holen.
+  bild.hidden = true;
+  const knopf = document.createElement('button');
+  knopf.className = 'aufgabe__hilfe-knopf';
+  knopf.textContent = '💡 Ich brauche das Bild';
+  knopf.addEventListener('click', () => { bild.hidden = false; knopf.remove(); });
+  bild.insertAdjacentElement('beforebegin', knopf);
+}
+
 function rendereFrageInModal(modal, reihe, profile, maxStufe, onWeiter) {
   const aufgabe = reihe.aufgabe;
   const istKlein = istKleinkind(profile);
@@ -170,6 +224,7 @@ function rendereFrageInModal(modal, reihe, profile, maxStufe, onWeiter) {
 
   function starteInhalt() {
     inhalt.innerHTML = baueAufgabeInhalt(aufgabe, mechanik);
+    schleifeHilfeAus(inhalt, aufgabe);
     if (istKlein) {
       const hoeren = document.createElement('button');
       hoeren.className = 'aufgabe__hoeren';
@@ -334,10 +389,34 @@ function starteAufgabe(reihe, mechanik, profile, modal, inhalt, maxStufe, onWeit
     fb.textContent = text;
   }
 
+  // Fehler-Box pflegen. Die einzige Stelle, die Einträge anlegt oder fortschreibt.
+  // Regel: Aufstieg nur, wenn die Aufgabe AUF ANHIEB saß — das ist die Definition von
+  // „abrufen können". Wer erst im zweiten Anlauf trifft, hat sie hergeleitet, nicht abgerufen.
+  function pflegeFehlerbox(warRichtig, aufAnhieb) {
+    const marker = aufgabe.box;
+    if (!marker) {
+      // Neue Aufgabe endgültig danebengegangen → sie kommt ab morgen wieder.
+      if (!warRichtig) {
+        const eintrag = neuerEintrag(aufgabe);
+        if (eintrag) setzeFehlerboxEintrag(profile.id, eintrag.schluessel, eintrag);
+      }
+      return;
+    }
+    // Wiedervorlage: Fach hoch, halten oder zurück.
+    const box = getFehlerbox(profile.id);
+    const alt = box[marker.schluessel];
+    if (!alt) return;   // Aufgabe wurde zwischenzeitlich (anderes Gerät) erledigt
+    const neu = warRichtig
+      ? (aufAnhieb ? planeWieder(alt, true) : verschiebeAufMorgen(alt))
+      : planeWieder(alt, false);
+    setzeFehlerboxEintrag(profile.id, marker.schluessel, neu);   // neu === null → verlässt die Box
+  }
+
   function antwortPruefen(wert) {
     const richtig = wert === aufgabe.ergebnis;
     if (richtig) {
       const zeit_ms = performance.now() - startZeit;
+      pflegeFehlerbox(true, reihe.fehlversuche === 0);
       rapportiereErgebnis(profile.id, aufgabe.aufgabentyp, true, zeit_ms, { maxStufe, adaptStufe: !reihe.festeStufe });
       // Niveau-Abstufung: in Biomen UNTER der Schulstufe weniger Basis-Drops + kein Premium.
       const biomId = getAktivesBiom(profile.id);
@@ -356,6 +435,7 @@ function starteAufgabe(reihe, mechanik, profile, modal, inhalt, maxStufe, onWeit
     setzeAktiveReihe(profile.id, reihe.biom, reihe);   // Versuchsstand persistieren (Mitten-drin-Verlassen)
     if (reihe.fehlversuche >= MAX_FEHLVERSUCHE) {
       const zeit_ms = performance.now() - startZeit;
+      pflegeFehlerbox(false, false);
       rapportiereErgebnis(profile.id, aufgabe.aufgabentyp, false, zeit_ms, { maxStufe, adaptStufe: !reihe.festeStufe });
       zeigeLoesung(aufgabe, modal, istKleinkind(profile), onWeiter);
       return;

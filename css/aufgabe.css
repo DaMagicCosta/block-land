@@ -221,6 +221,28 @@
 }
 .aufgabe__hoeren:hover { border-color: var(--color-action); }
 
+/* Hilfe-Knopf der Fehler-Box (Fach 2): Das Würfelbild ist da, aber das Kind muss aktiv
+   danach greifen. Bewusst zurückhaltend gestaltet — ein Angebot, kein Vorwurf und keine
+   Aufforderung. Wer ihn nicht braucht, soll ihn auch nicht anschauen müssen. */
+/* Muss sein: .aufgabe__visualisierung setzt display:flex, und das schlägt das [hidden]-Attribut
+   aus dem Browser-Default-Stylesheet. Ohne diese Regel bleibt das Würfelbild sichtbar, obwohl
+   es verborgen sein soll — und das Ausschleichen wäre wirkungslos. */
+.aufgabe__visualisierung[hidden] { display: none; }
+
+.aufgabe__hilfe-knopf {
+  align-self: center;
+  background: transparent;
+  color: var(--color-text-dim, var(--color-text));
+  border: 2px dashed var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-xs) var(--space-md);
+  margin-bottom: var(--space-sm);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+}
+.aufgabe__hilfe-knopf:hover { border-color: var(--color-action); color: var(--color-text); }
+
 .feier__unlock { color: var(--color-success); font-family: var(--font-mono); font-size: var(--font-size-sm); margin: var(--space-sm) 0; }
 
 /* Übungsreihe: Fortschrittspunkte im Aufgaben-Kopf */

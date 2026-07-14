@@ -127,6 +127,7 @@ export function addProfile({ name, weltName, avatar, alter, kindPin = null }) {
     aufsagenProtokoll: [],       // Ereignis-Log Mal-Reihen-Aufsagen (Zeit + Durchgänge je Stufe)
     eintragenProtokoll: [],      // Ereignis-Log Mal-Reihen-Eintragen (richtig/fehler/verraten je Reihe)
     aktiveReihen: {},            // laufende Übungsreihen pro Biom (Wiedereinstieg)
+    fehlerbox: {},               // Leitner-Box: falsche Aufgaben kommen gezielt wieder (fehlerbox-logik.js)
     schwierigkeit: { plus: 2 },
     statistik: { plus: { gesamt: 0, richtig: 0 } },
     biome: { aktiv: null, autoFrei: [], elternFrei: [], elternGesperrt: [] },
@@ -204,6 +205,27 @@ export function trackeAufgabe(profileId, aufgabentyp, war_richtig, zeit_ms = 0, 
   }
   save(state);
   melde('aufgabeGetrackt', { profilId: profileId, typ: aufgabentyp, richtig: !!war_richtig, zeitMs: zeit_ms });
+}
+
+// --- Fehler-Box (Leitner) ---
+// Pure Logik in fehlerbox-logik.js. Hier nur Persistenz.
+// Bestehende Profile haben das Feld nicht — überall defensiv mit ?? {} lesen.
+
+export function getFehlerbox(profileId) {
+  return structuredClone(state.profiles[profileId]?.fehlerbox ?? {});
+}
+
+// Eintrag setzen (neu oder aktualisiert) — oder entfernen, wenn `eintrag` null ist.
+// Ein Aufruf für beides, damit der Aufrufer das Ergebnis von planeWieder() direkt durchreichen
+// kann: null heißt dort „die Aufgabe sitzt jetzt" und hier „raus aus der Box".
+export function setzeFehlerboxEintrag(profileId, schluessel, eintrag) {
+  const p = state.profiles[profileId];
+  if (!p || !schluessel) return;
+  p.fehlerbox = p.fehlerbox ?? {};
+  if (eintrag) p.fehlerbox[schluessel] = structuredClone(eintrag);
+  else delete p.fehlerbox[schluessel];
+  save(state);
+  melde('fehlerboxGesetzt', { profilId: profileId, schluessel, eintrag: eintrag ? structuredClone(eintrag) : null });
 }
 
 export function getVerlauf(profileId) {
@@ -572,6 +594,18 @@ export function wendeZustandsEreignisAn(ereignis) {
         if (!state.profiles[args?.profilId]) return false;
         trackeAufgabe(args.profilId, args.typ, !!args.richtig, args.zeitMs ?? 0, datum);
         return true;
+      case 'fehlerboxGesetzt': {
+        // Last-write-wins pro Aufgabe. Bewusst simpel: Übt das Kind auf zwei Geräten
+        // parallel dieselbe Aufgabe, gewinnt das zuletzt eingespielte Ereignis. Im
+        // schlimmsten Fall kommt eine Aufgabe einmal zu oft — nie eine zu wenig.
+        const p = state.profiles[args?.profilId];
+        if (!p || !args?.schluessel) return false;
+        p.fehlerbox = p.fehlerbox ?? {};
+        if (args.eintrag) p.fehlerbox[args.schluessel] = structuredClone(args.eintrag);
+        else delete p.fehlerbox[args.schluessel];
+        save(state);
+        return true;
+      }
       case 'gutscheinGebaut': {
         const p = state.profiles[args?.profilId];
         if (!p || !args?.gutschein?.id) return false;
