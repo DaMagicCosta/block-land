@@ -23,16 +23,23 @@ function melde(op, args) {
 
 const STORAGE_KEY = 'block-land-state-v1';
 
+// WICHTIG — Beschluss 13.07.2026 (siehe 09_Kinder/Block-Land-Brücke.md):
+// Gutscheine sind BESTIMMUNGSRECHTE, niemals erspielte Elternzeit.
+// Zeit mit Mama und Papa ist gesetzt und findet immer statt — sie ist nie Belohnung und nie
+// Druckmittel. Wird sie zur erspielten Ware, lernt ein Kind bei Misserfolg: „Ich habe mir die
+// Zeit mit Papa nicht verdient." Was der Gutschein freischaltet, ist nicht OB, sondern WAS.
+// Deshalb hier kein „Papa-Zeit"/„Mama-Zeit" mehr. Bitte auch nie wieder einführen.
 const STANDARD_REZEPTE = [
-  { id: 'r_geschichte', name: 'Extra-Geschichte',    emoji: '📖', kategorie: 'Eltern-Zeit',     kosten: { holz: 4 },            aktiv: true },
-  { id: 'r_mama',       name: 'Mama-Zeit',           emoji: '👩', kategorie: 'Eltern-Zeit',     kosten: { holz: 6 },            aktiv: true },
-  { id: 'r_papa',       name: 'Papa-Zeit',           emoji: '👨', kategorie: 'Eltern-Zeit',     kosten: { holz: 6 },            aktiv: true },
-  { id: 'r_brettspiel', name: 'Brettspiel zusammen', emoji: '🧩', kategorie: 'Eltern-Zeit',     kosten: { holz: 8 },            aktiv: true },
+  { id: 'r_papa',       name: "Papa: ich such's aus", emoji: '👨', kategorie: 'Ich bestimme',    kosten: { holz: 6 },            aktiv: true },
+  { id: 'r_mama',       name: "Mama: ich such's aus", emoji: '👩', kategorie: 'Ich bestimme',    kosten: { holz: 6 },            aktiv: true },
+  { id: 'r_brettspiel', name: 'Brettspiel aussuchen', emoji: '🧩', kategorie: 'Ich bestimme',    kosten: { holz: 8 },            aktiv: true },
+  { id: 'r_forschen',   name: 'Forscher-Wunsch',      emoji: '🔬', kategorie: 'Ich bestimme',    kosten: { holz: 10 },           aktiv: true },
+  { id: 'r_geschichte', name: 'Extra-Geschichte',     emoji: '📖', kategorie: 'Extra obendrauf', kosten: { holz: 4 },            aktiv: true },
   { id: 'r_nachtisch',  name: 'Nachtisch wünschen',  emoji: '🍨', kategorie: 'Naschen & Essen', kosten: { stein: 6 },           aktiv: true },
   { id: 'r_nasch',      name: 'Nasch-Gutschein',     emoji: '🍫', kategorie: 'Naschen & Essen', kosten: { stein: 8 },           aktiv: true },
   { id: 'r_spiel15',    name: '15 Min Spielen',      emoji: '⏱️', kategorie: 'Bildschirm-Zeit', kosten: { holz: 10, stein: 4 }, aktiv: true, wert: 15, einheit: 'Min' },
   { id: 'r_film',       name: 'Extra-Filmzeit',      emoji: '📺', kategorie: 'Bildschirm-Zeit', kosten: { holz: 12, stein: 6 }, aktiv: true },
-  { id: 'r_aufbleiben', name: 'Länger aufbleiben',   emoji: '🌙', kategorie: 'Erlebnisse',      kosten: { holz: 8, blume: 6 },  aktiv: true },
+  { id: 'r_aufbleiben', name: 'Länger aufbleiben',   emoji: '🌙', kategorie: 'Extra obendrauf', kosten: { holz: 8, blume: 6 },  aktiv: true },
   { id: 'r_filmabend',  name: 'Filmabend aussuchen', emoji: '🎬', kategorie: 'Erlebnisse',      kosten: { eisen: 2 },           aktiv: true },
   { id: 'r_ausflug',    name: 'Ausflug aussuchen',   emoji: '🦖', kategorie: 'Erlebnisse',      kosten: { diamant: 3 },         aktiv: true },
 ];

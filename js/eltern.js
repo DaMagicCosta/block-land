@@ -25,7 +25,9 @@ import { verwerfeLaufzeitStand } from './uebungs-timer.js';
 
 const ITEM_KEYS = ['holz', 'stein', 'blume', 'eisen', 'diamant'];
 const ITEM_EMOJI = { holz: '🪵', stein: '🪨', blume: '🌸', eisen: '⛏️', diamant: '💎' };
-const KATEGORIEN = ['Eltern-Zeit', 'Naschen & Essen', 'Bildschirm-Zeit', 'Erlebnisse'];
+// „Ich bestimme" statt „Eltern-Zeit": Gutscheine sind Bestimmungsrechte, keine erspielte
+// Elternzeit (Beschluss 13.07.2026, siehe STANDARD_REZEPTE in state.js).
+const KATEGORIEN = ['Ich bestimme', 'Extra obendrauf', 'Naschen & Essen', 'Bildschirm-Zeit', 'Erlebnisse'];
 const ALTER = [['kindergarten', 'Kindergarten'], ['klasse-1', '1. Klasse'], ['klasse-2', '2. Klasse'], ['klasse-3', '3. Klasse']];
 const AVATARE = [['krieger', '🗡️'], ['bergmann', '⛏️'], ['magier', '🧙'], ['ninja', '🥷'], ['ritter', '🛡️'], ['schurke', '🦹'], ['tier', '🐺'], ['drache', '🐉']];
 
