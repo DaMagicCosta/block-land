@@ -47,6 +47,35 @@
 
 .profil-karte:hover { transform: translateY(-2px); border-color: var(--color-success); }
 .profil-karte__avatar { font-size: 56px; }
+
+/* Selbst aufgenommenes Profilfoto (bleibt gerätelokal, siehe state.js → FOTO_PREFIX).
+   Rund und gleich groß wie das Emoji, damit die Karten nicht springen. */
+.profil-karte__foto {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
+  border: 2px solid var(--color-border);
+}
+
+/* Kamera-Modal */
+.kamera { display: flex; flex-direction: column; align-items: center; gap: var(--space-sm); }
+.kamera__video,
+.kamera__vorschau {
+  width: 240px;
+  height: 240px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--color-surface-2);
+  border: 3px solid var(--color-border);
+}
+/* Vorschau spiegeln: sonst greift das Kind beim Posieren in die falsche Richtung.
+   Das aufgenommene Bild wird in kamera.js identisch gespiegelt. */
+.kamera__video { transform: scaleX(-1); }
+.kamera__status { color: var(--color-text-dim); font-size: var(--font-size-sm); text-align: center; }
+.kamera__status--fehler { color: var(--color-danger); }
+.kamera__knoepfe { display: flex; flex-direction: column; gap: var(--space-xs); width: 100%; }
 .profil-karte__name   { font-family: var(--font-mono); font-size: 18px; font-weight: bold; }
 .profil-karte__welt   { color: var(--color-text-dim); font-size: var(--font-size-sm); }
 
@@ -105,4 +134,13 @@
 
 @media (max-width: 480px) {
   .auswahl__info { font-size: var(--font-size-xs); }
+
+  /* Kamera am Handy: Vorschau an die Breite koppeln statt fixe 240px, damit sie auf
+     schmalen Geräten nicht aus dem Modal ragt. Quadratisch bleibt sie über aspect-ratio. */
+  .kamera__video,
+  .kamera__vorschau {
+    width: min(240px, 62vw);
+    height: auto;
+    aspect-ratio: 1 / 1;
+  }
 }

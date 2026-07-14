@@ -1,8 +1,9 @@
-import { getProfiles, setCurrentProfile, updateProfile, hatKindPin, pruefeKindPin } from './state.js';
+import { getProfiles, setCurrentProfile, updateProfile, hatKindPin, pruefeKindPin, getAvatarFoto, setzeAvatarFoto } from './state.js';
 import { escapeHtml } from './utils.js';
 import { loadAvatare } from './data.js';
 import { oeffneModal } from './modal.js';
 import { oeffneElternBereich } from './eltern.js';
+import { oeffneKamera } from './kamera.js';
 
 export async function renderAuswahl(container) {
   // Auswahl-Screen = kein Kind aktiv: nullt das persistierte Profil, damit der
@@ -26,14 +27,22 @@ export async function renderAuswahl(container) {
 
   const avatarMap = Object.fromEntries(avatare.map(a => [a.id, a.emoji]));
 
-  const karten = profile.map(p => `
+  // Foto schlägt Emoji. Die Data-URL kommt aus dem eigenen localStorage (nicht aus dem Sync)
+  // und stammt immer aus der eigenen Kamera — sie wird als src gesetzt, nie als HTML geparst.
+  const karten = profile.map(p => {
+    const foto = getAvatarFoto(p.id);
+    const bildHtml = foto
+      ? `<img class="profil-karte__foto" src="${escapeHtml(foto)}" alt="">`
+      : (avatarMap[p.avatar] ?? '❔');
+    return `
     <div class="profil-karte" data-profile-id="${p.id}">
-      <div class="profil-karte__avatar">${avatarMap[p.avatar] ?? '❔'}</div>
+      <div class="profil-karte__avatar">${bildHtml}</div>
       <div class="profil-karte__name">${escapeHtml(p.name)}${hatKindPin(p.id) ? ' 🔒' : ''}</div>
       <div class="profil-karte__welt">${escapeHtml(p.weltName)}</div>
       <button class="profil-karte__bild" data-bild="${p.id}">🎨 Bild</button>
     </div>
-  `).join('');
+  `;
+  }).join('');
 
   const leer = profile.length
     ? ''
@@ -97,12 +106,30 @@ export async function renderAuswahl(container) {
   function bildAendern(id) {
     const modal = oeffneModal({ klassen: 'modal-backdrop--eltern', inhaltHtml: '<div class="modal modal--eltern"></div>' });
     if (!modal) return;
+    const hatFoto = !!getAvatarFoto(id);
     modal.inhalt.innerHTML = `
       <div class="eltern__kopf">🎨 Wähle dein Bild</div>
+      <button class="eltern__primary profil-karte__kamera">📷 Foto von mir machen</button>
+      ${hatFoto ? '<button class="eltern__sekundaer profil-karte__fotoweg">🗑️ Foto löschen</button>' : ''}
+      <p class="eltern__hinweis">Oder nimm ein Bild aus der Liste:</p>
       <div class="eltern__avatar-grid">${avatare.map(a => `<button class="eltern__avatar-btn" data-av="${escapeHtml(a.id)}">${a.emoji}</button>`).join('')}</div>
       <button class="eltern__sekundaer eltern__abbruch">Schließen</button>
     `;
+
+    modal.inhalt.querySelector('.profil-karte__kamera').addEventListener('click', () => {
+      modal.schliessen();
+      oeffneKamera(id, () => renderAuswahl(container));
+    });
+
+    modal.inhalt.querySelector('.profil-karte__fotoweg')?.addEventListener('click', () => {
+      setzeAvatarFoto(id, null);
+      modal.schliessen();
+      renderAuswahl(container);
+    });
+
+    // Emoji wählen entfernt auch das Foto — sonst wählt man ein Emoji und sieht weiter das Bild.
     modal.inhalt.querySelectorAll('.eltern__avatar-btn').forEach(b => b.addEventListener('click', () => {
+      setzeAvatarFoto(id, null);
       updateProfile(id, { avatar: b.dataset.av });
       modal.schliessen();
       renderAuswahl(container);

@@ -149,6 +149,7 @@ export function updateProfile(id, updates) {
 
 export function deleteProfile(id) {
   if (!state.profiles[id]) return; // no-op: idempotent, kein Fehler
+  try { localStorage.removeItem(FOTO_PREFIX + id); } catch { /* egal */ }  // Foto mit löschen
   delete state.profiles[id];
   if (state.currentProfileId === id) state.currentProfileId = null;
   save(state);
@@ -205,6 +206,29 @@ export function trackeAufgabe(profileId, aufgabentyp, war_richtig, zeit_ms = 0, 
   }
   save(state);
   melde('aufgabeGetrackt', { profilId: profileId, typ: aufgabentyp, richtig: !!war_richtig, zeitMs: zeit_ms });
+}
+
+// --- Avatar-Foto (Kamera) ---
+// BEWUSST NICHT im Profil-Objekt und BEWUSST ohne melde():
+// Profil-Änderungen laufen über den Familien-Sync (Apps Script → Drive). Fotos der Kinder
+// gehören da nicht hinein — sie bleiben auf dem Gerät, auf dem sie aufgenommen wurden.
+// Wer das Bild auf einem zweiten Gerät will, nimmt dort ein neues auf.
+// Auch nicht im Haupt-State: ein paar Fotos als Data-URL würden den State aufblähen, den
+// jeder load()/save()-Zyklus komplett durch JSON schleust.
+const FOTO_PREFIX = 'block-land-avatarfoto-v1:';
+
+export function getAvatarFoto(profileId) {
+  try { return localStorage.getItem(FOTO_PREFIX + profileId); } catch { return null; }
+}
+
+export function setzeAvatarFoto(profileId, dataUrl) {
+  try {
+    if (dataUrl) localStorage.setItem(FOTO_PREFIX + profileId, dataUrl);
+    else localStorage.removeItem(FOTO_PREFIX + profileId);
+    return true;
+  } catch {
+    return false;   // Quota voll → Aufrufer zeigt eine Meldung, nichts stürzt ab
+  }
 }
 
 // --- Fehler-Box (Leitner) ---
