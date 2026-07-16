@@ -13,6 +13,7 @@ import { waehleMechanik, aktuelleStufe, rapportiereErgebnis } from './adaptiv.js
 import { getCurrentProfile, getAktivesBiom, schalteNaechstesBiomFrei, getAktiveReihe, setzeAktiveReihe, getFehlerbox, setzeFehlerboxEintrag } from './state.js';
 import { aufgabeSchluessel, neuerEintrag, planeWieder, verschiebeAufMorgen, naechsteFaellige, hilfeStufeFuer } from './fehlerbox-logik.js';
 import { normalisiereAufgabe } from './aufgaben/normalisiere.js';
+import { neueKlickSperre } from './klick-sperre.js';
 import { reihenLaenge, istReiheFertig, fortschrittPunkte } from './reihe-logik.js';
 import { BIOME_REIHENFOLGE, baselineMaxIndex } from './biome-logik.js';
 import { escapeHtml, sprich } from './utils.js';
@@ -403,6 +404,11 @@ function baueAufgabeInhalt(aufgabe, mechanik) {
 function starteAufgabe(reihe, mechanik, profile, modal, inhalt, maxStufe, onWeiter) {
   const aufgabe = reihe.aufgabe;
   const startZeit = performance.now();
+  // Doppeltipp-Schutz (Live-Befund 16.07., Ilian): gewertet wird höchstens alle 300 ms —
+  // verriegelt auch beim Start und bei jedem Reveal, damit der rhythmische Lege-/Tipp-Finger
+  // nicht auf frisch erschienenen Knöpfen landet.
+  const sperre = neueKlickSperre();
+  sperre.verriegeln(startZeit);
 
   function feedbackZeigen(text, klasse) {
     const fb = inhalt.querySelector('.aufgabe__feedback');
@@ -435,6 +441,9 @@ function starteAufgabe(reihe, mechanik, profile, modal, inhalt, maxStufe, onWeit
   }
 
   function antwortPruefen(wert) {
+    const jetzt = performance.now();
+    if (sperre.istGesperrt(jetzt)) return;   // Nachzittern eines Doppeltipps — keine Wertung
+    sperre.verriegeln(jetzt);
     const richtig = wert === aufgabe.ergebnis;
     if (richtig) {
       const zeit_ms = performance.now() - startZeit;
@@ -475,6 +484,7 @@ function starteAufgabe(reihe, mechanik, profile, modal, inhalt, maxStufe, onWeit
         onFertig: () => {
           const optionen = inhalt.querySelector('.aufgabe__optionen');
           if (optionen) optionen.hidden = false;
+          sperre.verriegeln(performance.now());   // Reveal: Doppeltipp vom Weiter-Knopf abfangen
         },
       });
     }
@@ -496,6 +506,7 @@ function starteAufgabe(reihe, mechanik, profile, modal, inhalt, maxStufe, onWeit
           optionen.querySelectorAll('.aufgabe__option').forEach(btn => {
             btn.addEventListener('click', () => antwortPruefen(parseInt(btn.dataset.wert, 10)));
           });
+          sperre.verriegeln(performance.now());   // Reveal: der letzte Lege-Tipp darf nicht gleich antworten
         }
       }
     }, { startGefuellt });

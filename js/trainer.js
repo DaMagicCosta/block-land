@@ -12,6 +12,7 @@ import { richtungsHinweis, neuerEintrag as neuerEintragEintragen } from './eintr
 import { tagesSchluessel } from './statistik-logik.js';
 import { rapportiereErgebnis } from './adaptiv.js';
 import { sprich } from './utils.js';
+import { neueKlickSperre } from './klick-sperre.js';
 
 const MAX_FEHLVERSUCHE = 2;
 
@@ -393,6 +394,8 @@ function starteQuiz(wurzel, modal, reward, reihe) {
     const richtig = f.a * f.b;
     let fehler = 0;
     const frageStart = performance.now();
+    const sperre = neueKlickSperre();   // Doppeltipp-Schutz (siehe klick-sperre.js)
+    sperre.verriegeln(frageStart);
     // Quiz zählt wie eine normale Aufgabe (Statistik + Familien-Sync). Stufe bleibt fix —
     // die Reihen-Wahl ist die Schwierigkeit des Quiz, nicht die adaptive Mal-Stufe.
     function rapportiere(warRichtig) {
@@ -413,6 +416,9 @@ function starteQuiz(wurzel, modal, reward, reihe) {
       btn.className = 'trainer__antwort';
       btn.textContent = opt;
       btn.addEventListener('click', () => {
+        const jetzt = performance.now();
+        if (sperre.istGesperrt(jetzt)) return;
+        sperre.verriegeln(jetzt);
         if (opt === richtig) {
           btn.classList.add('trainer__antwort--richtig');
           ant.querySelectorAll('button').forEach(x => { x.disabled = true; });

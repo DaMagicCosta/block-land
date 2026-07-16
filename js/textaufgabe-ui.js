@@ -12,6 +12,7 @@ import { aktuelleStufe, rapportiereErgebnis } from './adaptiv.js';
 import { gebeReward } from './inventar.js';
 import { getCurrentProfile } from './state.js';
 import { escapeHtml, sprich } from './utils.js';
+import { neueKlickSperre } from './klick-sperre.js';
 
 const MAX_FEHLVERSUCHE = 2;   // Nach 2 Fehlversuchen wird die Phase "verraten".
 const MAX_STUFE = 2;          // Textaufgaben haben 2 Stufen (siehe adaptiv.js).
@@ -150,6 +151,7 @@ function rendereLesenPhase(modal, aufgabe, profile, questStart, ctx, reward) {
 function rendereZahlenPhase(modal, aufgabe, profile, questStart, ctx, reward) {
   let fehlversuche = 0;
   const erwartet = relevanteZahlenSet(aufgabe);
+  const sperre = neueKlickSperre();   // Doppeltipp-Schutz (siehe klick-sperre.js)
 
   function render() {
     modal.inhalt.innerHTML = `
@@ -173,6 +175,9 @@ function rendereZahlenPhase(modal, aufgabe, profile, questStart, ctx, reward) {
   }
 
   function pruefen() {
+    const jetzt = performance.now();
+    if (sperre.istGesperrt(jetzt)) return;
+    sperre.verriegeln(jetzt);
     const markiert = markierteAusDom();
     if (gleicheSets(markiert, erwartet)) {
       rendereFragePhase(modal, aufgabe, profile, questStart, ctx, erwartet, reward);
@@ -199,6 +204,7 @@ function rendereZahlenPhase(modal, aufgabe, profile, questStart, ctx, reward) {
 // --- Phase 3: Frage antippen ---
 function rendereFragePhase(modal, aufgabe, profile, questStart, ctx, markierteZahlen, reward) {
   let fehlversuche = 0;
+  const sperre = neueKlickSperre();
 
   function render() {
     modal.inhalt.innerHTML = `
@@ -212,6 +218,9 @@ function rendereFragePhase(modal, aufgabe, profile, questStart, ctx, markierteZa
   }
 
   function waehle(si) {
+    const jetzt = performance.now();
+    if (sperre.istGesperrt(jetzt)) return;
+    sperre.verriegeln(jetzt);
     if (si === aufgabe.frageIndex) {
       rendereRechnenPhase(modal, aufgabe, profile, questStart, ctx, markierteZahlen, reward);
       return;
@@ -236,6 +245,7 @@ function rendereFragePhase(modal, aufgabe, profile, questStart, ctx, markierteZa
 // --- Phase 4: Rechnen ---
 function rendereRechnenPhase(modal, aufgabe, profile, questStart, ctx, markierteZahlen, reward) {
   let fehlversuche = 0;
+  const sperre = neueKlickSperre();
 
   function render() {
     const knoepfe = aufgabe.antwort_optionen.map(opt =>
@@ -252,6 +262,9 @@ function rendereRechnenPhase(modal, aufgabe, profile, questStart, ctx, markierte
   }
 
   function pruefen(wert) {
+    const jetzt = performance.now();
+    if (sperre.istGesperrt(jetzt)) return;
+    sperre.verriegeln(jetzt);
     if (wert === aufgabe.ergebnis) {
       // Ergebnis steht fest: richtig, sofern in keiner vorherigen Phase verraten wurde
       // (war schon verraten, ist ctx.rapportiert bereits gesetzt → Guard greift, kein Doppel-Rapport).
