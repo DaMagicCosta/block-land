@@ -224,6 +224,9 @@
 /* Hilfe-Knopf der Fehler-Box (Fach 2): Das Würfelbild ist da, aber das Kind muss aktiv
    danach greifen. Bewusst zurückhaltend gestaltet — ein Angebot, kein Vorwurf und keine
    Aufforderung. Wer ihn nicht braucht, soll ihn auch nicht anschauen müssen. */
+/* Historischer Einzel-Fix — inzwischen deckt die globale Regel [hidden]{display:none!important}
+   in reset.css ALLE Komponenten ab (Live-Befund 2026-07-16: vorlesen/inhalt/optionen hatten
+   denselben Fallstrick). Bleibt als Dokumentations-Anker stehen, schadet nicht. */
 /* Muss sein: .aufgabe__visualisierung setzt display:flex, und das schlägt das [hidden]-Attribut
    aus dem Browser-Default-Stylesheet. Ohne diese Regel bleibt das Würfelbild sichtbar, obwohl
    es verborgen sein soll — und das Ausschleichen wäre wirkungslos. */

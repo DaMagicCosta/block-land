@@ -12,6 +12,7 @@ import { loadAufgabenPool, loadBiomManifest } from './data.js';
 import { waehleMechanik, aktuelleStufe, rapportiereErgebnis } from './adaptiv.js';
 import { getCurrentProfile, getAktivesBiom, schalteNaechstesBiomFrei, getAktiveReihe, setzeAktiveReihe, getFehlerbox, setzeFehlerboxEintrag } from './state.js';
 import { aufgabeSchluessel, neuerEintrag, planeWieder, naechsteFaellige, hilfeStufeFuer } from './fehlerbox-logik.js';
+import { normalisiereAufgabe } from './aufgaben/normalisiere.js';
 import { reihenLaenge, istReiheFertig, fortschrittPunkte } from './reihe-logik.js';
 import { BIOME_REIHENFOLGE, baselineMaxIndex } from './biome-logik.js';
 import { escapeHtml, sprich } from './utils.js';
@@ -98,8 +99,17 @@ export async function oeffneAufgabe(reward, { onClose, festeStufe = null } = {})
     if (letzteWarAusBox) return null;
     const eintrag = naechsteFaellige(getFehlerbox(profile.id), typ);
     if (!eintrag) return null;
+    // Konserve numerisch säubern (Live-Befund 2026-07-16: ergebnis als String "10" →
+    // richtige Antwort wird abgelehnt). Nicht reparierbar → Eintrag löschen, sonst
+    // bliebe er ewig „nächstfällig" und käme bei jeder zweiten Aufgabe wieder.
+    const sauber = normalisiereAufgabe(eintrag.aufgabe);
+    if (!sauber) {
+      console.warn('[aufgabe-ui] Kaputte Fehlerbox-Konserve verworfen:', eintrag.schluessel);
+      setzeFehlerboxEintrag(profile.id, eintrag.schluessel, null);
+      return null;
+    }
     return {
-      ...structuredClone(eintrag.aufgabe),
+      ...sauber,
       // Marker für antwortPruefen(). Fährt mit der Reihe mit (wird persistiert).
       box: { schluessel: eintrag.schluessel, fach: eintrag.fach, hilfe: hilfeStufeFuer(eintrag) },
     };
@@ -121,7 +131,21 @@ export async function oeffneAufgabe(reward, { onClose, festeStufe = null } = {})
   }
 
   // Laufende Reihe DIESES Bioms fortsetzen, sonst neue starten.
+  // Auch die restaurierte Reihe ist eine Konserve (localStorage/Sync) — Aufgabe säubern;
+  // nicht reparierbar → frische Aufgabe an gleicher Position (Reihe läuft normal weiter).
   let reihe = getAktiveReihe(profile.id, aktivBiom);
+  if (reihe) {
+    aktiveFesteStufe = reihe.festeStufe ?? null;
+    const sauber = normalisiereAufgabe(reihe.aufgabe);
+    if (sauber) {
+      reihe.aufgabe = sauber;
+    } else {
+      console.warn('[aufgabe-ui] Kaputte Reihen-Konserve — Aufgabe wird frisch erzeugt.');
+      reihe.aufgabe = generiere();
+      reihe.fehlversuche = 0;
+      setzeAktiveReihe(profile.id, reihe.biom, reihe);
+    }
+  }
   if (!reihe) {
     reihe = {
       biom: aktivBiom,
@@ -133,8 +157,6 @@ export async function oeffneAufgabe(reward, { onClose, festeStufe = null } = {})
       festeStufe: aktiveFesteStufe,
     };
     setzeAktiveReihe(profile.id, reihe.biom, reihe);
-  } else {
-    aktiveFesteStufe = reihe.festeStufe ?? null;
   }
 
   const modal = oeffneModal({

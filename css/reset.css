@@ -9,6 +9,13 @@ body {
 button { font: inherit; cursor: pointer; }
 input { font: inherit; }
 
+/* [hidden] muss IMMER gewinnen: Jede Komponenten-Regel mit display:flex/grid sticht das
+   Attribut sonst aus — die Elemente bleiben sichtbar UND klickbar. Live-Befund 2026-07-16:
+   Die „Lies laut vor"-Box blieb nach ✓ Gelesen stehen; ihr Knopf machte auf dem Lösungs-
+   Screen bereits gewertete Aufgaben erneut spielbar (Doppelzählung im Tagesauftrag),
+   und im Stellenwert-Fall waren die Antwort-Knöpfe vor den Schritten sichtbar. */
+[hidden] { display: none !important; }
+
 /* Textauswahl app-weit aus: Langdruck löst sonst Markieren + Google-Suche aus (stört Kinder
    beim Spielen). Wieder AN nur, wo Auswahl echten Nutzen hat: Eingabefelder (tippen/einfügen)
    und gezielt markierte Stellen (z.B. .info__link-zeile code — Copy-Fallback im Info-Bereich). */
