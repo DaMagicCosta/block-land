@@ -1,12 +1,21 @@
 // Service Worker für Block-Land — NETWORK-FIRST.
 // Online wird IMMER die neueste Version geladen (kein manuelles Cache-Leeren / App-Neustart mehr);
 // der Cache dient nur als Offline-Fallback. Der neue Worker übernimmt sofort (skipWaiting + claim).
-const CACHE_VERSION = "block-land-v76";
+const CACHE_VERSION = "block-land-v77";
 const DATEIEN = [
   "BlockLand.html",
   "manifest.webmanifest",
   "icon.svg"
 ];
+
+// Version auf Anfrage melden (js/app-version.js → Eltern-Bereich): Antwort über den
+// mitgeschickten MessageChannel-Port. So zeigt die App, was auf DIESEM Gerät wirklich
+// läuft — bei Cache-/Update-Verdacht ist das die einzig ehrliche Auskunft.
+self.addEventListener("message", (e) => {
+  if (e.data === "version?" && e.ports && e.ports[0]) {
+    e.ports[0].postMessage({ typ: "sw-version", version: CACHE_VERSION });
+  }
+});
 
 self.addEventListener("install", (e) => {
   e.waitUntil(

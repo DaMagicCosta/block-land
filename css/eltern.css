@@ -10,6 +10,18 @@
 }
 .eltern__hinweis { color: var(--color-text-dim); font-size: var(--font-size-sm); text-align: center; }
 
+/* Fußzeile: aktive App-Version dieses Geräts + Geräte-ID (= Spalte „geraet" im Familien-Log) —
+   Diagnose-Anker bei Update-/Cache-Verdacht und für die Log-Zuordnung. */
+.eltern__version {
+  color: var(--color-text-dim);
+  font-size: var(--font-size-xs);
+  text-align: center;
+  margin-top: var(--space-sm);
+  user-select: text;
+  -webkit-user-select: text;
+}
+.eltern__version code { font-family: var(--font-mono); }
+
 /* Tab-Leiste: gleichmäßiges Raster, Icon über Label, aktiver Tab mit Akzent-Rahmen. */
 .eltern__tabs { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-xs); }
 .eltern__tabs button {

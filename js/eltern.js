@@ -12,10 +12,11 @@ import {
   updateProfile, getTimer, setzeTimerStand,
 } from './state.js';
 import {
-  flushSync, anzahlWartend,
+  flushSync, anzahlWartend, geraetId,
   anzahlWartendZustand, zustandCursor, getLetzterPull,
   ladeSpielstandHoch, logEnthaeltProfile, uebernehmeFamilienstand, pullZustand,
 } from './sync.js';
+import { holeAppVersion } from './app-version.js';
 import { tabStatistik } from './statistik.js';
 import { escapeHtml } from './utils.js';
 import { loadBiomManifest } from './data.js';
@@ -109,7 +110,14 @@ function dashboard(modal) {
       <div class="eltern__inhalt"></div>
       <button class="eltern__sekundaer eltern__info-link">ℹ️ Über Block-Land &amp; Anleitung</button>
       <button class="eltern__sekundaer eltern__schliessen">Fertig</button>
+      <div class="eltern__version">Block-Land <b data-app-version>…</b> · Gerät <code>${escapeHtml(geraetId())}</code></div>
     `;
+    // Version asynchron vom Service Worker holen — zeigt, was auf DIESEM Gerät läuft
+    // (Diagnose bei Update-/Cache-Verdacht; Geräte-ID = Spalte „geraet" im Familien-Log).
+    holeAppVersion().then((v) => {
+      const ziel = modal.inhalt.querySelector('[data-app-version]');
+      if (ziel) ziel.textContent = v ?? 'unbekannt';
+    });
     const inhalt = modal.inhalt.querySelector('.eltern__inhalt');
     if (tab === 'belohnungen') tabBelohnungen(inhalt, render);
     else if (tab === 'gutscheine') tabGutscheine(inhalt, render);
