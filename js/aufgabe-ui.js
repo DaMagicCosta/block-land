@@ -11,7 +11,7 @@ import { verteileBelohnung } from './belohnung.js';
 import { loadAufgabenPool, loadBiomManifest } from './data.js';
 import { waehleMechanik, aktuelleStufe, rapportiereErgebnis } from './adaptiv.js';
 import { getCurrentProfile, getAktivesBiom, schalteNaechstesBiomFrei, getAktiveReihe, setzeAktiveReihe, getFehlerbox, setzeFehlerboxEintrag } from './state.js';
-import { aufgabeSchluessel, neuerEintrag, planeWieder, naechsteFaellige, hilfeStufeFuer } from './fehlerbox-logik.js';
+import { aufgabeSchluessel, neuerEintrag, planeWieder, verschiebeAufMorgen, naechsteFaellige, hilfeStufeFuer } from './fehlerbox-logik.js';
 import { normalisiereAufgabe } from './aufgaben/normalisiere.js';
 import { reihenLaenge, istReiheFertig, fortschrittPunkte } from './reihe-logik.js';
 import { BIOME_REIHENFOLGE, baselineMaxIndex } from './biome-logik.js';
