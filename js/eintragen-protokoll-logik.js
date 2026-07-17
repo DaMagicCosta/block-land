@@ -7,11 +7,13 @@ export function richtungsHinweis(wert, soll) {
   return wert > soll ? 'zu hoch' : 'zu tief';
 }
 
-export function neuerEintrag({ datum, reihe, richtig, fehler, verraten }) {
+// rechenart: 'geteilt' nur explizit, sonst 'mal' (Fallback für Alt-Einträge).
+export function neuerEintrag({ datum, reihe, richtig, fehler, verraten, rechenart }) {
   const z = (n) => Math.max(0, Math.floor(Number(n) || 0));
   return {
     datum: datum ?? '',
     reihe: Number(reihe) || 0,
+    rechenart: rechenart === 'geteilt' ? 'geteilt' : 'mal',
     richtig: z(richtig),
     fehler: z(fehler),
     verraten: z(verraten),

@@ -1,6 +1,8 @@
 // Check-Runner für js/aufsagen-logik.js — Reihen-Schritte, Quiz-Fakten und
 // Distraktoren des Reihen-Trainers, beide Rechenarten (mal + geteilt).
 import { baueReihe, baueQuizFakten, baueDistraktoren, mische } from '../js/aufsagen-logik.js';
+import { neuerEintrag as neuerAufsagenEintrag } from '../js/aufsage-protokoll-logik.js';
+import { neuerEintrag as neuerEintragenEintrag } from '../js/eintragen-protokoll-logik.js';
 
 let fehler = 0;
 function check(name, bedingung) {
@@ -79,6 +81,22 @@ function check(name, bedingung) {
   const g = mische(orig);
   check('mische: Eingabe unverändert', JSON.stringify(orig) === JSON.stringify(kopie));
   check('mische: gleiche Elemente', [...g].sort((a, b) => a - b).join(',') === '1,2,3,4,5');
+}
+
+// --- Protokoll-Einträge: rechenart (geteilt explizit, sonst Fallback mal) ---
+{
+  const e = neuerAufsagenEintrag({ datum: '2026-07-17', reihe: 4, stufe: 'auswendig', durchgaenge: 2, zeit_ms: 1000, rechenart: 'geteilt' });
+  check('aufsagen-eintrag: rechenart geteilt', e.rechenart === 'geteilt');
+  const alt = neuerAufsagenEintrag({ datum: '2026-07-17', reihe: 4, stufe: 'mitsprechen', durchgaenge: 1, zeit_ms: 0 });
+  check('aufsagen-eintrag: fehlend -> mal', alt.rechenart === 'mal');
+  const kaputt = neuerAufsagenEintrag({ datum: '', reihe: 4, stufe: 'mitsprechen', durchgaenge: 0, zeit_ms: 0, rechenart: 'quatsch' });
+  check('aufsagen-eintrag: unbekannt -> mal', kaputt.rechenart === 'mal');
+}
+{
+  const e = neuerEintragenEintrag({ datum: '2026-07-17', reihe: 4, richtig: 8, fehler: 1, verraten: 1, rechenart: 'geteilt' });
+  check('eintragen-eintrag: rechenart geteilt', e.rechenart === 'geteilt');
+  const alt = neuerEintragenEintrag({ datum: '2026-07-17', reihe: 4, richtig: 8, fehler: 1, verraten: 1 });
+  check('eintragen-eintrag: fehlend -> mal', alt.rechenart === 'mal');
 }
 
 if (fehler) { console.error(`\n${fehler} Check(s) fehlgeschlagen.`); process.exit(1); }

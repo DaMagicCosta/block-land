@@ -25,10 +25,12 @@ export function stufeLabel(stufe) {
 }
 
 // Normalisierter Protokoll-Eintrag (negative/fehlende Werte -> 0).
-export function neuerEintrag({ datum, reihe, stufe, durchgaenge, zeit_ms }) {
+// rechenart: 'geteilt' nur explizit, sonst 'mal' (Fallback für Alt-Einträge).
+export function neuerEintrag({ datum, reihe, stufe, durchgaenge, zeit_ms, rechenart }) {
   return {
     datum: datum ?? '',
     reihe: Number(reihe) || 0,
+    rechenart: rechenart === 'geteilt' ? 'geteilt' : 'mal',
     stufe: stufe === 'auswendig' ? 'auswendig' : 'mitsprechen',
     durchgaenge: Math.max(0, Math.floor(Number(durchgaenge) || 0)),
     zeit_ms: Math.max(0, Math.round(Number(zeit_ms) || 0)),
