@@ -57,7 +57,7 @@ function aufsagenProtokollHtml(profileId) {
   const zeilen = log.map(e => {
     const d = e.datum ? `${e.datum.slice(8, 10)}.${e.datum.slice(5, 7)}.` : '';
     return `<li class="stat-aufsagen__zeile">
-      <span class="stat-aufsagen__reihe">${escapeHtml(String(e.reihe))}er</span>
+      <span class="stat-aufsagen__reihe">${e.rechenart === 'geteilt' ? '➗ ' : ''}${escapeHtml(String(e.reihe))}er</span>
       <span class="stat-aufsagen__stufe">${escapeHtml(stufeLabel(e.stufe))}</span>
       <span class="stat-aufsagen__wdh">🔁 ×${e.durchgaenge}</span>
       <span class="stat-aufsagen__zeit">⏱ ${escapeHtml(formatDauer(e.zeit_ms))}</span>
@@ -76,7 +76,7 @@ function eintragenProtokollHtml(profileId) {
   const zeilen = log.map(e => {
     const d = e.datum ? `${e.datum.slice(8, 10)}.${e.datum.slice(5, 7)}.` : '';
     return `<li class="stat-aufsagen__zeile">
-      <span class="stat-aufsagen__reihe">${escapeHtml(String(e.reihe))}er</span>
+      <span class="stat-aufsagen__reihe">${e.rechenart === 'geteilt' ? '➗ ' : ''}${escapeHtml(String(e.reihe))}er</span>
       <span>✅ ${e.richtig}/10</span>
       <span>✖ ${e.fehler}</span>
       <span>💡 ${e.verraten}</span>
