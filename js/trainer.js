@@ -4,7 +4,7 @@
 
 import { oeffneModal } from './modal.js';
 import { verteileBelohnung } from './belohnung.js';
-import { baueReihe } from './aufsagen-logik.js';
+import { baueReihe, baueQuizFakten, baueDistraktoren, mische } from './aufsagen-logik.js';
 import { protokolliereAufsagen, getCurrentProfile, protokolliereEintragen } from './state.js';
 import { meldeAufsagen, meldeEintragen } from './sync.js';
 import { kappeLuecke, formatDauer, neuerEintrag, INAKTIV_MS } from './aufsage-protokoll-logik.js';
@@ -23,7 +23,7 @@ let aufsagenFinalisierer = null;
 // Finalisierer der laufenden Eintragen-Reihe (schreibt {richtig,fehler,verraten} ins Protokoll).
 let eintragenFinalisierer = null;
 
-export function oeffneTrainer(reward) {
+export function oeffneTrainer(reward, { rechenart = 'mal' } = {}) {
   const modal = oeffneModal({
     klassen: 'modal-backdrop--trainer',
     inhaltHtml: '<div class="modal modal--trainer"></div>',
@@ -33,42 +33,34 @@ export function oeffneTrainer(reward) {
     },
   });
   if (!modal) return;
-  zeigeReihenAuswahl(modal.inhalt, modal, reward);
-}
-
-function mische(arr) {
-  const k = [...arr];
-  for (let i = k.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [k[i], k[j]] = [k[j], k[i]];
-  }
-  return k;
+  zeigeReihenAuswahl(modal.inhalt, modal, reward, rechenart);
 }
 
 // --- Schritt 1: Reihen-Auswahl ---
-function zeigeReihenAuswahl(wurzel, modal, reward) {
+function zeigeReihenAuswahl(wurzel, modal, reward, rechenart) {
   const kacheln = [];
   for (let n = 1; n <= 10; n++) {
     kacheln.push(`<button class="trainer__reihe" data-reihe="${n}">${n}</button>`);
   }
   wurzel.innerHTML = `
-    <div class="trainer__kopf">🧮 Welche Reihe willst du üben?</div>
+    <div class="trainer__kopf">${rechenart === 'geteilt' ? '➗' : '🧮'} Welche Reihe willst du üben?</div>
     <div class="trainer__reihen">${kacheln.join('')}</div>
     <button class="trainer__gemischt" data-reihe="gemischt">🎲 Gemischt</button>
   `;
   wurzel.querySelectorAll('[data-reihe]').forEach(b => {
     b.addEventListener('click', () => {
       const wahl = b.dataset.reihe;
-      if (wahl === 'gemischt') starteQuiz(wurzel, modal, reward, 'gemischt');
-      else zeigeLernStufe(wurzel, modal, reward, parseInt(wahl, 10));
+      if (wahl === 'gemischt') starteQuiz(wurzel, modal, reward, 'gemischt', rechenart);
+      else zeigeLernStufe(wurzel, modal, reward, parseInt(wahl, 10), rechenart);
     });
   });
 }
 
 // --- Schritt 2: Lern-Stufe (Vorlesen / Aufsagen / Eintragen) ---
-function zeigeLernStufe(wurzel, modal, reward, reihe) {
+function zeigeLernStufe(wurzel, modal, reward, reihe, rechenart) {
   let modus = 'vorlesen';
   const profileId = getCurrentProfile()?.id ?? null;
+  const schritte = baueReihe(reihe, rechenart);
   let eintragenStat = { richtig: 0, fehler: 0, verraten: 0, aktiv: false };
   function finalisiereEintragen() {
     if (!eintragenStat.aktiv) return;
@@ -77,16 +69,16 @@ function zeigeLernStufe(wurzel, modal, reward, reihe) {
     if (profileId && summe > 0) {
       protokolliereEintragen(profileId, neuerEintragEintragen({
         datum: tagesSchluessel(new Date()),
-        reihe, richtig: eintragenStat.richtig, fehler: eintragenStat.fehler, verraten: eintragenStat.verraten,
+        reihe, rechenart, richtig: eintragenStat.richtig, fehler: eintragenStat.fehler, verraten: eintragenStat.verraten,
       }));
       meldeEintragen(profileId, {
         richtig: eintragenStat.richtig, fehler: eintragenStat.fehler, verraten: eintragenStat.verraten,
-        detail: `reihe ${reihe}`,
+        detail: rechenart === 'geteilt' ? `geteilt · reihe ${reihe}` : `reihe ${reihe}`,
       });
     }
   }
   wurzel.innerHTML = `
-    <div class="trainer__kopf">Die ${reihe}er-Reihe</div>
+    <div class="trainer__kopf">${rechenart === 'geteilt' ? `Geteilt durch ${reihe}` : `Die ${reihe}er-Reihe`}</div>
     <div class="trainer__umschalter">
       <button data-m="vorlesen" class="aktiv">🔊 Vorlesen</button>
       <button data-m="aufsagen">🗣️ Aufsagen</button>
@@ -104,16 +96,16 @@ function zeigeLernStufe(wurzel, modal, reward, reihe) {
       eintragenStat = { richtig: 0, fehler: 0, verraten: 0, aktiv: true };
       eintragenFinalisierer = finalisiereEintragen;
     }
-    for (let i = 1; i <= 10; i++) {
-      const erg = i * reihe;
+    for (const s of schritte) {
+      const erg = s.ergebnis;
       const z = document.createElement('div');
       if (modus === 'vorlesen') {
         z.className = 'trainer__zeile trainer__zeile--vorlesbar';
-        z.innerHTML = `<span>${i} · ${reihe} =</span><span class="trainer__erg">${erg}</span><span class="trainer__laut">🔊</span>`;
-        z.addEventListener('click', () => sprich(`${i} mal ${reihe} gleich ${erg}`));
+        z.innerHTML = `<span>${s.aufgabeText}</span><span class="trainer__erg">${erg}</span><span class="trainer__laut">🔊</span>`;
+        z.addEventListener('click', () => sprich(s.vorlese));
       } else {
         z.className = 'trainer__zeile';
-        z.innerHTML = `<span>${i} · ${reihe} =</span><input type="number" inputmode="numeric" /><span class="trainer__hinweis"></span>`;
+        z.innerHTML = `<span>${s.aufgabeText}</span><input type="number" inputmode="numeric" /><span class="trainer__hinweis"></span>`;
         const inp = z.querySelector('input');
         const hinweis = z.querySelector('.trainer__hinweis');
         const zeile = { fehler: 0, fertig: false };
@@ -171,7 +163,7 @@ function zeigeLernStufe(wurzel, modal, reward, reihe) {
     if (modus !== 'eintragen' && eintragenFinalisierer) { eintragenFinalisierer(); eintragenFinalisierer = null; }
     if (modus === 'aufsagen') {
       weiterBtn.hidden = true;
-      rendereAufsagen(wurzel, liste, modal, reward, reihe);
+      rendereAufsagen(wurzel, liste, modal, reward, reihe, rechenart);
     } else {
       weiterBtn.hidden = false;
       baue();
@@ -188,7 +180,7 @@ function zeigeLernStufe(wurzel, modal, reward, reihe) {
   });
   weiterBtn.addEventListener('click', () => {
     if (eintragenFinalisierer) { eintragenFinalisierer(); eintragenFinalisierer = null; }
-    starteQuiz(wurzel, modal, reward, reihe);
+    starteQuiz(wurzel, modal, reward, reihe, rechenart);
   });
   aktualisiere();
 }
@@ -198,8 +190,8 @@ function zeigeLernStufe(wurzel, modal, reward, reihe) {
 // gesprochen (Mitsprechen) bzw. auf „Aufdecken" enthüllt+gesprochen (Auswendig = Hilfe).
 // „Ich kann's! Jetzt testen →" führt ins bestehende belohnte Quiz. Kein eigener Reward.
 // Misst pro Stufe Durchgänge + aktive Zeit (Idle-Cap), finalisiert ins aufsagenProtokoll.
-function rendereAufsagen(wurzel, container, modal, reward, reihe) {
-  const schritte = baueReihe(reihe);
+function rendereAufsagen(wurzel, container, modal, reward, reihe, rechenart) {
+  const schritte = baueReihe(reihe, rechenart);
   const profileId = getCurrentProfile()?.id ?? null;
   let stufe = 'mitsprechen';   // 'mitsprechen' | 'auswendig'
   let idx = 0;                 // aktueller Schritt; === schritte.length ⇒ geschafft
@@ -239,9 +231,12 @@ function rendereAufsagen(wurzel, container, modal, reward, reihe) {
     if (profileId && durchgaenge >= 1) {
       protokolliereAufsagen(profileId, neuerEintrag({
         datum: tagesSchluessel(new Date()),
-        reihe, stufe, durchgaenge, zeit_ms: aktiveZeitMs,
+        reihe, rechenart, stufe, durchgaenge, zeit_ms: aktiveZeitMs,
       }));
-      meldeAufsagen(profileId, { zeit_ms: aktiveZeitMs, detail: `reihe ${reihe} · ${stufe}` });
+      meldeAufsagen(profileId, {
+        zeit_ms: aktiveZeitMs,
+        detail: `${rechenart === 'geteilt' ? 'geteilt · ' : ''}reihe ${reihe} · ${stufe}`,
+      });
     }
     durchgaenge = 0; aktiveZeitMs = 0;
   }
@@ -264,7 +259,7 @@ function rendereAufsagen(wurzel, container, modal, reward, reihe) {
     } else {
       erg = `<span class="trainer__erg trainer__erg--verdeckt">?</span>`;
     }
-    return `<div class="trainer__zeile${istAktiv ? ' trainer__zeile--aktiv' : ''}"><span>${s.i} · ${reihe} =</span>${erg}</div>`;
+    return `<div class="trainer__zeile${istAktiv ? ' trainer__zeile--aktiv' : ''}"><span>${s.aufgabeText}</span>${erg}</div>`;
   }
 
   function zaehlerHtml() {
@@ -362,51 +357,37 @@ function rendereAufsagen(wurzel, container, modal, reward, reihe) {
     if (nochmalAufsagen) nochmalAufsagen.addEventListener('click', () => { registriereAktion(); idx = 0; aufgedeckt = false; render(); sprichAktuell(); });
 
     const testen = container.querySelector('[data-testen]');
-    if (testen) testen.addEventListener('click', () => { registriereAktion(); verlasseStufe(); aufsagenFinalisierer = null; starteQuiz(wurzel, modal, reward, reihe); });
+    if (testen) testen.addEventListener('click', () => { registriereAktion(); verlasseStufe(); aufsagenFinalisierer = null; starteQuiz(wurzel, modal, reward, reihe, rechenart); });
   }
 
   betreteStufe('mitsprechen');
 }
 
 // --- Schritt 3: Quiz ---
-function starteQuiz(wurzel, modal, reward, reihe) {
+function starteQuiz(wurzel, modal, reward, reihe, rechenart) {
   const profileId = getCurrentProfile()?.id ?? null;
-  const fakten = [];
-  if (reihe === 'gemischt') {
-    const alle = [];
-    for (let a = 2; a <= 10; a++) for (let b = 2; b <= 10; b++) alle.push([a, b]);
-    mische(alle).slice(0, 10).forEach(([a, b]) => fakten.push({ a, b }));
-  } else {
-    mische([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]).forEach(a => fakten.push({ a, b: reihe }));
-  }
+  const fakten = baueQuizFakten(reihe, rechenart);
   let index = 0;
   let sterne = 0;
 
-  function distraktoren(a, b) {
-    const richtig = a * b;
-    const set = new Set([a * (b + 1), a * (b - 1), (a + 1) * b, (a - 1) * b, richtig + 1, richtig - 1, richtig + 2]);
-    const liste = [...set].filter(x => x > 0 && x !== richtig);
-    return mische(liste).slice(0, 3);
-  }
-
   function zeigeFrage() {
     const f = fakten[index];
-    const richtig = f.a * f.b;
+    const richtig = f.richtig;
     let fehler = 0;
     const frageStart = performance.now();
     const sperre = neueKlickSperre();   // Doppeltipp-Schutz (siehe klick-sperre.js)
     sperre.verriegeln(frageStart);
     // Quiz zählt wie eine normale Aufgabe (Statistik + Familien-Sync). Stufe bleibt fix —
-    // die Reihen-Wahl ist die Schwierigkeit des Quiz, nicht die adaptive Mal-Stufe.
+    // die Reihen-Wahl ist die Schwierigkeit des Quiz, nicht die adaptive Stufe.
     function rapportiere(warRichtig) {
-      if (profileId) rapportiereErgebnis(profileId, 'mal', warRichtig, performance.now() - frageStart, {
+      if (profileId) rapportiereErgebnis(profileId, rechenart, warRichtig, performance.now() - frageStart, {
         adaptStufe: false, detail: reihe === 'gemischt' ? 'reihe gemischt' : `reihe ${reihe}`,
       });
     }
-    const optionen = mische([richtig, ...distraktoren(f.a, f.b)]);
+    const optionen = mische([richtig, ...baueDistraktoren(f, rechenart)]);
     wurzel.innerHTML = `
       <div class="trainer__fortschritt">Frage ${index + 1} von ${fakten.length} · ⭐ ${sterne}</div>
-      <div class="trainer__aufgabe">${f.a} · ${f.b} = ?</div>
+      <div class="trainer__aufgabe">${f.frageText}</div>
       <div class="trainer__antworten"></div>
       <div class="trainer__tipp" hidden></div>
     `;
@@ -450,7 +431,7 @@ function starteQuiz(wurzel, modal, reward, reihe) {
 
   function weiter() {
     index++;
-    if (index >= fakten.length) zeigeAbschluss(wurzel, modal, reward, sterne, fakten.length);
+    if (index >= fakten.length) zeigeAbschluss(wurzel, modal, reward, sterne, fakten.length, rechenart);
     else zeigeFrage();
   }
 
@@ -458,7 +439,7 @@ function starteQuiz(wurzel, modal, reward, reihe) {
 }
 
 // --- Abschluss ---
-function zeigeAbschluss(wurzel, modal, reward, sterne, max) {
+function zeigeAbschluss(wurzel, modal, reward, sterne, max, rechenart) {
   wurzel.innerHTML = `
     <div class="trainer__abschluss">
       <div class="trainer__abschluss-emoji">🎉</div>
@@ -469,7 +450,7 @@ function zeigeAbschluss(wurzel, modal, reward, sterne, max) {
     </div>
   `;
   wurzel.querySelector('.trainer__nochmal')
-    .addEventListener('click', () => zeigeReihenAuswahl(wurzel, modal, reward));
+    .addEventListener('click', () => zeigeReihenAuswahl(wurzel, modal, reward, rechenart));
   wurzel.querySelector('.trainer__fertig')
     .addEventListener('click', () => modal.schliessen());
 }
