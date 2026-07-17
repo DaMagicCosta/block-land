@@ -257,7 +257,7 @@ export async function renderWelt(container) {
         return;
       }
       if (typ.aktion === 'trainer') {
-        oeffneTrainer(typ.reward);
+        oeffneTrainer(typ.reward, { rechenart: aktivId === 'geteilt' ? 'geteilt' : 'mal' });
         return;
       }
       if (!typ.reward) return;  // Sicherheitsnetz: interaktive Tiles ohne Reward ignorieren

@@ -7,14 +7,15 @@
     "w": { "label": "Bach", "emoji": "💧", "interaktiv": false, "klasse": "tile--schlucht-wasser" },
     "b": { "label": "Erz", "emoji": "⛏️", "interaktiv": true, "klasse": "tile--schlucht-erz", "reward": { "item": "stein", "emoji": "🪨", "label": "Stein" } },
     "s": { "label": "Wurzelholz", "emoji": "🪵", "interaktiv": true, "klasse": "tile--schlucht-holz", "reward": { "item": "holz", "emoji": "🪵", "label": "Holz" } },
-    "f": { "label": "Kristall", "emoji": "💠", "interaktiv": true, "klasse": "tile--schlucht-kristall", "reward": { "item": "blume", "emoji": "🌸", "label": "Blume" } }
+    "f": { "label": "Kristall", "emoji": "💠", "interaktiv": true, "klasse": "tile--schlucht-kristall", "reward": { "item": "blume", "emoji": "🌸", "label": "Blume" } },
+    "T": { "label": "Trainer-Hütte", "emoji": "🧮", "interaktiv": true, "klasse": "tile--trainer", "aktion": "trainer", "reward": { "item": "stein", "emoji": "🪨", "label": "Stein" } }
   },
   "spielfigur_start": { "spalte": 6, "zeile": 4 },
   "layout": [
     "GgbgGgggGbgG",
     "GggggsgggggG",
     "GgGgbgggGfgG",
-    "Ggbgg.gggbsG",
+    "Ggbgg.TggbsG",
     "GggggggbggGG",
     "GgsggGgggsgG",
     "GgGgfgggbggG",
