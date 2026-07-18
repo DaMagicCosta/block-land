@@ -32,7 +32,9 @@ function visualHtml(v) {
     case 'entbuendeln':
       return `<div class="sw-reihe">${zahlBlock(v.zehner, v.einer)}</div>`;
     case 'ergebnis':
-      return `<div class="sw-reihe">${dice(v.zehner, 'zehner')}${dice(v.einer, 'einer')}<span class="sw-ergebnis">${v.ergebnis}</span></div>`;
+      // Bewusst KEINE Ergebnis-Zahl (Arthur-Befund 18.07.2026: „wie cheaten") — die Würfel
+      // zeigen Zehner und Einer, die Zahl muss das Kind selbst zusammensetzen.
+      return `<div class="sw-reihe">${dice(v.zehner, 'zehner')}${dice(v.einer, 'einer')}<span class="sw-ergebnis">?</span></div>`;
     default:
       return '';
   }

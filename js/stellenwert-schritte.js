@@ -45,8 +45,8 @@ function schrittePlus(aufgabe) {
   });
   schritte.push({
     phase: 'ergebnis', titel: 'Zusammen',
-    erklaerung: `<b class="sw-z">${zehnerSumme} Zehner</b> und <b class="sw-e">${einerRest} Einer</b> = <b>${aufgabe.ergebnis}</b>.`,
-    visual: { typ: 'ergebnis', zehner: zehnerSumme, einer: einerRest, ergebnis: aufgabe.ergebnis },
+    erklaerung: `<b class="sw-z">${zehnerSumme} Zehner</b> und <b class="sw-e">${einerRest} Einer</b> = <b>?</b> — Du sagst es!`,
+    visual: { typ: 'ergebnis', zehner: zehnerSumme, einer: einerRest },
   });
   return schritte;
 }
@@ -89,8 +89,8 @@ function schritteMinus(aufgabe) {
     });
     schritte.push({
       phase: 'ergebnis', titel: 'Zusammen',
-      erklaerung: `<b class="sw-z">${zehnerErgebnis} Zehner</b> und <b class="sw-e">${einerErgebnis} Einer</b> = <b>${aufgabe.ergebnis}</b>.`,
-      visual: { typ: 'ergebnis', zehner: zehnerErgebnis, einer: einerErgebnis, ergebnis: aufgabe.ergebnis },
+      erklaerung: `<b class="sw-z">${zehnerErgebnis} Zehner</b> und <b class="sw-e">${einerErgebnis} Einer</b> = <b>?</b> — Du sagst es!`,
+      visual: { typ: 'ergebnis', zehner: zehnerErgebnis, einer: einerErgebnis },
     });
   } else {
     const einerErgebnis = A.e - B.e;
@@ -107,8 +107,8 @@ function schritteMinus(aufgabe) {
     });
     schritte.push({
       phase: 'ergebnis', titel: 'Zusammen',
-      erklaerung: `<b class="sw-z">${zehnerErgebnis} Zehner</b> und <b class="sw-e">${einerErgebnis} Einer</b> = <b>${aufgabe.ergebnis}</b>.`,
-      visual: { typ: 'ergebnis', zehner: zehnerErgebnis, einer: einerErgebnis, ergebnis: aufgabe.ergebnis },
+      erklaerung: `<b class="sw-z">${zehnerErgebnis} Zehner</b> und <b class="sw-e">${einerErgebnis} Einer</b> = <b>?</b> — Du sagst es!`,
+      visual: { typ: 'ergebnis', zehner: zehnerErgebnis, einer: einerErgebnis },
     });
   }
   return schritte;
