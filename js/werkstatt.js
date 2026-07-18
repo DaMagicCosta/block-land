@@ -106,6 +106,10 @@ function rendereRezepte(container, profile, neuRendern) {
       const gutschein = baueGutschein(profile.id, rezept);
       if (!gutschein) return;
       aktualisiereInventarHeader(true);
+      // Vorrat-Zeile SOFORT nachziehen (Live-Befund 18.07.2026: „Rohstoffe werden nicht
+      // weniger" — der Abzug passierte, war aber bis zum 1,4-s-Re-Render unsichtbar).
+      const vorrat = document.querySelector('.werkstatt__vorrat');
+      if (vorrat) vorrat.innerHTML = rendereVorrat(getInventar(profile.id));
       const hinweis = document.createElement('div');
       hinweis.className = 'werkstatt__gebaut';
       hinweis.textContent = `🎉 Gebaut: ${rezept.emoji} ${rezept.name}! Gutschein liegt bereit.`;
