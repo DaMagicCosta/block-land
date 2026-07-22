@@ -2,7 +2,7 @@
 import {
   SEQUENZ, ANFANGSSTAND, pruefReihe, offeneReihen, istOffen, notierePruefung,
   sitzt, klemmt, sollAufsteigen, steigeAuf, mischeQuizReihen, bestanden, verschmelzeStaende,
-  ohneEinserreihe, kappeTageslistenAbStufe, nurEineReiheOffen,
+  ohneEinserreihe, kappeTageslistenAbStufe, nurEineReiheOffen, alleReihenSitzen,
 } from '../js/freischaltung-logik.js';
 import { baueQuizFakten } from '../js/aufsagen-logik.js';
 import { generiereMalAufgabe } from '../js/aufgaben/mal.js';
@@ -285,6 +285,28 @@ pruefe('ohne Begrenzung: alle Reihen aus stufenConfig.reihen kommen vor (nicht n
 pruefe('ohne Begrenzung: Werte außerhalb der eingeschränkten Liste [2,10] treten auf',
   gOhne.some(p => ![2, 10].includes(p.b)));
 pruefe('ohne Begrenzung: Ergebnis bleibt stimmig', gOhne.every(p => p.ergebnis === p.a / p.b));
+
+console.log('alleReihenSitzen (Abschluss-Erkennung: Stufe 9 ALLEIN reicht nicht, siehe steigeAuf-Kappung)');
+pruefe('am Anfang nichts geschafft', alleReihenSitzen(ANFANGSSTAND) === false);
+const stufe9OhnePruefung = { ...ANFANGSSTAND, stufe: 9 };
+pruefe('Stufe 9 erreicht, aber die 7er noch nie geprüft -> noch nicht fertig',
+  alleReihenSitzen(stufe9OhnePruefung) === false);
+const stufe9EinTag = notierePruefung(stufe9OhnePruefung, 7, '2026-07-20', true);
+pruefe('Stufe 9, erst ein guter Tag mit der 7er -> noch nicht fertig (zwei Tage nötig)',
+  alleReihenSitzen(stufe9EinTag) === false);
+const stufe9FertigStand = notierePruefung(stufe9EinTag, 7, '2026-07-21', true);
+pruefe('Stufe 9 UND zwei gute Tage mit der 7er -> fertig',
+  alleReihenSitzen(stufe9FertigStand) === true);
+pruefe('alleReihenSitzen ist pur (Eingabe unverändert)', stufe9EinTag.pruefungen['7'].length === 1);
+const stufe8Fertig = { stufe: 8, pruefungen: { '8': ['2026-07-01', '2026-07-02'] }, fehlversuche: {} };
+pruefe('eine niedrigere Stufe zählt nie als Abschluss, egal wie gut sie sitzt (nicht die letzte Stufe)',
+  alleReihenSitzen(stufe8Fertig) === false);
+const stufe9Klemmt1 = notierePruefung(stufe9OhnePruefung, 7, '2026-07-20', false);
+const stufe9Klemmt2 = notierePruefung(stufe9Klemmt1, 7, '2026-07-21', false);
+const stufe9Klemmt3 = notierePruefung(stufe9Klemmt2, 7, '2026-07-22', false);
+pruefe('Stufe 9 klemmt (drei gescheiterte Tage), sitzt aber nicht -> kein Abschluss (Umweg zählt hier nicht als Bestehen)',
+  alleReihenSitzen(stufe9Klemmt3) === false);
+pruefe('undefined-Stand ist nicht fertig (kein Wurf)', alleReihenSitzen(undefined) === false);
 
 console.log(fehler === 0 ? '\nAlles grün.' : `\n${fehler} Fehler.`);
 process.exit(fehler === 0 ? 0 : 1);

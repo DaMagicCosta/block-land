@@ -221,6 +221,21 @@
   opacity: 0.8;
 }
 
+/* Abschluss-Satz statt "Du übst gerade die Xer-Reihe" — alles sitzt, keine Reihe steht mehr
+   an. Bewusst hervorgehoben (Erfolgsfarbe, kein Ausgrauen wie der übliche Hinweis). */
+.trainer__reihen-hinweis--abschluss {
+  color: var(--color-success);
+  font-weight: bold;
+  opacity: 1;
+}
+
+/* Prüfungs-Abschluss, wenn genau diese Prüfung das ganze System fertigstellt (siehe
+   trainer.js: zeigeAbschluss/allesGeschafft) — größer als der übliche "Super gemacht!"-Kopf. */
+.trainer__kopf--abschluss {
+  color: var(--color-success);
+  font-size: 20px;
+}
+
 @media (max-width: 480px) {
   .trainer__aufgabe { font-size: 32px; }
   .trainer__nickerchen-emoji { font-size: 52px; }
