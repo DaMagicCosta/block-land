@@ -200,5 +200,119 @@ function fakt(a, b, richtig, rechenart = 'mal') {
   check('gemischt: beide Box-Aufgaben kommen unter (kein neueReihe-Ausschluss)', r.filter(f => f.boxEintrag).length === 2);
 }
 
+// --- Unbrauchbare Box-Einträge werden übersprungen (Nachtrag C: Fehlerbox-Sicherung) ---
+// Konserven können beim Speichern/Sync unvollständig oder fehlerhaft werden. Ein Eintrag
+// mit kaputter aufgabe.ergebnis oder fehlenden antwort_optionen darf nicht eingesetzt
+// werden — normalisiereAufgabe() liefert null, faktAusBoxeintrag() verwirft ihn, und
+// mitFaelligenBoxaufgaben() skippt ihn beim Filter. Diese Tests stellen sicher, dass
+// kein kaputter Eintrag in die Quiz-Fragen gelangt.
+
+function boxEintragKaputt(typ, a, b, ergebnis, aufgabenFehler = {}) {
+  // Hilfsbauer für intentional beschädigte Aufgaben.
+  const istGeteilt = typ === 'geteilt';
+  const aufgabe = {
+    aufgabentyp: typ, a, b, ergebnis,
+    text: istGeteilt ? `${a} : ${b} = ?` : `${a} · ${b} = ?`,
+    vorlese_text: istGeteilt ? `${a} geteilt durch ${b}` : `${a} mal ${b}`,
+    antwort_optionen: [ergebnis, ergebnis + 1, ergebnis - 1, ergebnis + 2],
+    stufe: 0,
+    ...aufgabenFehler,  // Überschreiben/Löschen von Feldern für kaputte Varianten.
+  };
+  return {
+    schluessel: `${typ}|${a}|${b}|${ergebnis}`, typ, aufgabe,
+    fach: 1, faelligAm: '2026-07-01', fehler: 1, zuletzt: '2026-06-30',
+  };
+}
+
+// Fall: Eintrag ohne aufgabe-Objekt (null).
+{
+  const fakten = [fakt(1, 5, 5), fakt(2, 3, 6), fakt(4, 3, 12), fakt(6, 3, 18)];
+  const box = [
+    { schluessel: 'mal|5|3|15', typ: 'mal', aufgabe: null, fach: 1, faelligAm: '2026-07-01' },
+    boxEintrag('mal', 9, 3, 27),
+  ];
+  const r = mitFaelligenBoxaufgaben(fakten, 'mal', { neueReihe: 5, offeneReihen: [3], boxAufgaben: box });
+  const genutzt = r.filter(f => f.boxEintrag);
+  check('kaputt aufgabe:null: genau 1 Substitution (nur der brauchbare)', genutzt.length === 1);
+  check('kaputt aufgabe:null: der eingesetzte Fakt ist vom brauchbaren Eintrag', genutzt[0].a === 9 && genutzt[0].richtig === 27);
+}
+
+// Fall: Aufgabe ohne antwort_optionen (Array wird zu leeres Array).
+{
+  const fakten = [fakt(1, 5, 5), fakt(2, 3, 6), fakt(4, 3, 12), fakt(6, 3, 18)];
+  const box = [
+    boxEintragKaputt('mal', 5, 3, 15, { antwort_optionen: [] }),
+    boxEintrag('mal', 8, 3, 24),
+  ];
+  const r = mitFaelligenBoxaufgaben(fakten, 'mal', { neueReihe: 5, offeneReihen: [3], boxAufgaben: box });
+  const genutzt = r.filter(f => f.boxEintrag);
+  check('kaputt antwort_optionen:leer: genau 1 Substitution (nur der brauchbare)', genutzt.length === 1);
+  check('kaputt antwort_optionen:leer: der eingesetzte Fakt ist vom brauchbaren', genutzt[0].a === 8 && genutzt[0].richtig === 24);
+}
+
+// Fall: Aufgabe mit unbrauchbarem ergebnis (keine Zahl, nicht konvertierbar).
+{
+  const fakten = [fakt(1, 5, 5), fakt(2, 3, 6), fakt(4, 3, 12), fakt(6, 3, 18)];
+  const box = [
+    boxEintragKaputt('mal', 5, 3, 15, { ergebnis: 'abc' }),
+    boxEintrag('mal', 7, 3, 21),
+  ];
+  const r = mitFaelligenBoxaufgaben(fakten, 'mal', { neueReihe: 5, offeneReihen: [3], boxAufgaben: box });
+  const genutzt = r.filter(f => f.boxEintrag);
+  check('kaputt ergebnis:"abc": genau 1 Substitution (nur der brauchbare)', genutzt.length === 1);
+  check('kaputt ergebnis:"abc": der eingesetzte Fakt ist vom brauchbaren', genutzt[0].a === 7 && genutzt[0].richtig === 21);
+}
+
+// Fall: Aufgabe mit unbrauchbarem a (nicht konvertierbar).
+{
+  const fakten = [fakt(1, 5, 5), fakt(2, 3, 6), fakt(4, 3, 12)];
+  const box = [
+    boxEintragKaputt('mal', 5, 3, 15, { a: 'x' }),
+    boxEintrag('mal', 6, 3, 18),
+  ];
+  const r = mitFaelligenBoxaufgaben(fakten, 'mal', { neueReihe: 5, offeneReihen: [3], boxAufgaben: box });
+  const genutzt = r.filter(f => f.boxEintrag);
+  check('kaputt a:"x": genau 1 Substitution (nur der brauchbare)', genutzt.length === 1);
+  check('kaputt a:"x": der eingesetzte Fakt hat korrekte a', genutzt[0].a === 6);
+}
+
+// Fall: Kaputte Option in antwort_optionen Array.
+{
+  const fakten = [fakt(1, 5, 5), fakt(2, 3, 6), fakt(4, 3, 12)];
+  const box = [
+    boxEintragKaputt('mal', 5, 3, 15, { antwort_optionen: [15, 'kaputt', 14, 17] }),
+    boxEintrag('mal', 9, 3, 27),
+  ];
+  const r = mitFaelligenBoxaufgaben(fakten, 'mal', { neueReihe: 5, offeneReihen: [3], boxAufgaben: box });
+  const genutzt = r.filter(f => f.boxEintrag);
+  check('kaputt option:"kaputt": genau 1 Substitution (nur der brauchbare)', genutzt.length === 1);
+  check('kaputt option:"kaputt": der eingesetzte Fakt ist vom brauchbaren', genutzt[0].a === 9 && genutzt[0].richtig === 27);
+}
+
+// Fall: Mischung aus brauchbaren und unbrauchbaren Einträgen (die brauchbaren ersetzen, unbrauchbare bleiben weg).
+{
+  const fakten = [fakt(1, 5, 5), fakt(2, 3, 6), fakt(4, 3, 12), fakt(6, 3, 18)];  // 1 geprüfte + 3 Wiederholung
+  const box = [
+    boxEintragKaputt('mal', 1, 3, 3, { antwort_optionen: [] }),      // kaputt: Optionen leer
+    boxEintrag('mal', 5, 3, 15),                                      // brauchbar
+    boxEintragKaputt('mal', 7, 3, 21, { ergebnis: 'nope' }),         // kaputt: ergebnis ungültig
+    boxEintrag('mal', 8, 3, 24),                                      // brauchbar
+    { schluessel: 'mal|9|3|27', typ: 'mal', aufgabe: null, fach: 1 }, // kaputt: kein aufgabe
+    boxEintrag('mal', 10, 3, 30),                                     // brauchbar
+  ];
+  const r = mitFaelligenBoxaufgaben(fakten, 'mal', { neueReihe: 5, offeneReihen: [3], boxAufgaben: box });
+  const genutzt = r.filter(f => f.boxEintrag);
+
+  check('mischung: genau 3 brauchbare Substitutionen (alle kaputten übersprungen)', genutzt.length === 3);
+  check('mischung: brauchbare Fakten sind richtig=15/24/30',
+    genutzt.some(f => f.richtig === 15) && genutzt.some(f => f.richtig === 24) && genutzt.some(f => f.richtig === 30));
+  check('mischung: kein kaputtes richtig im Ergebnis',
+    r.every(f => ![3, 21, 27].includes(f.richtig) || !f.boxEintrag));
+  check('mischung: die geprüfte 5er-Frage bleibt unverändert', r[0].boxEintrag === null && r[0].b === 5 && r[0].richtig === 5);
+  check('mischung: gesamtlänge bleibt 4 (Länge des fakten-Arrays)', r.length === 4);
+  check('mischung: Wiederholungsplätze sind ersetzt',
+    r[1].boxEintrag !== null && r[2].boxEintrag !== null && r[3].boxEintrag !== null);
+}
+
 if (fehler) { console.error(`\n${fehler} Check(s) fehlgeschlagen.`); process.exit(1); }
 console.log('\nAlle aufsagen-logik-Checks grün.');
