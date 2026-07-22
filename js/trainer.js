@@ -5,7 +5,10 @@
 import { oeffneModal } from './modal.js';
 import { verteileBelohnung } from './belohnung.js';
 import { baueReihe, baueQuizFakten, baueDistraktoren, mische } from './aufsagen-logik.js';
-import { protokolliereAufsagen, getCurrentProfile, protokolliereEintragen } from './state.js';
+import { protokolliereAufsagen, getCurrentProfile, protokolliereEintragen,
+         getFreischaltung, setzeFreischaltung } from './state.js';
+import { ANFANGSSTAND, offeneReihen, pruefReihe, sitzt,
+         notierePruefung, sollAufsteigen, steigeAuf, bestanden } from './freischaltung-logik.js';
 import { meldeAufsagen, meldeEintragen } from './sync.js';
 import { kappeLuecke, formatDauer, neuerEintrag, INAKTIV_MS } from './aufsage-protokoll-logik.js';
 import { richtungsHinweis, neuerEintrag as neuerEintragEintragen } from './eintragen-protokoll-logik.js';
@@ -37,23 +40,58 @@ export function oeffneTrainer(reward, { rechenart = 'mal' } = {}) {
 }
 
 // --- Schritt 1: Reihen-Auswahl ---
+// Drei Zustände: offen, aktuell (die Reihe, an der das Kind gerade ist) und „kommt bald".
+// Bewusst KEIN Schloss und kein Wort von „gesperrt": Eine Sperre, die als Bewertung ankommt,
+// kostet Motivation, statt sie zu erzeugen. Auch die gedämpften Kacheln sind antippbar und
+// erklären, was noch fehlt — nie eine Abweisung.
 function zeigeReihenAuswahl(wurzel, modal, reward, rechenart) {
+  const profileId = getCurrentProfile()?.id ?? null;
+  const stand = profileId ? getFreischaltung(profileId, rechenart) : { ...ANFANGSSTAND };
+  const offen = offeneReihen(stand);
+  const aktuelle = pruefReihe(stand.stufe);
+
   const kacheln = [];
   for (let n = 1; n <= 10; n++) {
-    kacheln.push(`<button class="trainer__reihe" data-reihe="${n}">${n}</button>`);
+    const istOffenJetzt = offen.includes(n);
+    const klassen = ['trainer__reihe'];
+    if (!istOffenJetzt) klassen.push('trainer__reihe--kommt');
+    else if (n === aktuelle) klassen.push('trainer__reihe--aktuell');
+    kacheln.push(`<button class="${klassen.join(' ')}" data-reihe="${n}" data-offen="${istOffenJetzt}">${n}</button>`);
   }
+
+  const tage = (stand.pruefungen?.[String(aktuelle)] ?? []).length;
+  const hinweis = tage >= 1 && !sitzt(stand, aktuelle)
+    ? `Noch ein guter Tag mit der ${aktuelle}er-Reihe.`
+    : `Du übst gerade die ${aktuelle}er-Reihe.`;
+
   wurzel.innerHTML = `
     <div class="trainer__kopf">${rechenart === 'geteilt' ? '➗' : '🧮'} Welche Reihe willst du üben?</div>
     <div class="trainer__reihen">${kacheln.join('')}</div>
-    <button class="trainer__gemischt" data-reihe="gemischt">🎲 Gemischt</button>
+    <p class="trainer__reihen-hinweis">${hinweis}</p>
+    <button class="trainer__gemischt" data-reihe="gemischt" data-offen="true">🎲 Gemischt</button>
   `;
+
   wurzel.querySelectorAll('[data-reihe]').forEach(b => {
     b.addEventListener('click', () => {
       const wahl = b.dataset.reihe;
+      if (b.dataset.offen !== 'true') { zeigeKommtBald(wurzel, modal, reward, rechenart, parseInt(wahl, 10), aktuelle); return; }
       if (wahl === 'gemischt') starteQuiz(wurzel, modal, reward, 'gemischt', rechenart);
       else zeigeLernStufe(wurzel, modal, reward, parseInt(wahl, 10), rechenart);
     });
   });
+}
+
+// Antippen einer noch nicht offenen Reihe: erklären statt abweisen.
+function zeigeKommtBald(wurzel, modal, reward, rechenart, reihe, aktuelle) {
+  wurzel.innerHTML = `
+    <div class="trainer__kopf">Die ${reihe}er-Reihe kommt bald 🌱</div>
+    <p class="trainer__abschluss-text">
+      Zuerst ist die ${aktuelle}er-Reihe dran. Wenn die an zwei Tagen sitzt, geht die nächste auf.
+    </p>
+    <button class="trainer__fertig">Zurück</button>
+  `;
+  wurzel.querySelector('.trainer__fertig')
+    .addEventListener('click', () => zeigeReihenAuswahl(wurzel, modal, reward, rechenart));
 }
 
 // --- Schritt 2: Lern-Stufe (Vorlesen / Aufsagen / Eintragen) ---

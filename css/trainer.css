@@ -203,6 +203,24 @@
   75% { transform: translateX(4px); }
 }
 
+/* Aktuelle Reihe: Ziel-Anzeige, keine Sperr-Anzeige. */
+.trainer__reihe--aktuell {
+  outline: 3px solid var(--color-action);
+  outline-offset: 2px;
+}
+
+/* Noch nicht offen: gedämpft, aber antippbar (erklärt statt abzuweisen). */
+.trainer__reihe--kommt {
+  opacity: 0.4;
+}
+
+.trainer__reihen-hinweis {
+  margin: var(--space-sm) 0 0;
+  text-align: center;
+  font-size: var(--font-size-sm);
+  opacity: 0.8;
+}
+
 @media (max-width: 480px) {
   .trainer__aufgabe { font-size: 32px; }
   .trainer__nickerchen-emoji { font-size: 52px; }
