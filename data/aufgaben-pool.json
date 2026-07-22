@@ -18,7 +18,7 @@
       { "nr": 1, "label": "Kleines 1x1 (bis 5)",      "a_min": 1, "a_max": 5,  "b_min": 1, "b_max": 5  },
       { "nr": 2, "label": "Volles 1x1 (bis 10)",      "a_min": 1, "a_max": 10, "b_min": 1, "b_max": 10 },
       { "nr": 3, "label": "Schwere Reihen (6-9)",     "a_min": 6, "a_max": 9,  "b_min": 2, "b_max": 10 },
-      { "nr": 4, "label": "Gemischt, großes 1x1",     "a_min": 2, "a_max": 12, "b_min": 2, "b_max": 12 }
+      { "nr": 4, "label": "Gemischt, ohne Einser (kleines 1x1)", "a_min": 2, "a_max": 10, "b_min": 2, "b_max": 12 }
     ],
     "distraktoren": {
       "anzahl": 4
@@ -57,8 +57,8 @@
   "geteilt": {
     "default_stufe": 1,
     "stufen": [
-      { "nr": 1, "label": "Leichte Reihen (2, 5, 10)", "reihen": [2, 5, 10],            "quotient_max": 10 },
-      { "nr": 2, "label": "Dazu 3er & 4er",            "reihen": [2, 3, 4, 5, 10],      "quotient_max": 10 },
+      { "nr": 1, "label": "Leichte Reihen (2, 5, 10)", "reihen": [2, 5, 10],            "quotient_max": 5 },
+      { "nr": 2, "label": "Dazu 3er & 4er",            "reihen": [2, 3, 4, 5, 10],      "quotient_max": 8 },
       { "nr": 3, "label": "Alle Reihen",               "reihen": [2, 3, 4, 5, 6, 7, 8, 9, 10], "quotient_max": 10 }
     ],
     "distraktoren": { "anzahl": 4 }
