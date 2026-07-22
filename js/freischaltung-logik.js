@@ -111,6 +111,26 @@ export function sollAufsteigen(stand) {
 // bewusst NICHT klemmt: der Umweg ist dafür da, dass eine Reihe die nächste nicht versperrt,
 // aber am Ende der Sequenz gibt es keine nächste Reihe mehr, die er öffnen müsste, also bleibt
 // hier nur das echte Kriterium).
+// Skaliert die Chance auf Eisen/Diamant mit dem Reihen-Fortschritt (0.3 .. 1.0).
+//
+// Warum überhaupt: Die Premium-Beute hing bisher allein an der ADAPTIVEN Stufe. Seit die
+// Reihen-Freischaltung den Reihen-Faktor bestimmt, ist die höchste adaptive Stufe schon mit
+// lauter Zweier-Aufgaben erreichbar — das Kind könnte also Diamanten sammeln, während erst
+// die 2er offen ist. An Diamanten hängen echte Gutscheine (Ausflug), die Beute soll deshalb
+// wieder etwas mit Können zu tun haben.
+//
+// Warum GLEITEND und nicht als Sperre: In den ersten Wochen gibt die App ohnehin weniger her
+// (nur eine offene Reihe). Ausgerechnet dann auch noch die Beute ganz zu streichen, wäre bei
+// einem Kind, dessen Thema Antrieb ist, das falsche Signal. Der Sockel von 0.3 sorgt dafür,
+// dass es nie leer ausgeht — das Beste kommt mit dem Können, nicht statt seiner.
+const BEUTE_SOCKEL = 0.3;
+
+export function beuteFaktor(stand) {
+  const stufe = Math.min(Math.max(1, stand?.stufe ?? 1), SEQUENZ.length);
+  const anteil = SEQUENZ.length > 1 ? (stufe - 1) / (SEQUENZ.length - 1) : 1;
+  return BEUTE_SOCKEL + (1 - BEUTE_SOCKEL) * anteil;
+}
+
 export function alleReihenSitzen(stand) {
   const stufe = stand?.stufe ?? 1;
   if (stufe < SEQUENZ.length) return false;
