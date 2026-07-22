@@ -455,15 +455,19 @@ function starteQuiz(wurzel, modal, reward, reihe, rechenart) {
           btn.classList.add('trainer__antwort--falsch');
           btn.disabled = true;
           fehler++;
-          // Für das Freischalt-Kriterium zählen nur die Fragen der geprüften Reihe. Die
-          // eingestreuten Wiederholungen sind Wiederholung, keine Prüfung — sie dürfen
-          // danebengehen, ohne die Reihe zu blockieren.
-          if (reihe !== 'gemischt' && f.b === reihe) fehlerNeueReihe++;
           if (fehler >= MAX_FEHLVERSUCHE) {
             ant.querySelectorAll('button').forEach(x => {
               x.disabled = true;
               if (parseInt(x.textContent, 10) === richtig) x.classList.add('trainer__antwort--richtig');
             });
+            // Für das Freischalt-Kriterium zählt jede Frage der geprüften Reihe höchstens
+            // einmal als Fehler — erst hier, wenn sie endgültig scheitert (Lösung wird
+            // gezeigt), nicht bei jedem einzelnen Fehlklick. Sonst würde ein einziger
+            // unbekannter Fakt (bis zu MAX_FEHLVERSUCHE Fehlklicks) mehrfach zählen und
+            // die Prüfung ("höchstens 1 Fehler von 10 Fragen") ungewollt verschärfen. Die
+            // eingestreuten Wiederholungen sind Wiederholung, keine Prüfung — sie dürfen
+            // danebengehen, ohne die Reihe zu blockieren.
+            if (reihe !== 'gemischt' && f.b === reihe) fehlerNeueReihe++;
             rapportiere(false);
             const tipp = wurzel.querySelector('.trainer__tipp');
             tipp.hidden = false;
