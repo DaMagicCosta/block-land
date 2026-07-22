@@ -11,7 +11,7 @@ import { verteileBelohnung } from './belohnung.js';
 import { loadAufgabenPool, loadBiomManifest } from './data.js';
 import { waehleMechanik, aktuelleStufe, rapportiereErgebnis } from './adaptiv.js';
 import { getCurrentProfile, getAktivesBiom, schalteNaechstesBiomFrei, getAktiveReihe, setzeAktiveReihe, getFehlerbox, setzeFehlerboxEintrag, getFreischaltung } from './state.js';
-import { offeneReihen, ohneEinserreihe, nurEineReiheOffen } from './freischaltung-logik.js';
+import { offeneReihen, ohneEinserreihe, nurEineReiheOffen, beuteFaktor } from './freischaltung-logik.js';
 import { aufgabeSchluessel, neuerEintrag, planeWieder, verschiebeAufMorgen, naechsteFaellige, hilfeStufeFuer } from './fehlerbox-logik.js';
 import { normalisiereAufgabe } from './aufgaben/normalisiere.js';
 import { neueKlickSperre } from './klick-sperre.js';
@@ -501,7 +501,12 @@ function starteAufgabe(reihe, mechanik, profile, modal, inhalt, maxStufe, onWeit
       const delta = baselineMaxIndex(profile.alter) - BIOME_REIHENFOLGE.indexOf(biomId);
       const unterNiveau = delta > 0;
       const biomFaktor = unterNiveau ? Math.max(0.2, 1 - 0.35 * delta) : 1;
-      const gegeben = verteileBelohnung(aufgabe.stufe, maxStufe, reihe.reward.item, biomFaktor, !unterNiveau);
+      // Premium-Beute zusätzlich am Reihen-Fortschritt skaliert — nur Mal/Geteilt kennen eine
+      // Reihen-Freischaltung, alle anderen Rechenarten bleiben bei 1 (siehe beuteFaktor).
+      const reihenFaktor = (typ === 'mal' || typ === 'geteilt')
+        ? beuteFaktor(getFreischaltung(profile.id, typ))
+        : 1;
+      const gegeben = verteileBelohnung(aufgabe.stufe, maxStufe, reihe.reward.item, biomFaktor, !unterNiveau, reihenFaktor);
       let neuesBiom = null;
       if (aufgabe.stufe === maxStufe) {
         neuesBiom = schalteNaechstesBiomFrei(profile.id, biomId);

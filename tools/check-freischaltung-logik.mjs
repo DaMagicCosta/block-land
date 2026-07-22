@@ -2,7 +2,7 @@
 import {
   SEQUENZ, ANFANGSSTAND, pruefReihe, offeneReihen, istOffen, notierePruefung,
   sitzt, klemmt, sollAufsteigen, steigeAuf, mischeQuizReihen, bestanden, verschmelzeStaende,
-  ohneEinserreihe, kappeTageslistenAbStufe, nurEineReiheOffen, alleReihenSitzen,
+  ohneEinserreihe, kappeTageslistenAbStufe, nurEineReiheOffen, alleReihenSitzen, beuteFaktor,
 } from '../js/freischaltung-logik.js';
 import { baueQuizFakten } from '../js/aufsagen-logik.js';
 import { generiereMalAufgabe } from '../js/aufgaben/mal.js';
@@ -307,6 +307,37 @@ const stufe9Klemmt3 = notierePruefung(stufe9Klemmt2, 7, '2026-07-22', false);
 pruefe('Stufe 9 klemmt (drei gescheiterte Tage), sitzt aber nicht -> kein Abschluss (Umweg zählt hier nicht als Bestehen)',
   alleReihenSitzen(stufe9Klemmt3) === false);
 pruefe('undefined-Stand ist nicht fertig (kein Wurf)', alleReihenSitzen(undefined) === false);
+
+
+console.log('Beute-Faktor (Premium skaliert mit dem Reihen-Fortschritt)');
+// Warum es diese Skalierung gibt: Die Premium-Beute hing allein an der ADAPTIVEN Stufe. Seit
+// die Freischaltung den Reihen-Faktor bestimmt, ist die hoechste adaptive Stufe schon mit
+// lauter Zweier-Aufgaben erreichbar — Diamanten (an denen echte Gutscheine haengen) waeren
+// damit vom Koennen entkoppelt. Bewusst ein FAKTOR und keine Sperre: In den ersten Wochen
+// gibt die App ohnehin weniger her, da darf sie nicht auch noch leer ausgehen.
+pruefe('Stufe 1 gibt den Sockel, nicht null (Kind geht nie leer aus)',
+  Math.abs(beuteFaktor({ stufe: 1 }) - 0.3) < 1e-9);
+pruefe('letzte Stufe gibt den vollen Faktor',
+  Math.abs(beuteFaktor({ stufe: SEQUENZ.length }) - 1) < 1e-9);
+pruefe('waechst streng monoton mit der Stufe', (() => {
+  for (let s = 2; s <= SEQUENZ.length; s++) {
+    if (!(beuteFaktor({ stufe: s }) > beuteFaktor({ stufe: s - 1 }))) return false;
+  }
+  return true;
+})());
+pruefe('bleibt immer zwischen Sockel und 1', (() => {
+  for (let s = -5; s <= SEQUENZ.length + 5; s++) {
+    const f = beuteFaktor({ stufe: s });
+    if (!(f >= 0.3 && f <= 1)) return false;
+  }
+  return true;
+})());
+pruefe('Mitte der Sequenz liegt zwischen Sockel und Voll', (() => {
+  const f = beuteFaktor({ stufe: 5 });
+  return f > 0.3 && f < 1;
+})());
+pruefe('fehlender Stand faellt auf den Sockel zurueck (kein Wurf)',
+  Math.abs(beuteFaktor(undefined) - 0.3) < 1e-9 && Math.abs(beuteFaktor({}) - 0.3) < 1e-9);
 
 console.log(fehler === 0 ? '\nAlles grün.' : `\n${fehler} Fehler.`);
 process.exit(fehler === 0 ? 0 : 1);

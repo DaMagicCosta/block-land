@@ -8,7 +8,7 @@ import { baueReihe, baueQuizFakten, baueDistraktoren, mische, mitFaelligenBoxauf
 import { protokolliereAufsagen, getCurrentProfile, protokolliereEintragen,
          getFreischaltung, setzeFreischaltung, setzeFehlerboxEintrag, getFehlerbox } from './state.js';
 import { ANFANGSSTAND, offeneReihen, ohneEinserreihe, pruefReihe, sitzt,
-         notierePruefung, sollAufsteigen, steigeAuf, bestanden, alleReihenSitzen } from './freischaltung-logik.js';
+         notierePruefung, sollAufsteigen, steigeAuf, bestanden, alleReihenSitzen, beuteFaktor } from './freischaltung-logik.js';
 import { neuerEintrag as neuerFehlerboxEintrag, aufgabeSchluessel, planeWieder,
          verschiebeAufMorgen, faellige } from './fehlerbox-logik.js';
 import { meldeAufsagen, meldeEintragen } from './sync.js';
@@ -503,7 +503,10 @@ function starteQuiz(wurzel, modal, reward, reihe, rechenart) {
             }
           }
           // einzelne Reihe = Stufe 3, Gemischt = Stufe 4 (maxStufe 4) → Gemischt gibt besseres Material
-          verteileBelohnung(reihe === 'gemischt' ? 4 : 3, 4, reward.item);
+          // Premium-Beute am Reihen-Fortschritt skaliert (siehe beuteFaktor): Die hoechste
+          // Stufe ist im Trainer fest verdrahtet, waere ohne das also unabhaengig vom Koennen.
+          verteileBelohnung(reihe === 'gemischt' ? 4 : 3, 4, reward.item, 1, true,
+            profileId ? beuteFaktor(getFreischaltung(profileId, rechenart)) : 1);
           setTimeout(weiter, 700);
         } else {
           btn.classList.add('trainer__antwort--falsch');
