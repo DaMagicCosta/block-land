@@ -104,6 +104,19 @@ export function sollAufsteigen(stand) {
   return sitzt(stand, reihe) || klemmt(stand, reihe);
 }
 
+// Abschluss-Erkennung: „alles sitzt" ist NICHT dasselbe wie „letzte Stufe erreicht". steigeAuf
+// kappt an der letzten Stufe (siehe oben) — Stufe 9 bedeutet nur „die 7er ist gerade dran",
+// unabhängig davon, ob sie schon bestanden ist. Fertig ist erst, wenn zusätzlich die Prüfreihe
+// GENAU dieser letzten Stufe an zwei verschiedenen Tagen sitzt (echtes Bestehen, siehe sitzt —
+// bewusst NICHT klemmt: der Umweg ist dafür da, dass eine Reihe die nächste nicht versperrt,
+// aber am Ende der Sequenz gibt es keine nächste Reihe mehr, die er öffnen müsste, also bleibt
+// hier nur das echte Kriterium).
+export function alleReihenSitzen(stand) {
+  const stufe = stand?.stufe ?? 1;
+  if (stufe < SEQUENZ.length) return false;
+  return sitzt(stand, pruefReihe(SEQUENZ.length));
+}
+
 export function steigeAuf(stand) {
   const stufe = Math.min((stand?.stufe ?? 1) + 1, SEQUENZ.length);
   return { ...stand, stufe, pruefungen: { ...(stand?.pruefungen ?? {}) },

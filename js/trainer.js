@@ -8,7 +8,7 @@ import { baueReihe, baueQuizFakten, baueDistraktoren, mische, mitFaelligenBoxauf
 import { protokolliereAufsagen, getCurrentProfile, protokolliereEintragen,
          getFreischaltung, setzeFreischaltung, setzeFehlerboxEintrag, getFehlerbox } from './state.js';
 import { ANFANGSSTAND, offeneReihen, ohneEinserreihe, pruefReihe, sitzt,
-         notierePruefung, sollAufsteigen, steigeAuf, bestanden } from './freischaltung-logik.js';
+         notierePruefung, sollAufsteigen, steigeAuf, bestanden, alleReihenSitzen } from './freischaltung-logik.js';
 import { neuerEintrag as neuerFehlerboxEintrag, aufgabeSchluessel, planeWieder,
          verschiebeAufMorgen, faellige } from './fehlerbox-logik.js';
 import { meldeAufsagen, meldeEintragen } from './sync.js';
@@ -41,6 +41,16 @@ export function oeffneTrainer(reward, { rechenart = 'mal' } = {}) {
   zeigeReihenAuswahl(modal.inhalt, modal, reward, rechenart);
 }
 
+// Wortlaut für den Abschluss: eine Feststellung über das Kind, kein Lob von außen ("Du kannst
+// jetzt..." statt "Toll gemacht!"). Eine gemeinsame Stelle für Reihen-Auswahl und
+// Prüfungs-Abschluss, damit beide denselben Satz zeigen — siehe alleReihenSitzen für die
+// Erkennung (Stufe 9 allein reicht nicht, siehe freischaltung-logik.js).
+function abschlussSatz(rechenart) {
+  return rechenart === 'geteilt'
+    ? 'Du kannst jetzt durch alle Reihen teilen.'
+    : 'Du kannst jetzt das ganze Einmaleins.';
+}
+
 // --- Schritt 1: Reihen-Auswahl ---
 // Drei Zustände: offen, aktuell (die Reihe, an der das Kind gerade ist) und „kommt bald".
 // Bewusst KEIN Schloss und kein Wort von „gesperrt": Eine Sperre, die als Bewertung ankommt,
@@ -51,25 +61,30 @@ function zeigeReihenAuswahl(wurzel, modal, reward, rechenart) {
   const stand = profileId ? getFreischaltung(profileId, rechenart) : { ...ANFANGSSTAND };
   const offen = offeneReihen(stand);
   const aktuelle = pruefReihe(stand.stufe);
+  // Alles sitzt (siehe alleReihenSitzen): es gibt keine "aktuelle" Reihe mehr, an der noch
+  // geübt wird — jede Kachel bleibt offen, aber keine trägt mehr die Ziel-Hervorhebung.
+  const fertig = alleReihenSitzen(stand);
 
   const kacheln = [];
   for (let n = 1; n <= 10; n++) {
     const istOffenJetzt = offen.includes(n);
     const klassen = ['trainer__reihe'];
     if (!istOffenJetzt) klassen.push('trainer__reihe--kommt');
-    else if (n === aktuelle) klassen.push('trainer__reihe--aktuell');
+    else if (!fertig && n === aktuelle) klassen.push('trainer__reihe--aktuell');
     kacheln.push(`<button class="${klassen.join(' ')}" data-reihe="${n}" data-offen="${istOffenJetzt}">${n}</button>`);
   }
 
   const tage = (stand.pruefungen?.[String(aktuelle)] ?? []).length;
-  const hinweis = tage >= 1 && !sitzt(stand, aktuelle)
-    ? `Noch ein guter Tag mit der ${aktuelle}er-Reihe.`
-    : `Du übst gerade die ${aktuelle}er-Reihe.`;
+  const hinweis = fertig
+    ? abschlussSatz(rechenart)
+    : (tage >= 1 && !sitzt(stand, aktuelle)
+        ? `Noch ein guter Tag mit der ${aktuelle}er-Reihe.`
+        : `Du übst gerade die ${aktuelle}er-Reihe.`);
 
   wurzel.innerHTML = `
     <div class="trainer__kopf">${rechenart === 'geteilt' ? '➗' : '🧮'} Welche Reihe willst du üben?</div>
     <div class="trainer__reihen">${kacheln.join('')}</div>
-    <p class="trainer__reihen-hinweis">${hinweis}</p>
+    <p class="trainer__reihen-hinweis${fertig ? ' trainer__reihen-hinweis--abschluss' : ''}">${hinweis}</p>
     <button class="trainer__gemischt" data-reihe="gemischt" data-offen="true">🎲 Gemischt</button>
   `;
 
@@ -569,6 +584,7 @@ function starteQuiz(wurzel, modal, reward, reihe, rechenart) {
     // den Fall ab, dass sich der Server-Stand sogar zwischen diesem Lesen und dem Schreiben
     // noch ändert.
     let freigeschaltet = null;
+    let allesGeschafft = false;
     if (profileId) {
       const aktuellerStand = getFreischaltung(profileId, rechenart);
       if (reihe !== 'gemischt' && reihe === pruefReihe(aktuellerStand.stufe)) {
@@ -578,23 +594,35 @@ function starteQuiz(wurzel, modal, reward, reihe, rechenart) {
         if (sollAufsteigen(neu)) neu = steigeAuf(neu);
         setzeFreischaltung(profileId, rechenart, neu);
         if (neu.stufe > vorher) freigeschaltet = pruefReihe(neu.stufe);
+        // Der große Moment: erst JETZT sitzt die letzte Reihe — vorher noch nicht (siehe
+        // alleReihenSitzen, Stufe 9 allein reicht nicht). Nur die eine Prüfung, die genau
+        // diesen Übergang auslöst, bekommt die größere Feier — nicht jede danach.
+        allesGeschafft = !alleReihenSitzen(aktuellerStand) && alleReihenSitzen(neu);
       }
     }
-    zeigeAbschluss(wurzel, modal, reward, sterne, fakten.length, rechenart, freigeschaltet);
+    zeigeAbschluss(wurzel, modal, reward, sterne, fakten.length, rechenart, freigeschaltet, allesGeschafft);
   }
 
   zeigeFrage();
 }
 
 // --- Abschluss ---
-function zeigeAbschluss(wurzel, modal, reward, sterne, max, rechenart, freigeschaltet = null) {
+// allesGeschafft: DIESE Prüfung hat gerade das ganze Einmaleins/Geteilt-System fertiggestellt
+// (siehe starteQuiz -> weiter). Bekommt eine deutlichere Feier als die übliche
+// Freischalt-Meldung — der größere Moment am Ende von Wochen Übung.
+function zeigeAbschluss(wurzel, modal, reward, sterne, max, rechenart, freigeschaltet = null, allesGeschafft = false) {
   const neueReihe = freigeschaltet
     ? `<p class="trainer__abschluss-text">🌟 Die ${freigeschaltet}er-Reihe ist jetzt auch da!</p>`
     : '';
+  const kopf = allesGeschafft ? abschlussSatz(rechenart) : 'Super gemacht!';
+  const emoji = allesGeschafft ? '🏆' : '🎉';
+  const emojiKlasse = allesGeschafft ? 'trainer__abschluss-emoji feier__huepf' : 'trainer__abschluss-emoji';
+  const konfetti = allesGeschafft ? '<div class="feier__konfetti">✨🎊⭐🎉✨</div>' : '';
   wurzel.innerHTML = `
     <div class="trainer__abschluss">
-      <div class="trainer__abschluss-emoji">🎉</div>
-      <div class="trainer__kopf">Super gemacht!</div>
+      <div class="${emojiKlasse}">${emoji}</div>
+      ${konfetti}
+      <div class="trainer__kopf${allesGeschafft ? ' trainer__kopf--abschluss' : ''}">${kopf}</div>
       <p class="trainer__abschluss-text">⭐ ${sterne} von ${max} richtig</p>
       ${neueReihe}
       <button class="trainer__nochmal">🔁 Nochmal</button>
