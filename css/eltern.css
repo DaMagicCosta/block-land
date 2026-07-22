@@ -213,9 +213,27 @@
 }
 .welt__eltern:hover { border-color: var(--color-action); }
 
+/* Reihen-Freischaltung (Nachtrag A) — ein Kärtchen je Kind + Rechenart, Setz-Knopf am Ende. */
+.eltern__freischalt-block {
+  background: var(--color-surface-2);
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
+  margin-bottom: var(--space-sm);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+.eltern__freischalt-titel { font-family: var(--font-mono); font-weight: bold; color: var(--color-text); }
+.eltern__freischalt-zeile { color: var(--color-text-dim); font-size: var(--font-size-sm); font-family: var(--font-mono); }
+.eltern__freischalt-zeile b { color: var(--color-text); }
+.eltern__freischalt-setzen { display: flex; gap: var(--space-sm); align-items: center; margin-top: var(--space-xs); }
+.eltern__freischalt-setzen select { flex: 1; min-width: 0; }
+
 @media (max-width: 480px) {
   .eltern__tab-icon { font-size: 18px; }
   .eltern__tab-label { font-size: 10px; }
+  .eltern__freischalt-setzen { flex-direction: column; align-items: stretch; }
 }
 
 .eltern__avatar-grid { display: flex; flex-wrap: wrap; gap: var(--space-xs); }

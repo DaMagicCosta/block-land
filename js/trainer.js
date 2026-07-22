@@ -4,8 +4,13 @@
 
 import { oeffneModal } from './modal.js';
 import { verteileBelohnung } from './belohnung.js';
-import { baueReihe, baueQuizFakten, baueDistraktoren, mische } from './aufsagen-logik.js';
-import { protokolliereAufsagen, getCurrentProfile, protokolliereEintragen } from './state.js';
+import { baueReihe, baueQuizFakten, baueDistraktoren, mische, mitFaelligenBoxaufgaben } from './aufsagen-logik.js';
+import { protokolliereAufsagen, getCurrentProfile, protokolliereEintragen,
+         getFreischaltung, setzeFreischaltung, setzeFehlerboxEintrag, getFehlerbox } from './state.js';
+import { ANFANGSSTAND, offeneReihen, ohneEinserreihe, pruefReihe, sitzt,
+         notierePruefung, sollAufsteigen, steigeAuf, bestanden } from './freischaltung-logik.js';
+import { neuerEintrag as neuerFehlerboxEintrag, aufgabeSchluessel, planeWieder,
+         verschiebeAufMorgen, faellige } from './fehlerbox-logik.js';
 import { meldeAufsagen, meldeEintragen } from './sync.js';
 import { kappeLuecke, formatDauer, neuerEintrag, INAKTIV_MS } from './aufsage-protokoll-logik.js';
 import { richtungsHinweis, neuerEintrag as neuerEintragEintragen } from './eintragen-protokoll-logik.js';
@@ -37,23 +42,58 @@ export function oeffneTrainer(reward, { rechenart = 'mal' } = {}) {
 }
 
 // --- Schritt 1: Reihen-Auswahl ---
+// Drei Zustände: offen, aktuell (die Reihe, an der das Kind gerade ist) und „kommt bald".
+// Bewusst KEIN Schloss und kein Wort von „gesperrt": Eine Sperre, die als Bewertung ankommt,
+// kostet Motivation, statt sie zu erzeugen. Auch die gedämpften Kacheln sind antippbar und
+// erklären, was noch fehlt — nie eine Abweisung.
 function zeigeReihenAuswahl(wurzel, modal, reward, rechenart) {
+  const profileId = getCurrentProfile()?.id ?? null;
+  const stand = profileId ? getFreischaltung(profileId, rechenart) : { ...ANFANGSSTAND };
+  const offen = offeneReihen(stand);
+  const aktuelle = pruefReihe(stand.stufe);
+
   const kacheln = [];
   for (let n = 1; n <= 10; n++) {
-    kacheln.push(`<button class="trainer__reihe" data-reihe="${n}">${n}</button>`);
+    const istOffenJetzt = offen.includes(n);
+    const klassen = ['trainer__reihe'];
+    if (!istOffenJetzt) klassen.push('trainer__reihe--kommt');
+    else if (n === aktuelle) klassen.push('trainer__reihe--aktuell');
+    kacheln.push(`<button class="${klassen.join(' ')}" data-reihe="${n}" data-offen="${istOffenJetzt}">${n}</button>`);
   }
+
+  const tage = (stand.pruefungen?.[String(aktuelle)] ?? []).length;
+  const hinweis = tage >= 1 && !sitzt(stand, aktuelle)
+    ? `Noch ein guter Tag mit der ${aktuelle}er-Reihe.`
+    : `Du übst gerade die ${aktuelle}er-Reihe.`;
+
   wurzel.innerHTML = `
     <div class="trainer__kopf">${rechenart === 'geteilt' ? '➗' : '🧮'} Welche Reihe willst du üben?</div>
     <div class="trainer__reihen">${kacheln.join('')}</div>
-    <button class="trainer__gemischt" data-reihe="gemischt">🎲 Gemischt</button>
+    <p class="trainer__reihen-hinweis">${hinweis}</p>
+    <button class="trainer__gemischt" data-reihe="gemischt" data-offen="true">🎲 Gemischt</button>
   `;
+
   wurzel.querySelectorAll('[data-reihe]').forEach(b => {
     b.addEventListener('click', () => {
       const wahl = b.dataset.reihe;
+      if (b.dataset.offen !== 'true') { zeigeKommtBald(wurzel, modal, reward, rechenart, parseInt(wahl, 10), aktuelle); return; }
       if (wahl === 'gemischt') starteQuiz(wurzel, modal, reward, 'gemischt', rechenart);
       else zeigeLernStufe(wurzel, modal, reward, parseInt(wahl, 10), rechenart);
     });
   });
+}
+
+// Antippen einer noch nicht offenen Reihe: erklären statt abweisen.
+function zeigeKommtBald(wurzel, modal, reward, rechenart, reihe, aktuelle) {
+  wurzel.innerHTML = `
+    <div class="trainer__kopf">Die ${reihe}er-Reihe kommt bald 🌱</div>
+    <p class="trainer__abschluss-text">
+      Zuerst ist die ${aktuelle}er-Reihe dran. Wenn die an zwei Tagen sitzt, geht die nächste auf.
+    </p>
+    <button class="trainer__fertig">Zurück</button>
+  `;
+  wurzel.querySelector('.trainer__fertig')
+    .addEventListener('click', () => zeigeReihenAuswahl(wurzel, modal, reward, rechenart));
 }
 
 // --- Schritt 2: Lern-Stufe (Vorlesen / Aufsagen / Eintragen) ---
@@ -366,7 +406,36 @@ function rendereAufsagen(wurzel, container, modal, reward, reihe, rechenart) {
 // --- Schritt 3: Quiz ---
 function starteQuiz(wurzel, modal, reward, reihe, rechenart) {
   const profileId = getCurrentProfile()?.id ?? null;
-  const fakten = baueQuizFakten(reihe, rechenart);
+  const stand = profileId ? getFreischaltung(profileId, rechenart) : { ...ANFANGSSTAND };
+  // Die 1er-Reihe läuft nur trivial mit (siehe SEQUENZ, sie wird nie eigens geprüft) und ist
+  // als Wiederholung wertlos — deshalb hier zusätzlich zur geprüften Reihe ausgeschlossen
+  // (gemeinsame Filterhilfe mit dem Biom-Erzeuger, siehe ohneEinserreihe).
+  const alteReihen = ohneEinserreihe(offeneReihen(stand)).filter(r => r !== reihe);
+  let fakten = baueQuizFakten(reihe, rechenart, alteReihen);
+  // Fehler-Box im Wiederholungsanteil (Nachtrag C zu „Reihen-Freischaltung", Design §6): fällige
+  // Aufgaben der bereits gelernten Reihen ersetzen dort zufällig gezogene Fragen — zielgerichtet
+  // statt zufällig. Die geprüfte Reihe bleibt unberührt, das übernimmt mitFaelligenBoxaufgaben
+  // (ersetzt nur Fragen mit b !== reihe, bei 'gemischt' gibt es keine geprüfte Reihe).
+  if (profileId) {
+    const faelligeBox = faellige(getFehlerbox(profileId), rechenart);
+    // Obergrenze für ersetzte Fragen (Schlussdurchsicht 21.07.2026, Fund „Gemischt wird zur
+    // reinen Fehler-Runde"): ohne Deckel galt bei 'gemischt' der gesamte Fragensatz als
+    // Wiederholungsanteil — bis zu zehn von zehn Fragen aus der Fehler-Box, ausgerechnet im
+    // Modus, den das Kind freiwillig wählt. Reihen-Prüfung: die Obergrenze ergibt sich aus der
+    // Zahl der tatsächlichen Wiederholungsplätze in DIESER Prüfung (Fragen, deren Reihe nicht
+    // die geprüfte ist). Gemischt: fest 4 — „die Box nutzt den Platz, der ohnehin für
+    // Wiederholung vorgesehen ist" (Design §6), nicht mehr.
+    const maxErsetzen = reihe === 'gemischt'
+      ? 4
+      : fakten.filter(f => Number(f.b) !== Number(reihe)).length;
+    fakten = mitFaelligenBoxaufgaben(fakten, rechenart, {
+      neueReihe: reihe === 'gemischt' ? null : reihe,
+      offeneReihen: alteReihen,
+      boxAufgaben: faelligeBox,
+      maxErsetzen,
+    });
+  }
+  let fehlerNeueReihe = 0;   // zählt NUR Fehler bei Fragen der geprüften Reihe
   let index = 0;
   let sterne = 0;
 
@@ -374,6 +443,7 @@ function starteQuiz(wurzel, modal, reward, reihe, rechenart) {
     const f = fakten[index];
     const richtig = f.richtig;
     let fehler = 0;
+    let gezaehlt = false;   // Freischalt-Kriterium: höchstens 1 Fehler pro Frage zählen (siehe unten)
     const frageStart = performance.now();
     const sperre = neueKlickSperre();   // Doppeltipp-Schutz (siehe klick-sperre.js)
     sperre.verriegeln(frageStart);
@@ -405,6 +475,18 @@ function starteQuiz(wurzel, modal, reward, reihe, rechenart) {
           ant.querySelectorAll('button').forEach(x => { x.disabled = true; });
           sterne++;
           rapportiere(true);
+          // Frage stammte aus der Fehler-Box (siehe mitFaelligenBoxaufgaben oben): Leitner-
+          // Regel fortschreiben — sonst käme dieselbe Aufgabe ewig wieder, obwohl das Kind sie
+          // jetzt kann. Auf Anhieb richtig (kein Fehlklick zuvor) → Fach steigt (planeWieder).
+          // Erst im zweiten Anlauf richtig → Fach bleibt, Aufgabe kommt morgen wieder
+          // (verschiebeAufMorgen) — gleiche Unterscheidung wie js/aufgabe-ui.js: pflegeFehlerbox.
+          if (profileId && f.boxEintrag) {
+            const boxAktuell = getFehlerbox(profileId)[f.boxEintrag.schluessel];
+            if (boxAktuell) {   // fehlt = Aufgabe wurde zwischenzeitlich (anderes Gerät) erledigt
+              const neu = fehler === 0 ? planeWieder(boxAktuell, true) : verschiebeAufMorgen(boxAktuell);
+              setzeFehlerboxEintrag(profileId, f.boxEintrag.schluessel, neu);
+            }
+          }
           // einzelne Reihe = Stufe 3, Gemischt = Stufe 4 (maxStufe 4) → Gemischt gibt besseres Material
           verteileBelohnung(reihe === 'gemischt' ? 4 : 3, 4, reward.item);
           setTimeout(weiter, 700);
@@ -412,12 +494,58 @@ function starteQuiz(wurzel, modal, reward, reihe, rechenart) {
           btn.classList.add('trainer__antwort--falsch');
           btn.disabled = true;
           fehler++;
+          // Für das Freischalt-Kriterium zählt jede Frage der geprüften Reihe höchstens einmal
+          // als Fehler — aber schon beim ERSTEN Fehlgriff, nicht erst wenn die Frage endgültig
+          // scheitert. Vorher stand das Zählen im MAX_FEHLVERSUCHE-Zweig unten: eine Frage, die
+          // im ersten Anlauf falsch und im zweiten richtig war, zählte dann als NULL Fehler —
+          // bei vier Antwortknöpfen konnte ein Kind neun von zehn Fragen zuerst danebengreifen,
+          // sich korrigieren, und bestand mit „null Fehlern", ohne einen einzigen Fakt wirklich
+          // abgerufen zu haben (Schlussdurchsicht 21.07.2026). `gezaehlt` verhindert, dass ein
+          // zweiter Fehlklick auf dieselbe Frage sie doppelt zählt.
+          if (!gezaehlt && reihe !== 'gemischt' && f.b === reihe) { fehlerNeueReihe++; gezaehlt = true; }
           if (fehler >= MAX_FEHLVERSUCHE) {
             ant.querySelectorAll('button').forEach(x => {
               x.disabled = true;
               if (parseInt(x.textContent, 10) === richtig) x.classList.add('trainer__antwort--richtig');
             });
             rapportiere(false);
+            // Endgültig falsch → in die Fehler-Box, damit die Aufgabe wiederkommt. Ohne das
+            // verschwindet eine im Trainer verfehlte Aufgabe für immer, und das Kind trainiert
+            // Wiedererkennen statt Abruf. Gleiche Schlüsselform wie im Aufgaben-Flow.
+            if (profileId) {
+              const boxAufgabe = {
+                aufgabentyp: rechenart,
+                a: f.a,
+                b: f.b,
+                ergebnis: richtig,
+                text: f.frageText,
+                // vorlese_text wortgleich zu js/aufgaben/mal.js bzw. geteilt.js formuliert —
+                // die Vorlese-Pflicht beim Wiedervorlegen braucht einen echten Satz.
+                vorlese_text: rechenart === 'geteilt' ? `${f.a} geteilt durch ${f.b}` : `${f.a} mal ${f.b}`,
+                // antwort_optionen = exakt die Knöpfe, die das Kind gerade gesehen hat (nicht neu
+                // gewürfelt) — ohne dieses Feld verwirft normalisiereAufgabe() die Konserve als
+                // kaputt (kein antwort_optionen-Array) und die Aufgabe verschwindet beim
+                // Wiedervorlegen aus der Fehler-Box, statt dem Kind erneut gezeigt zu werden.
+                antwort_optionen: optionen,
+                // stufe: 0 = unterhalb jeder echten Aufgaben-Pool-Stufe (js/aufgabe-ui.js
+                // vergleicht aufgabe.stufe mit maxStufe für Premium-Beute/Biom-Freischaltung).
+                // Der Trainer kennt keine solche Stufe (er arbeitet reihenbasiert, nicht
+                // stufenbasiert) — 0 ist bewusst gewählt, damit eine wiedervorgelegte
+                // Fehlerbox-Konserve nie fälschlich Eisen/Diamant oder eine Biom-Freischaltung
+                // auslöst, egal in welchem Biom/Stufenbereich sie später aufschlägt.
+                stufe: 0,
+              };
+              // War die Aufgabe schon in der Box (z.B. aus dem normalen Aufgaben-Flow oder
+              // einem früheren Trainer-Fehler), den bestehenden Eintrag fortschreiben statt
+              // ihn zu überschreiben — sonst geht der bisherige Fehlerzähler verloren, der die
+              // Fälligkeits-Sortierung und die Eltern-Statistik steuert. Gleiche Unterscheidung
+              // wie js/aufgabe-ui.js in pflegeFehlerbox(): Zurücksetzen auf Fach 1 ist richtig
+              // und bleibt (planeWieder(alt, false)), nur der Zähler darf nicht verloren gehen.
+              const schluessel = aufgabeSchluessel(boxAufgabe);
+              const alt = schluessel ? getFehlerbox(profileId)[schluessel] : null;
+              const eintrag = alt ? planeWieder(alt, false) : neuerFehlerboxEintrag(boxAufgabe);
+              if (eintrag) setzeFehlerboxEintrag(profileId, eintrag.schluessel, eintrag);
+            }
             const tipp = wurzel.querySelector('.trainer__tipp');
             tipp.hidden = false;
             tipp.textContent = `Die Lösung ist ${richtig} 👍`;
@@ -431,20 +559,44 @@ function starteQuiz(wurzel, modal, reward, reihe, rechenart) {
 
   function weiter() {
     index++;
-    if (index >= fakten.length) zeigeAbschluss(wurzel, modal, reward, sterne, fakten.length, rechenart);
-    else zeigeFrage();
+    if (index < fakten.length) { zeigeFrage(); return; }
+
+    // Stand FRISCH lesen, nicht den beim Quiz-Start eingefrorenen `stand` — der Abgleich mit
+    // dem Server läuft alle 60s und bei jedem Sichtbarwerden, zehn Fragen lang können also
+    // Fortschritte vom anderen Gerät eingetroffen sein. `stand` bleibt weiterhin nur für die
+    // Zusammenstellung der Fragen (fakten) zuständig; hier wird auf dem aktuellen Stand
+    // notiert. setzeFreischaltung() verschmilzt zusätzlich (freischaltung-logik.js), das deckt
+    // den Fall ab, dass sich der Server-Stand sogar zwischen diesem Lesen und dem Schreiben
+    // noch ändert.
+    let freigeschaltet = null;
+    if (profileId) {
+      const aktuellerStand = getFreischaltung(profileId, rechenart);
+      if (reihe !== 'gemischt' && reihe === pruefReihe(aktuellerStand.stufe)) {
+        const heute = tagesSchluessel(new Date());
+        const vorher = aktuellerStand.stufe;
+        let neu = notierePruefung(aktuellerStand, reihe, heute, bestanden(fehlerNeueReihe));
+        if (sollAufsteigen(neu)) neu = steigeAuf(neu);
+        setzeFreischaltung(profileId, rechenart, neu);
+        if (neu.stufe > vorher) freigeschaltet = pruefReihe(neu.stufe);
+      }
+    }
+    zeigeAbschluss(wurzel, modal, reward, sterne, fakten.length, rechenart, freigeschaltet);
   }
 
   zeigeFrage();
 }
 
 // --- Abschluss ---
-function zeigeAbschluss(wurzel, modal, reward, sterne, max, rechenart) {
+function zeigeAbschluss(wurzel, modal, reward, sterne, max, rechenart, freigeschaltet = null) {
+  const neueReihe = freigeschaltet
+    ? `<p class="trainer__abschluss-text">🌟 Die ${freigeschaltet}er-Reihe ist jetzt auch da!</p>`
+    : '';
   wurzel.innerHTML = `
     <div class="trainer__abschluss">
       <div class="trainer__abschluss-emoji">🎉</div>
       <div class="trainer__kopf">Super gemacht!</div>
       <p class="trainer__abschluss-text">⭐ ${sterne} von ${max} richtig</p>
+      ${neueReihe}
       <button class="trainer__nochmal">🔁 Nochmal</button>
       <button class="trainer__fertig">Fertig</button>
     </div>
