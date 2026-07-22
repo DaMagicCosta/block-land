@@ -60,7 +60,15 @@ const standMal = nachPruefung(nachPruefung(ANFANGSSTAND, 2, '2026-07-22', true),
 console.log('Hin- und Rückweg');
 setzeFreischaltung(id, 'mal', standMal);
 pruefe('getFreischaltung liefert den gesetzten Stand zurück', getFreischaltung(id, 'mal').stufe === standMal.stufe);
-pruefe('landet wirklich im localStorage', speicher.size > 0 && JSON.stringify([...speicher.values()]).includes('freischaltung'));
+
+// Prüfe den tatsächlich gespeicherten Wert im Speicher (nicht nur dass das Wort 'freischaltung' vorkommt)
+const rohGespeichert = speicher.get('block-land-state-v1');
+const zustand = rohGespeichert ? JSON.parse(rohGespeichert) : {};
+const gespeicherterStand = zustand.profiles?.[id]?.freischaltung?.mal;
+pruefe('speichert Stufe und Prüfungsverlauf korrekt im localStorage',
+  gespeicherterStand?.stufe === standMal.stufe
+  && JSON.stringify(gespeicherterStand?.pruefungen) === JSON.stringify(standMal.pruefungen)
+);
 
 console.log('Kopie statt Referenz');
 const gelesen = getFreischaltung(id, 'mal');
