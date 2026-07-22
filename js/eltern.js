@@ -582,7 +582,7 @@ async function tabBiome(container, neuRendern) {
 // der auch herabsetzen kann (siehe erzwingeFreischaltungsstufe in state.js).
 const RECHENARTEN_FREISCHALTUNG = [['mal', '✖️ Mal (Einmaleins)'], ['geteilt', '➗ Geteilt']];
 
-// Erklärblock am Kopf des Tabs (Fund 21.07.2026: Vater stolperte über "Stufe 5 von 9" ohne
+// Erklärblock am Kopf des Tabs (Fund 22.07.2026: Vater stolperte über "Stufe 5 von 9" ohne
 // jede Erklärung, was das öffnet oder warum die Reihenfolge nicht 1 bis 10 ist).
 const FREISCHALTUNG_ERKLAERUNG = `
   <p class="eltern__hinweis">Die Mal- und Geteilt-Reihen (1er bis 10er) gehen nicht auf einmal auf,
