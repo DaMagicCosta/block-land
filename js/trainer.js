@@ -4,12 +4,13 @@
 
 import { oeffneModal } from './modal.js';
 import { verteileBelohnung } from './belohnung.js';
-import { baueReihe, baueQuizFakten, baueDistraktoren, mische } from './aufsagen-logik.js';
+import { baueReihe, baueQuizFakten, baueDistraktoren, mische, mitFaelligenBoxaufgaben } from './aufsagen-logik.js';
 import { protokolliereAufsagen, getCurrentProfile, protokolliereEintragen,
          getFreischaltung, setzeFreischaltung, setzeFehlerboxEintrag, getFehlerbox } from './state.js';
 import { ANFANGSSTAND, offeneReihen, ohneEinserreihe, pruefReihe, sitzt,
          notierePruefung, sollAufsteigen, steigeAuf, bestanden } from './freischaltung-logik.js';
-import { neuerEintrag as neuerFehlerboxEintrag, aufgabeSchluessel, planeWieder } from './fehlerbox-logik.js';
+import { neuerEintrag as neuerFehlerboxEintrag, aufgabeSchluessel, planeWieder,
+         verschiebeAufMorgen, faellige } from './fehlerbox-logik.js';
 import { meldeAufsagen, meldeEintragen } from './sync.js';
 import { kappeLuecke, formatDauer, neuerEintrag, INAKTIV_MS } from './aufsage-protokoll-logik.js';
 import { richtungsHinweis, neuerEintrag as neuerEintragEintragen } from './eintragen-protokoll-logik.js';
@@ -410,7 +411,19 @@ function starteQuiz(wurzel, modal, reward, reihe, rechenart) {
   // als Wiederholung wertlos — deshalb hier zusätzlich zur geprüften Reihe ausgeschlossen
   // (gemeinsame Filterhilfe mit dem Biom-Erzeuger, siehe ohneEinserreihe).
   const alteReihen = ohneEinserreihe(offeneReihen(stand)).filter(r => r !== reihe);
-  const fakten = baueQuizFakten(reihe, rechenart, alteReihen);
+  let fakten = baueQuizFakten(reihe, rechenart, alteReihen);
+  // Fehler-Box im Wiederholungsanteil (Nachtrag C zu „Reihen-Freischaltung", Design §6): fällige
+  // Aufgaben der bereits gelernten Reihen ersetzen dort zufällig gezogene Fragen — zielgerichtet
+  // statt zufällig. Die geprüfte Reihe bleibt unberührt, das übernimmt mitFaelligenBoxaufgaben
+  // (ersetzt nur Fragen mit b !== reihe, bei 'gemischt' gibt es keine geprüfte Reihe).
+  if (profileId) {
+    const faelligeBox = faellige(getFehlerbox(profileId), rechenart);
+    fakten = mitFaelligenBoxaufgaben(fakten, rechenart, {
+      neueReihe: reihe === 'gemischt' ? null : reihe,
+      offeneReihen: alteReihen,
+      boxAufgaben: faelligeBox,
+    });
+  }
   let fehlerNeueReihe = 0;   // zählt NUR Fehler bei Fragen der geprüften Reihe
   let index = 0;
   let sterne = 0;
@@ -450,6 +463,18 @@ function starteQuiz(wurzel, modal, reward, reihe, rechenart) {
           ant.querySelectorAll('button').forEach(x => { x.disabled = true; });
           sterne++;
           rapportiere(true);
+          // Frage stammte aus der Fehler-Box (siehe mitFaelligenBoxaufgaben oben): Leitner-
+          // Regel fortschreiben — sonst käme dieselbe Aufgabe ewig wieder, obwohl das Kind sie
+          // jetzt kann. Auf Anhieb richtig (kein Fehlklick zuvor) → Fach steigt (planeWieder).
+          // Erst im zweiten Anlauf richtig → Fach bleibt, Aufgabe kommt morgen wieder
+          // (verschiebeAufMorgen) — gleiche Unterscheidung wie js/aufgabe-ui.js: pflegeFehlerbox.
+          if (profileId && f.boxEintrag) {
+            const boxAktuell = getFehlerbox(profileId)[f.boxEintrag.schluessel];
+            if (boxAktuell) {   // fehlt = Aufgabe wurde zwischenzeitlich (anderes Gerät) erledigt
+              const neu = fehler === 0 ? planeWieder(boxAktuell, true) : verschiebeAufMorgen(boxAktuell);
+              setzeFehlerboxEintrag(profileId, f.boxEintrag.schluessel, neu);
+            }
+          }
           // einzelne Reihe = Stufe 3, Gemischt = Stufe 4 (maxStufe 4) → Gemischt gibt besseres Material
           verteileBelohnung(reihe === 'gemischt' ? 4 : 3, 4, reward.item);
           setTimeout(weiter, 700);

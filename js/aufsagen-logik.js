@@ -3,6 +3,7 @@
 
 import { mische } from './utils.js';
 import { mischeQuizReihen } from './freischaltung-logik.js';
+import { normalisiereAufgabe } from './aufgaben/normalisiere.js';
 
 // Re-exportiert für js/trainer.js (`import { ..., mische } from './aufsagen-logik.js'`).
 export { mische };
@@ -95,4 +96,53 @@ export function baueDistraktoren(fakt, rechenart = 'mal') {
     zusatz++;
   }
   return mische([...set]).slice(0, 3);
+}
+
+// Box-Eintrag → Fakt: gleiche Übersetzung wie js/aufgabe-ui.js beim Wiedervorlegen (Konserven-
+// Regel!). eintrag.aufgabe kann Zahlenfelder als Zeichenkette enthalten (Sync-Konserven,
+// Live-Befund 16.07.2026) — normalisiereAufgabe() koerziert oder verwirft eine kaputte Konserve.
+// `text` ist wortgleich zu baueFakt()s frageText ("${x} · ${reihe} = ?" bzw. "${a} : ${reihe} = ?"),
+// egal ob die Konserve aus dem Trainer selbst oder aus einer freien Mal-/Geteilt-Aufgabe stammt
+// (gleiches Schema in js/aufgaben/mal.js und geteilt.js) — deshalb reicht die Übernahme 1:1.
+function faktAusBoxeintrag(eintrag) {
+  const sauber = normalisiereAufgabe(eintrag?.aufgabe);
+  if (!sauber || sauber.a === undefined || sauber.b === undefined || !sauber.text) return null;
+  return { a: sauber.a, b: sauber.b, richtig: sauber.ergebnis, frageText: sauber.text };
+}
+
+// Ersetzt Fragen des Wiederholungsanteils einer fertig gemischten Prüfung durch fällige
+// Fehler-Box-Aufgaben (Nachtrag C zu „Reihen-Freischaltung", Design §6): Wiederholung wird damit
+// zielgerichtet statt zufällig — sie zeigt bevorzugt, was das Kind nachweislich nicht konnte,
+// statt beliebiger alter Fragen.
+//
+// - Ersetzt werden NUR Fragen, deren Reihe (b) nicht `neueReihe` ist — die geprüfte Reihe bleibt
+//   für das Freischalt-Kriterium unberührt. Bei 'gemischt' gibt es keine geprüfte Reihe
+//   (`neueReihe = null`) — dann ist der gesamte Fragensatz Wiederholungsanteil.
+// - Nur Box-Aufgaben der passenden Rechenart (`rechenart`, doppelt gegen den Aufrufer geprüft)
+//   und aus `offeneReihen` (bereits gelernt) kommen infrage.
+// - Höchstens so viele werden ersetzt, wie es Wiederholungsplätze gibt — die Obergrenze ergibt
+//   sich allein daraus, dass nur in Wiederholungsplätze ersetzt wird (kein extra Deckel nötig).
+//   Sind weniger Box-Aufgaben fällig als Plätze frei sind, bleiben die übrigen Plätze bei den
+//   ursprünglich gezogenen (zufälligen) Fragen — unverändertes Bestandsverhalten.
+// - `boxAufgaben` kommt vorsortiert vom Aufrufer (`faellige()` aus fehlerbox-logik.js,
+//   dringendste zuerst) — diese Funktion fasst Fälligkeit/Reihenfolge nicht selbst an.
+//
+// Reine Funktion: `fakten` und `boxAufgaben` bleiben unangetastet, es entsteht ein neues Array.
+// Jedes Element trägt zusätzlich `boxEintrag` (den rohen Fehlerbox-Eintrag oder null) — der
+// Aufrufer (js/trainer.js) braucht ihn beim Zurückschreiben, um denselben Schlüssel zu treffen.
+export function mitFaelligenBoxaufgaben(fakten, rechenart, { neueReihe = null, offeneReihen = [], boxAufgaben = [] } = {}) {
+  const erlaubt = new Set((offeneReihen ?? []).map(Number));
+  const passtNichtZurGeprueftenReihe = (b) => neueReihe === null || Number(b) !== Number(neueReihe);
+
+  const kandidaten = (boxAufgaben ?? [])
+    .filter(e => e && e.typ === rechenart)
+    .map(e => ({ eintrag: e, fakt: faktAusBoxeintrag(e) }))
+    .filter(({ fakt }) => fakt && erlaubt.has(Number(fakt.b)) && passtNichtZurGeprueftenReihe(fakt.b));
+
+  let i = 0;
+  return (fakten ?? []).map(f => {
+    if (!passtNichtZurGeprueftenReihe(f.b) || i >= kandidaten.length) return { ...f, boxEintrag: null };
+    const { eintrag, fakt } = kandidaten[i++];
+    return { ...fakt, boxEintrag: eintrag };
+  });
 }
