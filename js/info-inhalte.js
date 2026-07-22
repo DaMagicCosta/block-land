@@ -69,6 +69,44 @@ export const INFO_SEITEN = [
           </ul>`,
       },
       {
+        emoji: '🔓', titel: 'Warum öffnen die Reihen nacheinander?',
+        inhaltHtml: `
+          <p>Im Mal- und im Geteilt-Berg ist am Anfang nicht jede Reihe (1er bis 10er) gleichzeitig da —
+            sie schalten sich <strong>Schritt für Schritt frei</strong>, in einer festen, fachlich
+            begründeten Reihenfolge (Tab <strong>🔓 Reihen</strong> im Eltern-Bereich). Grund: Ein Kind,
+            das sich frei zwischen zehn Reihen aussuchen darf, übt selten dort, wo es am meisten bringt.
+            Die Freischaltung sorgt für <strong>Festigung statt Beliebigkeit</strong> — erst sitzt eine
+            Reihe wirklich, dann kommt die nächste.</p>
+          <p>Die Reihenfolge ist nicht 1 bis 10, sondern folgt dem, was am Rechnen leicht oder schwer ist:</p>
+          <ol>
+            <li><strong>1er, 2er</strong> — Einstieg, Verdoppeln, denkbar leicht</li>
+            <li><strong>10er</strong> — eine der beiden wichtigsten Reihen (Zehnerschritte)</li>
+            <li><strong>5er</strong> — die andere wichtigste Reihe („Kraft der 5")</li>
+            <li><strong>4er</strong> — Verdoppeln der 2er</li>
+            <li><strong>3er</strong> — knüpft an die 2er und die 10er an</li>
+            <li><strong>6er</strong> — Verdoppeln der 3er</li>
+            <li><strong>9er</strong> — ein weniger als die 10er</li>
+            <li><strong>8er</strong> — Verdoppeln der 4er, enthält 8·8</li>
+            <li><strong>7er</strong> — zuletzt, enthält 7·8 — die letzte wirklich schwere Aufgabe</li>
+          </ol>
+          <p><strong>Wann öffnet die nächste Reihe?</strong> Sobald die aktuelle Reihe an <strong>zwei
+            unterschiedlichen Tagen</strong> mit <strong>höchstens einem Fehler von zehn</strong> Fragen
+            abgeschlossen wurde. Ein einzelner guter Abend reicht bewusst nicht — erst zwei Tage zeigen,
+            dass es wirklich sitzt.</p>
+          <p><strong>Der Umweg (keine Sackgasse):</strong> Klemmt eine Reihe drei Tage lang, öffnet die
+            App die nächste trotzdem. Kein Kind bleibt an einer einzelnen schwierigen Reihe hängen —
+            dranbleiben lohnt sich also so oder so.</p>
+          <p><strong>Der Eltern-Regler</strong> (Tab 🔓 Reihen): zeigt je Kind und Rechenart die aktuelle
+            Stufe und lässt sie händisch setzen — nach oben (z.B. wenn ein Kind die Reihen längst aus der
+            Schule kann) oder nach unten. <strong>Nicht setzen, während das Kind gerade spielt</strong> —
+            ein Sprung mitten in einer Sitzung wirkt für das Kind wie ein Rucken im Boden unter den Füßen.</p>
+          <p><strong>Die 1er-Reihe ist ein Sonderfall:</strong> Für Vorschul- und Erstklasskinder ist sie
+            der schnelle erste Erfolg direkt am Anfang. Größere Kinder sehen sie im Berg nur noch als
+            freiwillig antippbare Kachel — in Prüfungen, im Umweg-Kriterium und in Wiederholungen taucht
+            die 1er nicht mehr auf, weil „mal 1" nichts zu rechnen gibt. Einen eigenen Abschalt-Schalter
+            dafür gibt es deshalb bewusst nicht.</p>`,
+      },
+      {
         emoji: '✅', titel: 'Gutschein-Freigabe bedienen (Telegram)',
         inhaltHtml: `
           <p>Kind tippt in der Werkstatt auf <strong>„📨 Mama &amp; Papa fragen"</strong> → bei beiden Eltern klingelt Telegram → <strong>wer zuerst drückt, entscheidet</strong> (✅ Freigeben / 🌙 Jetzt nicht). Danach genau ein Handgriff — je nach Gutschein-Sorte (Handy: Bonuszeit geben, Switch: heute verlängern, Folge: am TV starten).</p>

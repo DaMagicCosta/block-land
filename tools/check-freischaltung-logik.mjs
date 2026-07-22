@@ -3,6 +3,7 @@ import {
   SEQUENZ, ANFANGSSTAND, pruefReihe, offeneReihen, istOffen, notierePruefung,
   sitzt, klemmt, sollAufsteigen, steigeAuf, mischeQuizReihen, bestanden, verschmelzeStaende,
   ohneEinserreihe, kappeTageslistenAbStufe, nurEineReiheOffen, alleReihenSitzen, beuteFaktor,
+  beschreibeStufe,
 } from '../js/freischaltung-logik.js';
 import { baueQuizFakten } from '../js/aufsagen-logik.js';
 import { generiereMalAufgabe } from '../js/aufgaben/mal.js';
@@ -338,6 +339,14 @@ pruefe('Mitte der Sequenz liegt zwischen Sockel und Voll', (() => {
 })());
 pruefe('fehlender Stand faellt auf den Sockel zurueck (kein Wurf)',
   Math.abs(beuteFaktor(undefined) - 0.3) < 1e-9 && Math.abs(beuteFaktor({}) - 0.3) < 1e-9);
+
+console.log('beschreibeStufe (Eltern-Setz-Dialog, selbsterklärende Optionstexte)');
+pruefe('Stufe 5 nennt die Prüf-Reihe und die offenen Reihen',
+  beschreibeStufe(5) === 'Stufe 5 — bis zur 3er (offen: 1, 2, 3, 4, 5, 10)');
+pruefe('Stufe 1 nennt die 2er als Prüf-Reihe (die 1er läuft nur trivial mit)',
+  beschreibeStufe(1) === 'Stufe 1 — bis zur 2er (offen: 1, 2)');
+pruefe('letzte Stufe (9) nennt die 7er', beschreibeStufe(9) === 'Stufe 9 — bis zur 7er (offen: 1, 2, 3, 4, 5, 6, 7, 8, 9, 10)');
+pruefe('außerhalb des Bereichs wird geklemmt (kein Wurf)', beschreibeStufe(99) === beschreibeStufe(9) && beschreibeStufe(0) === beschreibeStufe(1));
 
 console.log(fehler === 0 ? '\nAlles grün.' : `\n${fehler} Fehler.`);
 process.exit(fehler === 0 ? 0 : 1);

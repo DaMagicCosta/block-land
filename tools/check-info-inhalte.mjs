@@ -22,9 +22,9 @@ for (const s of INFO_SEITEN) {
   }
 }
 
-// Kapitel-Anzahl laut Spec: Über=3, Anleitung=5, Nachbau=5 (inkl. 📲 Weitergeben)
+// Kapitel-Anzahl laut Spec: Über=3, Anleitung=6 (inkl. 🔓 Reihen-Erklärung), Nachbau=5 (inkl. 📲 Weitergeben)
 const anzahl = Object.fromEntries(INFO_SEITEN.map(s => [s.id, s.kapitel.length]));
-pruefe('Kapitel-Anzahl 3/5/5', anzahl.ueber === 3 && anzahl.anleitung === 5 && anzahl.nachbau === 5);
+pruefe('Kapitel-Anzahl 3/6/5', anzahl.ueber === 3 && anzahl.anleitung === 6 && anzahl.nachbau === 5);
 
 // Über-Seite: alle Kapitel offen (Transparenz ohne Taps lesbar)
 pruefe('ueber: alle Kapitel offen', INFO_SEITEN[0].kapitel.every(k => k.offen === true));

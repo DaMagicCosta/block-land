@@ -12,7 +12,7 @@ import {
   updateProfile, getTimer, setzeTimerStand,
   getFreischaltung, erzwingeFreischaltungsstufe,
 } from './state.js';
-import { SEQUENZ, pruefReihe, offeneReihen } from './freischaltung-logik.js';
+import { SEQUENZ, pruefReihe, offeneReihen, beschreibeStufe } from './freischaltung-logik.js';
 import {
   flushSync, anzahlWartend, geraetId,
   anzahlWartendZustand, zustandCursor, getLetzterPull,
@@ -582,11 +582,23 @@ async function tabBiome(container, neuRendern) {
 // der auch herabsetzen kann (siehe erzwingeFreischaltungsstufe in state.js).
 const RECHENARTEN_FREISCHALTUNG = [['mal', '✖️ Mal (Einmaleins)'], ['geteilt', '➗ Geteilt']];
 
+// Erklärblock am Kopf des Tabs (Fund 22.07.2026: Vater stolperte über "Stufe 5 von 9" ohne
+// jede Erklärung, was das öffnet oder warum die Reihenfolge nicht 1 bis 10 ist).
+const FREISCHALTUNG_ERKLAERUNG = `
+  <p class="eltern__hinweis">Die Mal- und Geteilt-Reihen (1er bis 10er) gehen nicht auf einmal auf,
+    sondern <strong>Schritt für Schritt</strong> — und nicht in der Reihenfolge 1 bis 10: Zuerst kommen
+    leichte und besonders wichtige Reihen (2er, 10er, 5er), aus denen sich der Rest ableiten lässt; die
+    8er und die 7er stehen ganz am Schluss, weil dort die beiden einzigen wirklich schweren Aufgaben
+    liegen (7·8 und 8·8). Eine Reihe schaltet die nächste frei, sobald sie an <strong>zwei
+    unterschiedlichen Tagen</strong> gut gelöst wurde — klemmt sie länger, öffnet die nächste trotzdem,
+    damit niemand steckenbleibt.</p>
+`;
+
 function tabFreischaltung(container, neuRendern) {
   const profile = getProfiles();
   if (!profile.length) { container.innerHTML = '<div class="eltern__leer">Keine Profile.</div>'; return; }
 
-  container.innerHTML = profile.map(p => {
+  container.innerHTML = FREISCHALTUNG_ERKLAERUNG + profile.map(p => {
     // Nur Rechenarten zeigen, deren Biom für DIESES Kind offen ist (BIOME_REIHENFOLGE-Id
     // und Rechenart-Kürzel sind hier identisch: 'mal', 'geteilt'). Sonst zeigt der Tab für
     // ein Kindergarten-Kind, das den Mal-/Geteilt-Berg nie betreten hat, einen erfundenen
@@ -608,9 +620,9 @@ function tabFreischaltung(container, neuRendern) {
       const reihe = pruefReihe(stand.stufe);
       const tage = (stand.pruefungen?.[String(reihe)] ?? []).length;
       const offen = offeneReihen(stand).sort((a, b) => a - b).map(r => `${r}er`).join(', ');
-      const optionen = SEQUENZ.map((gruppe, i) => {
+      const optionen = SEQUENZ.map((_, i) => {
         const s = i + 1;
-        return `<option value="${s}"${s === stand.stufe ? ' selected' : ''}>${s} — ${gruppe.map(r => `${r}er`).join('/')}</option>`;
+        return `<option value="${s}"${s === stand.stufe ? ' selected' : ''}>${beschreibeStufe(s)}</option>`;
       }).join('');
       return `
         <div class="eltern__freischalt-block">
