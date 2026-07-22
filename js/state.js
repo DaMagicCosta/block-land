@@ -308,6 +308,14 @@ export function erzwingeFreischaltungsstufe(profileId, rechenart, stufe) {
   const geklemmt = Math.max(1, Math.min(SEQUENZ.length, Math.round(Number(stufe)) || 1));
   p.freischaltung = p.freischaltung ?? {};
   const bisher = p.freischaltung[rechenart] ?? structuredClone(ANFANGSSTAND);
+
+  // Sicherung gegen Datenverlust: wenn die geklemmte Stufe der bisherigen entspricht,
+  // darf kappeTageslistenAbStufe nicht aufgerufen werden (sonst löscht sie still-
+  // schweigend die Prüfungs-Geschichte der laufenden Reihe). Diese Absicherung gehört
+  // hier in der Funktion selbst, nicht nur in der Oberfläche (eltern.js), damit jeder
+  // zukünftige Aufrufer automatisch geschützt ist — eine UI-Prüfung wäre fragil.
+  if (bisher.stufe === geklemmt) return;
+
   const { pruefungen, fehlversuche } = kappeTageslistenAbStufe(bisher, geklemmt);
   const neu = { stufe: geklemmt, pruefungen, fehlversuche };
   p.freischaltung[rechenart] = neu;

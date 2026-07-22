@@ -185,6 +185,24 @@ pruefe('ein anschließender Kind-Fortschritt (setzeFreischaltung, Stufe 6) versc
     return getFreischaltung(arthur, 'mal').stufe === 6;
   })());
 
+console.log('Absicherung: erneutes Setzen auf dieselbe Stufe kürzt nicht');
+// Kernfall: Stufe 3 mit guter Prüfungs-Geschichte. Ein erneuter Aufruf mit Stufe 3
+// (z.B. durch einen UI-Bug oder einen zweiten Aufrufer, der die Prüfung in eltern.js
+// umgeht) darf die gerade laufende Reihe (5er, die Prüf-Reihe von Stufe 3) nicht
+// entkernen.
+const fussfnote = addProfile({ name: 'Testfall-Absicherung', weltName: 'Fußnote', avatar: '🔐', alter: 'klasse-2' });
+setzeFreischaltung(fussfnote, 'mal', {
+  stufe: 3,
+  pruefungen: { '5': ['2026-07-20'] },  // ein guter Tag für die Prüf-Reihe der Stufe 3
+  fehlversuche: {},
+});
+const tageVorher = JSON.stringify(getFreischaltung(fussfnote, 'mal').pruefungen['5']);
+erzwingeFreischaltungsstufe(fussfnote, 'mal', 3);  // dieselbe Stufe nochmal setzen
+const tageNachher = JSON.stringify(getFreischaltung(fussfnote, 'mal').pruefungen['5']);
+pruefe('die Tagesliste der laufenden Reihe (5er) bleibt unverändert (nicht gekürzt)',
+  tageNachher === tageVorher && tageNachher === '["2026-07-20"]');
+pruefe('die Stufe bleibt 3', getFreischaltung(fussfnote, 'mal').stufe === 3);
+
 console.log('Eltern-Override kein Wurf bei fehlendem Profil/Rechenart');
 let warfOverride = false;
 try { erzwingeFreischaltungsstufe('gibts_nicht', 'mal', 3); } catch { warfOverride = true; }
