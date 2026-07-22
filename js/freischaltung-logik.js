@@ -86,6 +86,33 @@ export function steigeAuf(stand) {
            fehlversuche: { ...(stand?.fehlversuche ?? {}) } };
 }
 
+// Verschmilzt zwei Freischaltungsstände statt einen zu ersetzen. Der Zustand ist MONOTON —
+// die Stufe wächst nur, die Tageslisten wachsen nur — deshalb ist eine Verschmelzung immer
+// sicher und reihenfolgeunabhängig: verschmelzeStaende(a, b) === verschmelzeStaende(b, a).
+// Das ist der Kern des Fixes für den Geräte-Abgleich: Ereignisse treffen in Ankunfts-, nicht
+// in Entstehungsreihenfolge ein. Ein Gerät, das lange offline war und auf einem alten Stand
+// eine Prüfung ablegt, darf einen inzwischen auf einem anderen Gerät erreichten höheren Stand
+// nie zurückdrehen — nur ERGÄNZEN.
+export function verschmelzeStaende(a, b) {
+  return {
+    stufe: Math.max(a?.stufe ?? 1, b?.stufe ?? 1),
+    pruefungen: vereinigeTageslisten(a?.pruefungen, b?.pruefungen),
+    fehlversuche: vereinigeTageslisten(a?.fehlversuche, b?.fehlversuche),
+  };
+}
+
+// Vereinigt je Reihe (Schlüssel) die Tageslisten zweier Stände — ohne Dubletten, sortiert.
+// Gleiche Form wie notierePruefung() erzeugt, damit beide Wege austauschbar bleiben.
+function vereinigeTageslisten(x, y) {
+  const schluessel = new Set([...Object.keys(x ?? {}), ...Object.keys(y ?? {})]);
+  const ergebnis = {};
+  for (const k of schluessel) {
+    const tage = new Set([...(x?.[k] ?? []), ...(y?.[k] ?? [])]);
+    ergebnis[k] = [...tage].sort();
+  }
+  return ergebnis;
+}
+
 // Reihenfolge der Fragen einer Abschluss-Prüfung: überwiegend die neue Reihe, dazu
 // Wiederholungen aus dem bereits Offenen. Das Mischen wirkt INNERHALB einer Sitzung —
 // deshalb eine gemischte Runde und keine über Tage verteilte Streuung.

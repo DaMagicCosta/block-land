@@ -7,7 +7,7 @@ import { zielFuer, neuerAuftrag, aktualisiereTagesauftrag } from './tagesauftrag
 import { klemmeInventar, deserialisiereAnzahl, serialisiereAnzahl } from './zustand-sync-logik.js';
 import { normalisiereTimer } from './timer-logik.js';
 import { hatOffeneAnfrage, fuegeAnfrageHinzu, setzeAnfrageStatus, entferneAnfrage, entferneNachStatus, klemmeAnzahl } from './gutschein-anfrage-logik.js';
-import { ANFANGSSTAND } from './freischaltung-logik.js';
+import { ANFANGSSTAND, verschmelzeStaende } from './freischaltung-logik.js';
 
 // --- Spielstand-Sync: Melde-Hook (sync.js registriert sich hier — kein Import-Zyklus).
 // Im Einspiel-Modus (fremde Ereignisse anwenden) wird NICHT erneut gemeldet (Echo-Schutz).
@@ -269,13 +269,19 @@ export function getFreischaltung(profileId, rechenart) {
   };
 }
 
+// Verschmilzt statt zu ersetzen (siehe verschmelzeStaende in freischaltung-logik.js) — auch
+// beim lokalen Setzen, nicht nur beim Einspielen fremder Ereignisse. Im Normalfall ist das
+// idempotent (der neue Stand wurde ja aus dem bisherigen abgeleitet), macht die Funktion aber
+// robust gegen einen Aufrufer, der zwischenzeitlich veralteten Stand mitbringt.
 export function setzeFreischaltung(profileId, rechenart, stand) {
   const p = state.profiles[profileId];
   if (!p || !rechenart || !stand) return;
   p.freischaltung = p.freischaltung ?? {};
-  p.freischaltung[rechenart] = structuredClone(stand);
+  const bisher = p.freischaltung[rechenart];
+  const verschmolzen = bisher ? verschmelzeStaende(bisher, stand) : structuredClone(stand);
+  p.freischaltung[rechenart] = verschmolzen;
   save(state);
-  melde('reiheFreigeschaltet', { profilId: profileId, rechenart, stand: structuredClone(stand) });
+  melde('reiheFreigeschaltet', { profilId: profileId, rechenart, stand: structuredClone(verschmolzen) });
 }
 
 export function getVerlauf(profileId) {
@@ -657,13 +663,20 @@ export function wendeZustandsEreignisAn(ereignis) {
         return true;
       }
       case 'reiheFreigeschaltet': {
-        // Last-write-wins pro Rechenart. Übt das Kind auf zwei Geräten parallel, gewinnt das
-        // zuletzt eingespielte Ereignis. Im schlimmsten Fall wird eine Reihe einmal zu früh
-        // freigegeben — nie eine zu spät, und der Umweg fängt Steckenbleiben ohnehin ab.
+        // Verschmelzung statt Last-write-wins: der Zustand ist monoton (Stufe wächst nur,
+        // Tageslisten wachsen nur), deshalb ist er reihenfolgeunabhängig zusammenführbar. Das
+        // ist Absicht — nicht nur ein defensives Extra: der Server-Log spielt Ereignisse in
+        // ANKUNFTS-, nicht in Entstehungsreihenfolge ab. Ein Gerät, das länger offline war und
+        // auf altem Stand eine Prüfung ablegt, würde bei last-write-wins einen inzwischen auf
+        // einem anderen Gerät erreichten höheren Stand zurückdrehen — mühsam erarbeitete Reihen
+        // wären weg. Mit der Verschmelzung wird im schlimmsten Fall eine Reihe einmal zu früh
+        // freigegeben (der Umweg beim Klemmen ist ohnehin dafür da) — nie eine zu spät, und nie
+        // eine bereits erreichte wieder eingesperrt.
         const p = state.profiles[args?.profilId];
         if (!p || !args?.rechenart || !args?.stand) return false;
         p.freischaltung = p.freischaltung ?? {};
-        p.freischaltung[args.rechenart] = structuredClone(args.stand);
+        const bisher = p.freischaltung[args.rechenart];
+        p.freischaltung[args.rechenart] = bisher ? verschmelzeStaende(bisher, args.stand) : structuredClone(args.stand);
         save(state);
         return true;
       }

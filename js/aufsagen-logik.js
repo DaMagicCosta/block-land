@@ -45,7 +45,18 @@ export function baueQuizFakten(reihe, rechenart = 'mal', offeneAlte = []) {
     const quelle = offeneAlte.length ? offeneAlte : bereichVonZweiBisZehn();
     const paare = [];
     for (const y of quelle) for (const x of bereichVonZweiBisZehn()) paare.push([x, y]);
-    return mische(paare).slice(0, 10).map(([x, y]) => baueFakt(x, y, rechenart));
+    const gezogen = mische(paare);
+    // Bei wenig offenen Reihen liefert die Paar-Bildung weniger als zehn Kombinationen (z.B.
+    // bei nur EINER offenen Reihe nur neun Paare = "8 von 9 richtig" statt "X von 10"). Die
+    // Leitplanke verlangt aber immer ein sichtbares Ende bei genau zehn Fragen — deshalb wird
+    // mit weiteren Zufallspaaren aus derselben Quelle aufgefüllt (Wiederholungen erlaubt,
+    // besser als eine verkürzte Prüfung).
+    while (gezogen.length < 10) {
+      const y = quelle[Math.floor(Math.random() * quelle.length)];
+      const x = bereichVonZweiBisZehn()[Math.floor(Math.random() * 9)];
+      gezogen.push([x, y]);
+    }
+    return gezogen.slice(0, 10).map(([x, y]) => baueFakt(x, y, rechenart));
   }
   const reihenFolge = mischeQuizReihen(reihe, offeneAlte);
   // Faktoren 1..10 gemischt und positionsweise mit der Reihenfolge verknüpft (statt Ziehung

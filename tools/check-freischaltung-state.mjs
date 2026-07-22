@@ -102,6 +102,32 @@ pruefe('reiheFreigeschaltet wird angewendet',
 pruefe('unbekanntes Profil wird abgelehnt, nicht geworfen',
   wendeZustandsEreignisAn({ op: 'reiheFreigeschaltet', args: { profilId: 'gibts_nicht', rechenart: 'mal', stand: standMal } }) === false);
 
+console.log('Verschmelzung statt Zurückdrehen (Befund A: Geräte-Abgleich)');
+// Nachgebauter Kernfall: Handy ist auf Stufe 4, Tablet war offline und steht noch auf Stufe 1.
+// Das Tablet-Ereignis trifft NACH dem aktuellen (hohen) Stand ein. Mit last-write-wins hätte
+// das den Stand auf Stufe 1 zurückgeworfen — mit Verschmelzung darf das nicht passieren.
+const dritt = addProfile({ name: 'Drittgerät', weltName: 'D', avatar: '📟', alter: 'klasse-2' });
+const standHandy = { stufe: 4, pruefungen: { '2': ['2026-07-10', '2026-07-11'], '10': ['2026-07-12'] }, fehlversuche: {} };
+setzeFreischaltung(dritt, 'mal', standHandy);
+pruefe('Ausgangsstand ist Stufe 4', getFreischaltung(dritt, 'mal').stufe === 4);
+const standTabletAlt = { stufe: 1, pruefungen: { '2': ['2026-07-20'] }, fehlversuche: {} };
+const angewendet = wendeZustandsEreignisAn({ op: 'reiheFreigeschaltet', args: { profilId: dritt, rechenart: 'mal', stand: standTabletAlt } });
+pruefe('das nachträgliche Ereignis wird angewendet (nicht abgelehnt)', angewendet === true);
+pruefe('die Stufe bleibt bei 4 (wurde NICHT auf 1 zurückgedreht)', getFreischaltung(dritt, 'mal').stufe === 4);
+pruefe('die neuen Prüfungstage der 2er sind trotzdem übernommen (ergänzt, nicht verworfen)',
+  JSON.stringify(getFreischaltung(dritt, 'mal').pruefungen['2']) ===
+  JSON.stringify(['2026-07-10', '2026-07-11', '2026-07-20']));
+pruefe('Prüfungstage der 10er bleiben unangetastet',
+  JSON.stringify(getFreischaltung(dritt, 'mal').pruefungen['10']) === '["2026-07-12"]');
+
+console.log('Verschmelzung gilt auch für das lokale setzeFreischaltung (nicht nur den Sync-Zweig)');
+const viert = addProfile({ name: 'Viertgerät', weltName: 'V', avatar: '💻', alter: 'klasse-2' });
+setzeFreischaltung(viert, 'mal', { stufe: 3, pruefungen: { '5': ['2026-07-15'] }, fehlversuche: {} });
+setzeFreischaltung(viert, 'mal', { stufe: 1, pruefungen: { '2': ['2026-07-01'] }, fehlversuche: {} });
+pruefe('ein niedrigerer lokaler Aufruf senkt die Stufe nicht', getFreischaltung(viert, 'mal').stufe === 3);
+pruefe('Tage aus dem niedrigeren Aufruf werden trotzdem ergänzt',
+  JSON.stringify(getFreischaltung(viert, 'mal').pruefungen['2']) === '["2026-07-01"]');
+
 console.log('Schutzklauseln');
 // Bewusst am Profil "zweit" geprüft, nicht an "id" — dessen freischaltung-Feld wurde im
 // vorigen Abschnitt absichtlich gelöscht (Altprofil-Simulation), das würde hier nur die

@@ -1,7 +1,7 @@
 // Check der puren Freischaltungs-Logik. Aufruf: node tools/check-freischaltung-logik.mjs
 import {
   SEQUENZ, ANFANGSSTAND, pruefReihe, offeneReihen, istOffen, notierePruefung,
-  sitzt, klemmt, sollAufsteigen, steigeAuf, mischeQuizReihen, bestanden,
+  sitzt, klemmt, sollAufsteigen, steigeAuf, mischeQuizReihen, bestanden, verschmelzeStaende,
 } from '../js/freischaltung-logik.js';
 import { baueQuizFakten } from '../js/aufsagen-logik.js';
 import { generiereMalAufgabe } from '../js/aufgaben/mal.js';
@@ -78,6 +78,36 @@ pruefe('bestandene Tage bleiben erhalten', sitzt(auf, 2) === true);
 let ende = { ...ANFANGSSTAND, stufe: 9 };
 pruefe('über die letzte Stufe hinaus geht nichts', steigeAuf(ende).stufe === 9);
 
+console.log('Verschmelzung zweier Stände (Befund A: Geräte-Abgleich darf nie zurückdrehen)');
+// Der Kern-Fall aus dem Befund: Tablet lange offline, steht noch auf Stufe 1 und legt dort
+// (offline) eine Prüfung ab; Handy ist inzwischen auf Stufe 4. Das Tablet-Ereignis trifft NACH
+// den Handy-Ereignissen ein. Mit last-write-wins würde das die Stufe von 4 auf 1 zurückwerfen.
+const handyStand = { stufe: 4, pruefungen: { '2': ['2026-07-10', '2026-07-11'], '10': ['2026-07-12'] }, fehlversuche: {} };
+const tabletStand = { stufe: 1, pruefungen: { '2': ['2026-07-20'] }, fehlversuche: { '5': ['2026-07-19'] } };
+const nachTablet = verschmelzeStaende(handyStand, tabletStand);
+pruefe('die höhere Stufe bleibt erhalten (kein Zurückdrehen)', nachTablet.stufe === 4);
+pruefe('Prüfungstage der 2er sind vereinigt', JSON.stringify(nachTablet.pruefungen['2']) ===
+  JSON.stringify(['2026-07-10', '2026-07-11', '2026-07-20']));
+pruefe('Prüfungstage der 10er bleiben erhalten', JSON.stringify(nachTablet.pruefungen['10']) === '["2026-07-12"]');
+pruefe('Fehlversuche der 5er kommen dazu', JSON.stringify(nachTablet.fehlversuche['5']) === '["2026-07-19"]');
+
+console.log('Verschmelzung ist kommutativ (reihenfolgeunabhängig)');
+const andereReihenfolge = verschmelzeStaende(tabletStand, handyStand);
+pruefe('a,b liefert dasselbe Ergebnis wie b,a', JSON.stringify(nachTablet) === JSON.stringify(andereReihenfolge));
+
+console.log('Verschmelzung senkt einen höheren Stand nie');
+const hoch = { stufe: 5, pruefungen: {}, fehlversuche: {} };
+const niedrig = { stufe: 2, pruefungen: {}, fehlversuche: {} };
+pruefe('höherer Stand bleibt bei Verschmelzung mit niedrigerem oben', verschmelzeStaende(hoch, niedrig).stufe === 5);
+pruefe('...unabhängig von der Reihenfolge', verschmelzeStaende(niedrig, hoch).stufe === 5);
+
+console.log('Verschmelzung erzeugt keine Dubletten in Tageslisten');
+const mitUeberschneidung1 = { stufe: 1, pruefungen: { '2': ['2026-07-10', '2026-07-11'] }, fehlversuche: {} };
+const mitUeberschneidung2 = { stufe: 1, pruefungen: { '2': ['2026-07-11', '2026-07-12'] }, fehlversuche: {} };
+const verschmolzen = verschmelzeStaende(mitUeberschneidung1, mitUeberschneidung2);
+pruefe('keine Dubletten, sortiert', JSON.stringify(verschmolzen.pruefungen['2']) ===
+  JSON.stringify(['2026-07-10', '2026-07-11', '2026-07-12']));
+
 console.log('Quiz-Mischung');
 const m = mischeQuizReihen(5, [1, 2, 10], 10, 6);
 pruefe('liefert zehn Reihen', m.length === 10);
@@ -103,6 +133,26 @@ pruefe('geteilt bleibt bei zehn', geteilt.length === 10);
 const alt = baueQuizFakten(3, 'mal');
 pruefe('ohne dritten Parameter wie bisher: alle aus der einen Reihe',
   alt.length === 10 && alt.every(f => f.b === 3));
+
+console.log('Gemischt (🎲): immer zehn Fragen, auch bei wenig offenen Reihen (Befund C)');
+// Kernfall des Befunds: nur EINE offene Reihe (z.B. Stufe 1, 1er läuft trivial mit, 2er ist
+// die einzige "echte" offene) -> Paar-Bildung liefert nur neun Kombinationen (1 Reihe × 9
+// Faktoren 2..10). Ohne Auffüllung: neun statt zehn Fragen, Abschluss meldet "8 von 9".
+const gemischtEineReihe = baueQuizFakten('gemischt', 'mal', [2]);
+pruefe('eine offene Reihe -> trotzdem zehn Fragen', gemischtEineReihe.length === 10);
+pruefe('alle Fragen stammen aus der einzigen offenen Reihe', gemischtEineReihe.every(f => f.b === 2));
+pruefe('Ergebnis stimmt bei allen', gemischtEineReihe.every(f => f.richtig === f.a * f.b));
+
+const gemischtZweiReihen = baueQuizFakten('gemischt', 'mal', [2, 5]);
+pruefe('zwei offene Reihen -> zehn Fragen', gemischtZweiReihen.length === 10);
+pruefe('nur aus den zwei offenen Reihen', gemischtZweiReihen.every(f => [2, 5].includes(f.b)));
+
+const gemischtOhneOffene = baueQuizFakten('gemischt', 'mal', []);
+pruefe('ohne offene Reihen (Fallback voller Bereich) -> zehn Fragen', gemischtOhneOffene.length === 10);
+
+const gemischtGeteiltEineReihe = baueQuizFakten('gemischt', 'geteilt', [2]);
+pruefe('gilt auch für geteilt', gemischtGeteiltEineReihe.length === 10);
+pruefe('geteilt-Fakten bleiben stimmig', gemischtGeteiltEineReihe.every(f => f.richtig === f.a / f.b));
 
 console.log('Mal-Generator mit Reihen-Begrenzung');
 const stufe = { nr: 2, a_min: 1, a_max: 10, b_min: 1, b_max: 10 };

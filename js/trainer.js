@@ -6,10 +6,10 @@ import { oeffneModal } from './modal.js';
 import { verteileBelohnung } from './belohnung.js';
 import { baueReihe, baueQuizFakten, baueDistraktoren, mische } from './aufsagen-logik.js';
 import { protokolliereAufsagen, getCurrentProfile, protokolliereEintragen,
-         getFreischaltung, setzeFreischaltung, setzeFehlerboxEintrag } from './state.js';
+         getFreischaltung, setzeFreischaltung, setzeFehlerboxEintrag, getFehlerbox } from './state.js';
 import { ANFANGSSTAND, offeneReihen, pruefReihe, sitzt,
          notierePruefung, sollAufsteigen, steigeAuf, bestanden } from './freischaltung-logik.js';
-import { neuerEintrag as neuerFehlerboxEintrag } from './fehlerbox-logik.js';
+import { neuerEintrag as neuerFehlerboxEintrag, aufgabeSchluessel, planeWieder } from './fehlerbox-logik.js';
 import { meldeAufsagen, meldeEintragen } from './sync.js';
 import { kappeLuecke, formatDauer, neuerEintrag, INAKTIV_MS } from './aufsage-protokoll-logik.js';
 import { richtungsHinweis, neuerEintrag as neuerEintragEintragen } from './eintragen-protokoll-logik.js';
@@ -496,7 +496,15 @@ function starteQuiz(wurzel, modal, reward, reihe, rechenart) {
                 // auslöst, egal in welchem Biom/Stufenbereich sie später aufschlägt.
                 stufe: 0,
               };
-              const eintrag = neuerFehlerboxEintrag(boxAufgabe);
+              // War die Aufgabe schon in der Box (z.B. aus dem normalen Aufgaben-Flow oder
+              // einem früheren Trainer-Fehler), den bestehenden Eintrag fortschreiben statt
+              // ihn zu überschreiben — sonst geht der bisherige Fehlerzähler verloren, der die
+              // Fälligkeits-Sortierung und die Eltern-Statistik steuert. Gleiche Unterscheidung
+              // wie js/aufgabe-ui.js in pflegeFehlerbox(): Zurücksetzen auf Fach 1 ist richtig
+              // und bleibt (planeWieder(alt, false)), nur der Zähler darf nicht verloren gehen.
+              const schluessel = aufgabeSchluessel(boxAufgabe);
+              const alt = schluessel ? getFehlerbox(profileId)[schluessel] : null;
+              const eintrag = alt ? planeWieder(alt, false) : neuerFehlerboxEintrag(boxAufgabe);
               if (eintrag) setzeFehlerboxEintrag(profileId, eintrag.schluessel, eintrag);
             }
             const tipp = wurzel.querySelector('.trainer__tipp');
@@ -514,14 +522,24 @@ function starteQuiz(wurzel, modal, reward, reihe, rechenart) {
     index++;
     if (index < fakten.length) { zeigeFrage(); return; }
 
+    // Stand FRISCH lesen, nicht den beim Quiz-Start eingefrorenen `stand` — der Abgleich mit
+    // dem Server läuft alle 60s und bei jedem Sichtbarwerden, zehn Fragen lang können also
+    // Fortschritte vom anderen Gerät eingetroffen sein. `stand` bleibt weiterhin nur für die
+    // Zusammenstellung der Fragen (fakten) zuständig; hier wird auf dem aktuellen Stand
+    // notiert. setzeFreischaltung() verschmilzt zusätzlich (freischaltung-logik.js), das deckt
+    // den Fall ab, dass sich der Server-Stand sogar zwischen diesem Lesen und dem Schreiben
+    // noch ändert.
     let freigeschaltet = null;
-    if (profileId && reihe !== 'gemischt' && reihe === pruefReihe(stand.stufe)) {
-      const heute = tagesSchluessel(new Date());
-      const vorher = stand.stufe;
-      let neu = notierePruefung(stand, reihe, heute, bestanden(fehlerNeueReihe));
-      if (sollAufsteigen(neu)) neu = steigeAuf(neu);
-      setzeFreischaltung(profileId, rechenart, neu);
-      if (neu.stufe > vorher) freigeschaltet = pruefReihe(neu.stufe);
+    if (profileId) {
+      const aktuellerStand = getFreischaltung(profileId, rechenart);
+      if (reihe !== 'gemischt' && reihe === pruefReihe(aktuellerStand.stufe)) {
+        const heute = tagesSchluessel(new Date());
+        const vorher = aktuellerStand.stufe;
+        let neu = notierePruefung(aktuellerStand, reihe, heute, bestanden(fehlerNeueReihe));
+        if (sollAufsteigen(neu)) neu = steigeAuf(neu);
+        setzeFreischaltung(profileId, rechenart, neu);
+        if (neu.stufe > vorher) freigeschaltet = pruefReihe(neu.stufe);
+      }
     }
     zeigeAbschluss(wurzel, modal, reward, sterne, fakten.length, rechenart, freigeschaltet);
   }
