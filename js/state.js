@@ -7,7 +7,7 @@ import { zielFuer, neuerAuftrag, aktualisiereTagesauftrag } from './tagesauftrag
 import { klemmeInventar, deserialisiereAnzahl, serialisiereAnzahl } from './zustand-sync-logik.js';
 import { normalisiereTimer } from './timer-logik.js';
 import { hatOffeneAnfrage, fuegeAnfrageHinzu, setzeAnfrageStatus, entferneAnfrage, entferneNachStatus, klemmeAnzahl } from './gutschein-anfrage-logik.js';
-import { ANFANGSSTAND, verschmelzeStaende } from './freischaltung-logik.js';
+import { ANFANGSSTAND, SEQUENZ, verschmelzeStaende } from './freischaltung-logik.js';
 
 // --- Spielstand-Sync: Melde-Hook (sync.js registriert sich hier — kein Import-Zyklus).
 // Im Einspiel-Modus (fremde Ereignisse anwenden) wird NICHT erneut gemeldet (Echo-Schutz).
@@ -282,6 +282,30 @@ export function setzeFreischaltung(profileId, rechenart, stand) {
   p.freischaltung[rechenart] = verschmolzen;
   save(state);
   melde('reiheFreigeschaltet', { profilId: profileId, rechenart, stand: structuredClone(verschmolzen) });
+}
+
+// Eltern-Override (Nachtrag A, „Setz-Knopf"): setzeFreischaltung() verschmilzt IMMER
+// (verschmelzeStaende) — das ist Absicht, aber der Schutz dort gilt der WIEDEREINSPIELUNG
+// fremder Sync-Ereignisse (ein Gerät, das lange offline war, darf einen inzwischen auf einem
+// anderen Gerät erreichten höheren Stand nicht zurückdrehen). Eine ausdrückliche Eltern-Eingabe
+// ist kein solches Ereignis — sie muss die Stufe auch SENKEN können (z.B. Arthur, der schon
+// Trainer-Übung hat, nicht bei Stufe 1 anfangen zu lassen, oder eine Fehlkonfiguration zurück-
+// zudrehen). Deshalb ein eigener, getrennter Weg: ERSETZT die Stufe direkt statt zu verschmelzen.
+// Prüfungs-/Fehlversuchs-Historie bleibt unangetastet (Nachvollziehbarkeit, „wie viele gute Tage
+// wurden für die aktuelle Reihe schon notiert" bleibt danach weiter lesbar). Eigener Ereignistyp
+// ('freischaltungErzwungen', siehe wendeZustandsEreignisAn) statt 'reiheFreigeschaltet', damit
+// ein anderes Gerät die Rückstufung als das behandelt, was sie ist — ein Ersetzen, kein
+// Zusammenführen mit dem monotonen Kind-Fortschritt.
+export function erzwingeFreischaltungsstufe(profileId, rechenart, stufe) {
+  const p = state.profiles[profileId];
+  if (!p || !rechenart) return;
+  const geklemmt = Math.max(1, Math.min(SEQUENZ.length, Math.round(Number(stufe)) || 1));
+  p.freischaltung = p.freischaltung ?? {};
+  const bisher = p.freischaltung[rechenart] ?? structuredClone(ANFANGSSTAND);
+  const neu = { ...bisher, stufe: geklemmt };
+  p.freischaltung[rechenart] = neu;
+  save(state);
+  melde('freischaltungErzwungen', { profilId: profileId, rechenart, stand: structuredClone(neu) });
 }
 
 export function getVerlauf(profileId) {
@@ -677,6 +701,17 @@ export function wendeZustandsEreignisAn(ereignis) {
         p.freischaltung = p.freischaltung ?? {};
         const bisher = p.freischaltung[args.rechenart];
         p.freischaltung[args.rechenart] = bisher ? verschmelzeStaende(bisher, args.stand) : structuredClone(args.stand);
+        save(state);
+        return true;
+      }
+      case 'freischaltungErzwungen': {
+        // Bewusste Eltern-Eingabe (Setz-Knopf) — ERSETZT den Stand auf jedem Gerät, statt wie
+        // 'reiheFreigeschaltet' zu verschmelzen. Das ist Absicht: die Eingabe muss auch nach
+        // unten wirken können (siehe erzwingeFreischaltungsstufe oben).
+        const p = state.profiles[args?.profilId];
+        if (!p || !args?.rechenart || !args?.stand) return false;
+        p.freischaltung = p.freischaltung ?? {};
+        p.freischaltung[args.rechenart] = structuredClone(args.stand);
         save(state);
         return true;
       }

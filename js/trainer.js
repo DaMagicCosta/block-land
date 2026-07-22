@@ -7,7 +7,7 @@ import { verteileBelohnung } from './belohnung.js';
 import { baueReihe, baueQuizFakten, baueDistraktoren, mische } from './aufsagen-logik.js';
 import { protokolliereAufsagen, getCurrentProfile, protokolliereEintragen,
          getFreischaltung, setzeFreischaltung, setzeFehlerboxEintrag, getFehlerbox } from './state.js';
-import { ANFANGSSTAND, offeneReihen, pruefReihe, sitzt,
+import { ANFANGSSTAND, offeneReihen, ohneEinserreihe, pruefReihe, sitzt,
          notierePruefung, sollAufsteigen, steigeAuf, bestanden } from './freischaltung-logik.js';
 import { neuerEintrag as neuerFehlerboxEintrag, aufgabeSchluessel, planeWieder } from './fehlerbox-logik.js';
 import { meldeAufsagen, meldeEintragen } from './sync.js';
@@ -407,8 +407,9 @@ function starteQuiz(wurzel, modal, reward, reihe, rechenart) {
   const profileId = getCurrentProfile()?.id ?? null;
   const stand = profileId ? getFreischaltung(profileId, rechenart) : { ...ANFANGSSTAND };
   // Die 1er-Reihe läuft nur trivial mit (siehe SEQUENZ, sie wird nie eigens geprüft) und ist
-  // als Wiederholung wertlos — deshalb hier zusätzlich zur geprüften Reihe ausgeschlossen.
-  const alteReihen = offeneReihen(stand).filter(r => r !== reihe && r !== 1);
+  // als Wiederholung wertlos — deshalb hier zusätzlich zur geprüften Reihe ausgeschlossen
+  // (gemeinsame Filterhilfe mit dem Biom-Erzeuger, siehe ohneEinserreihe).
+  const alteReihen = ohneEinserreihe(offeneReihen(stand)).filter(r => r !== reihe);
   const fakten = baueQuizFakten(reihe, rechenart, alteReihen);
   let fehlerNeueReihe = 0;   // zählt NUR Fehler bei Fragen der geprüften Reihe
   let index = 0;

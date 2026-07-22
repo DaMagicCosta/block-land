@@ -11,7 +11,7 @@ import { verteileBelohnung } from './belohnung.js';
 import { loadAufgabenPool, loadBiomManifest } from './data.js';
 import { waehleMechanik, aktuelleStufe, rapportiereErgebnis } from './adaptiv.js';
 import { getCurrentProfile, getAktivesBiom, schalteNaechstesBiomFrei, getAktiveReihe, setzeAktiveReihe, getFehlerbox, setzeFehlerboxEintrag, getFreischaltung } from './state.js';
-import { offeneReihen } from './freischaltung-logik.js';
+import { offeneReihen, ohneEinserreihe } from './freischaltung-logik.js';
 import { aufgabeSchluessel, neuerEintrag, planeWieder, verschiebeAufMorgen, naechsteFaellige, hilfeStufeFuer } from './fehlerbox-logik.js';
 import { normalisiereAufgabe } from './aufgaben/normalisiere.js';
 import { neueKlickSperre } from './klick-sperre.js';
@@ -88,9 +88,15 @@ export async function oeffneAufgabe(reward, { onClose, festeStufe = null } = {})
     // Reihen-Freischaltung: Mal und Geteilt ziehen nur aus dem, was im Trainer offen ist.
     // Sonst bliebe die Sperre löchrig — im Biom liefe dem Kind weiterhin 7·8 über den Weg,
     // während die 7er-Reihe noch gar nicht dran ist.
-    const erlaubteReihen = (typ === 'mal' || typ === 'geteilt')
-      ? offeneReihen(getFreischaltung(profile.id, typ))
-      : null;
+    // Bei Mal zusätzlich die 1er ausgeschlossen (Nachtrag A): sie läuft in der Freischaltung nur
+    // trivial mit und wäre sonst rund die Hälfte aller freien Aufgaben auf Stufe 1 — für ein
+    // Kind, das schon Übungsverlauf hat, Langeweile statt Übung. Geteilt filtert die 1 bereits
+    // selbst im Erzeuger (js/aufgaben/geteilt.js), hier bewusst nicht doppelt angefasst.
+    const erlaubteReihen = typ === 'mal'
+      ? ohneEinserreihe(offeneReihen(getFreischaltung(profile.id, typ)))
+      : typ === 'geteilt'
+        ? offeneReihen(getFreischaltung(profile.id, typ))
+        : null;
     if (typ === 'mal') return generiereMalAufgabe(stufenConfig, pool.mal.distraktoren, erlaubteReihen);
     if (typ === 'mengen') return generiereMengenAufgabe(stufenConfig, pool.mengen.distraktoren);
     if (typ === 'minus') return generiereMinusAufgabe(stufenConfig, pool.minus.distraktoren);

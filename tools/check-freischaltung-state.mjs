@@ -1,6 +1,6 @@
 // Check der Freischaltungs-Persistenz (Form des gespeicherten Standes, ohne Browser).
 // Aufruf: node tools/check-freischaltung-state.mjs
-import { ANFANGSSTAND, notierePruefung, sollAufsteigen, steigeAuf, offeneReihen }
+import { ANFANGSSTAND, SEQUENZ, notierePruefung, sollAufsteigen, steigeAuf, offeneReihen }
   from '../js/freischaltung-logik.js';
 
 // localStorage-Attrappe für den zweiten Abschnitt — prüft die echten state.js-Funktionen
@@ -14,8 +14,8 @@ globalThis.localStorage = {
 };
 globalThis.window = globalThis;   // state.js hängt am Ende __blockLandState an window
 
-const { addProfile, getState, getFreischaltung, setzeFreischaltung, wendeZustandsEreignisAn } =
-  await import('../js/state.js');
+const { addProfile, getState, getFreischaltung, setzeFreischaltung, wendeZustandsEreignisAn,
+        erzwingeFreischaltungsstufe } = await import('../js/state.js');
 
 let fehler = 0;
 function pruefe(name, bedingung) {
@@ -127,6 +127,59 @@ setzeFreischaltung(viert, 'mal', { stufe: 1, pruefungen: { '2': ['2026-07-01'] }
 pruefe('ein niedrigerer lokaler Aufruf senkt die Stufe nicht', getFreischaltung(viert, 'mal').stufe === 3);
 pruefe('Tage aus dem niedrigeren Aufruf werden trotzdem ergänzt',
   JSON.stringify(getFreischaltung(viert, 'mal').pruefungen['2']) === '["2026-07-01"]');
+
+console.log('Eltern-Override (Nachtrag A): erzwingeFreischaltungsstufe setzt statt verschmilzt');
+// Kernfall aus dem Nachtrag: Arthur hat bereits Trainer-Übung, soll aber nicht bei Stufe 1
+// anfangen. setzeFreischaltung() (Kind-Pfad) würde ein Herabsetzen wegverschmelzen (Max-Regel)
+// — der Eltern-Pfad muss das können.
+const arthur = addProfile({ name: 'Arthur', weltName: 'Arthurland', avatar: '⚔️', alter: 'klasse-2' });
+setzeFreischaltung(arthur, 'mal', { stufe: 6, pruefungen: { '6': ['2026-07-10', '2026-07-11'] }, fehlversuche: {} });
+pruefe('Ausgangsstufe ist 6', getFreischaltung(arthur, 'mal').stufe === 6);
+
+erzwingeFreischaltungsstufe(arthur, 'mal', 8);
+pruefe('Heraufsetzen wirkt', getFreischaltung(arthur, 'mal').stufe === 8);
+
+erzwingeFreischaltungsstufe(arthur, 'mal', 3);
+pruefe('Herabsetzen wirkt — die Verschmelzung steht nicht im Weg', getFreischaltung(arthur, 'mal').stufe === 3);
+pruefe('Prüfungshistorie bleibt erhalten (nur die Stufe wird ersetzt)',
+  JSON.stringify(getFreischaltung(arthur, 'mal').pruefungen['6']) === '["2026-07-10","2026-07-11"]');
+
+erzwingeFreischaltungsstufe(arthur, 'mal', 0);
+pruefe('Stufe wird nach unten auf 1 geklemmt', getFreischaltung(arthur, 'mal').stufe === 1);
+erzwingeFreischaltungsstufe(arthur, 'mal', 99);
+pruefe('Stufe wird nach oben auf die letzte Stufe geklemmt', getFreischaltung(arthur, 'mal').stufe === SEQUENZ.length);
+
+const arthurGeteilt = getFreischaltung(arthur, 'geteilt').stufe;
+pruefe('andere Rechenart bleibt unberührt', arthurGeteilt === 1);
+
+erzwingeFreischaltungsstufe(arthur, 'mal', 5);
+pruefe('ein anschließender Kind-Fortschritt (setzeFreischaltung, Stufe 6) verschmilzt normal weiter',
+  (() => {
+    setzeFreischaltung(arthur, 'mal', { stufe: 6, pruefungen: {}, fehlversuche: {} });
+    return getFreischaltung(arthur, 'mal').stufe === 6;
+  })());
+
+console.log('Eltern-Override kein Wurf bei fehlendem Profil/Rechenart');
+let warfOverride = false;
+try { erzwingeFreischaltungsstufe('gibts_nicht', 'mal', 3); } catch { warfOverride = true; }
+pruefe('unbekanntes Profil wirft nicht', !warfOverride);
+warfOverride = false;
+try { erzwingeFreischaltungsstufe(arthur, undefined, 3); } catch { warfOverride = true; }
+pruefe('fehlende Rechenart wirft nicht', !warfOverride);
+
+console.log('Eltern-Override propagiert per Sync als Ersetzen (nicht als Verschmelzen)');
+const zweitgeraet = addProfile({ name: 'Zweitgerät-Override', weltName: 'Z', avatar: '📱', alter: 'klasse-2' });
+setzeFreischaltung(zweitgeraet, 'mal', { stufe: 7, pruefungen: {}, fehlversuche: {} });
+pruefe('Ausgangsstufe 7 auf dem zweiten Gerät', getFreischaltung(zweitgeraet, 'mal').stufe === 7);
+const ok = wendeZustandsEreignisAn({
+  op: 'freischaltungErzwungen',
+  args: { profilId: zweitgeraet, rechenart: 'mal', stand: { stufe: 2, pruefungen: {}, fehlversuche: {} } },
+});
+pruefe('Ereignis wird angewendet', ok === true);
+pruefe('die Stufe wird auf 2 GESETZT, nicht mit der 7 verschmolzen (kein Max)',
+  getFreischaltung(zweitgeraet, 'mal').stufe === 2);
+pruefe('unbekanntes Profil wird abgelehnt, nicht geworfen',
+  wendeZustandsEreignisAn({ op: 'freischaltungErzwungen', args: { profilId: 'gibts_nicht', rechenart: 'mal', stand: { stufe: 2, pruefungen: {}, fehlversuche: {} } } }) === false);
 
 console.log('Schutzklauseln');
 // Bewusst am Profil "zweit" geprüft, nicht an "id" — dessen freischaltung-Feld wurde im

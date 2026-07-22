@@ -43,6 +43,17 @@ export function istOffen(stand, reihe) {
   return offeneReihen(stand).includes(Number(reihe));
 }
 
+// Die 1er-Reihe läuft in der SEQUENZ nur trivial mit (sie wird nie eigens geprüft, siehe
+// pruefReihe) und ist als Übungsstoff wertlos: a·1 bzw. a:1 verlangt kein Rechnen. Für freie
+// Übung — den Biom-Erzeuger (Mal) und die Trainer-Wiederholung (alte Reihen im Quiz) — wird sie
+// deshalb an EINER gemeinsamen Stelle herausgefiltert, statt an mehreren Aufrufern dieselbe
+// Filterregel zu duplizieren. Geteilt filtert die 1 unabhängig davon direkt im eigenen Erzeuger
+// (js/aufgaben/geteilt.js), weil „durch 1 teilen" schon dort nie sinnvoll ist — nicht nur als
+// Wiederholung.
+export function ohneEinserreihe(reihen) {
+  return (reihen ?? []).filter(r => Number(r) !== 1);
+}
+
 export function bestanden(fehlerAnzahl) {
   return Number(fehlerAnzahl) <= MAX_FEHLER_PRO_PRUEFUNG;
 }

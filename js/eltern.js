@@ -10,7 +10,9 @@ import {
   getBiomFreigabe, setBiomElternStatus,
   getSyncConfig, setzeSyncConfig,
   updateProfile, getTimer, setzeTimerStand,
+  getFreischaltung, erzwingeFreischaltungsstufe,
 } from './state.js';
+import { SEQUENZ, pruefReihe, offeneReihen } from './freischaltung-logik.js';
 import {
   flushSync, anzahlWartend, geraetId,
   anzahlWartendZustand, zustandCursor, getLetzterPull,
@@ -99,6 +101,7 @@ function dashboard(modal) {
           ['gutscheine', '🎟️', 'Gutscheine'],
           ['kinder', '🧒', 'Kinder'],
           ['biome', '🗺️', 'Biome'],
+          ['freischaltung', '🔓', 'Reihen'],
           ['statistik', '📊', 'Statistik'],
           ['sync', '📡', 'Sync'],
           ['pin', '🔒', 'PIN'],
@@ -123,6 +126,7 @@ function dashboard(modal) {
     else if (tab === 'gutscheine') tabGutscheine(inhalt, render);
     else if (tab === 'kinder') tabKinder(inhalt, render);
     else if (tab === 'biome') tabBiome(inhalt, render);
+    else if (tab === 'freischaltung') tabFreischaltung(inhalt, render);
     else if (tab === 'statistik') tabStatistik(inhalt, render);
     else if (tab === 'sync') tabSync(inhalt, render);
     else tabPin(inhalt);
@@ -566,6 +570,60 @@ async function tabBiome(container, neuRendern) {
   container.querySelectorAll('[data-biom]').forEach(cb => {
     cb.addEventListener('change', () => {
       setBiomElternStatus(cb.dataset.pid, cb.dataset.biom, cb.checked);
+      neuRendern();
+    });
+  });
+}
+
+// --- Tab: Reihen-Freischaltung (Nachtrag A) ---
+// Der Fortschritt der Reihen-Freischaltung (SEQUENZ in freischaltung-logik.js) war bisher
+// ausschließlich über den Kind-Ablauf veränderbar. Für eine Mechanik, die dem Kind Inhalt
+// vorenthält, braucht es von außen Sicht UND Zugriff — je Kind und Rechenart Stand + Setz-Knopf,
+// der auch herabsetzen kann (siehe erzwingeFreischaltungsstufe in state.js).
+const RECHENARTEN_FREISCHALTUNG = [['mal', '✖️ Mal (Einmaleins)'], ['geteilt', '➗ Geteilt']];
+
+function tabFreischaltung(container, neuRendern) {
+  const profile = getProfiles();
+  if (!profile.length) { container.innerHTML = '<div class="eltern__leer">Keine Profile.</div>'; return; }
+
+  container.innerHTML = profile.map(p => {
+    const bloecke = RECHENARTEN_FREISCHALTUNG.map(([art, label]) => {
+      const stand = getFreischaltung(p.id, art);
+      const reihe = pruefReihe(stand.stufe);
+      const tage = (stand.pruefungen?.[String(reihe)] ?? []).length;
+      const offen = offeneReihen(stand).sort((a, b) => a - b).map(r => `${r}er`).join(', ');
+      const optionen = SEQUENZ.map((gruppe, i) => {
+        const s = i + 1;
+        return `<option value="${s}"${s === stand.stufe ? ' selected' : ''}>${s} — ${gruppe.map(r => `${r}er`).join('/')}</option>`;
+      }).join('');
+      return `
+        <div class="eltern__freischalt-block">
+          <div class="eltern__freischalt-titel">${label}</div>
+          <div class="eltern__freischalt-zeile">Stufe <b>${stand.stufe}</b> von ${SEQUENZ.length}</div>
+          <div class="eltern__freischalt-zeile">Aktuelle Reihe: <b>${reihe}er</b> — ${tage}/2 gute Tage notiert</div>
+          <div class="eltern__freischalt-zeile">Offene Reihen: ${offen}</div>
+          <div class="eltern__freischalt-setzen">
+            <select class="eltern__feld" data-stufe-select="${art}" data-pid="${p.id}">${optionen}</select>
+            <button class="eltern__mini" data-stufe-setzen="${art}" data-pid="${p.id}">Stufe setzen</button>
+          </div>
+        </div>
+      `;
+    }).join('');
+    return `<div class="eltern__abschnitt-titel">${escapeHtml(p.name)}</div>${bloecke}`;
+  }).join('');
+
+  container.querySelectorAll('[data-stufe-setzen]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const art = btn.dataset.stufeSetzen;
+      const pid = btn.dataset.pid;
+      const select = container.querySelector(`[data-stufe-select="${art}"][data-pid="${pid}"]`);
+      const neueStufe = parseInt(select.value, 10);
+      const bisherigeStufe = getFreischaltung(pid, art).stufe;
+      if (neueStufe === bisherigeStufe) return;
+      const label = RECHENARTEN_FREISCHALTUNG.find(([a]) => a === art)?.[1] ?? art;
+      const richtung = neueStufe > bisherigeStufe ? 'höher' : 'niedriger';
+      if (!confirm(`${label}: Stufe von ${bisherigeStufe} auf ${neueStufe} setzen (${richtung})?`)) return;
+      erzwingeFreischaltungsstufe(pid, art, neueStufe);
       neuRendern();
     });
   });

@@ -2,6 +2,7 @@
 import {
   SEQUENZ, ANFANGSSTAND, pruefReihe, offeneReihen, istOffen, notierePruefung,
   sitzt, klemmt, sollAufsteigen, steigeAuf, mischeQuizReihen, bestanden, verschmelzeStaende,
+  ohneEinserreihe,
 } from '../js/freischaltung-logik.js';
 import { baueQuizFakten } from '../js/aufsagen-logik.js';
 import { generiereMalAufgabe } from '../js/aufgaben/mal.js';
@@ -154,6 +155,16 @@ const gemischtGeteiltEineReihe = baueQuizFakten('gemischt', 'geteilt', [2]);
 pruefe('gilt auch für geteilt', gemischtGeteiltEineReihe.length === 10);
 pruefe('geteilt-Fakten bleiben stimmig', gemischtGeteiltEineReihe.every(f => f.richtig === f.a / f.b));
 
+console.log('Ohne-Einserreihe (Nachtrag A: gemeinsame Filterhilfe Trainer + Biom-Erzeuger)');
+pruefe('entfernt die 1 aus einer Liste', JSON.stringify(ohneEinserreihe([1, 2, 10])) === '[2,10]');
+pruefe('lässt Listen ohne 1 unverändert', JSON.stringify(ohneEinserreihe([2, 5])) === '[2,5]');
+pruefe('leere Eingabe bleibt leer', JSON.stringify(ohneEinserreihe([])) === '[]');
+pruefe('undefined liefert leeres Array (kein Wurf)', JSON.stringify(ohneEinserreihe(undefined)) === '[]');
+pruefe('auf Stufe 1 bleibt genau die 2er übrig — kein leerer Reihen-Vorrat',
+  JSON.stringify(ohneEinserreihe(offeneReihen(ANFANGSSTAND))) === '[2]');
+pruefe('ab Stufe 2 bleibt die Liste vollständig ohne die 1 (nichts geht verloren)',
+  JSON.stringify(ohneEinserreihe(offeneReihen({ ...ANFANGSSTAND, stufe: 3 })).sort((a, b) => a - b)) === '[2,5,10]');
+
 console.log('Mal-Generator mit Reihen-Begrenzung');
 const stufe = { nr: 2, a_min: 1, a_max: 10, b_min: 1, b_max: 10 };
 const proben = Array.from({ length: 200 }, () => generiereMalAufgabe(stufe, { anzahl: 4 }, [1, 2, 10]));
@@ -161,6 +172,17 @@ pruefe('zieht nur aus erlaubten Reihen', proben.every(p => [1, 2, 10].includes(p
 pruefe('Ergebnis stimmt', proben.every(p => p.ergebnis === p.a * p.b));
 pruefe('fünf Antwort-Optionen', proben.every(p => p.antwort_optionen.length === 5));
 pruefe('richtige Antwort ist dabei', proben.every(p => p.antwort_optionen.includes(p.ergebnis)));
+
+console.log('Mal-Generator auf Stufe 1 nach dem Einser-Ausschluss (Nachtrag A, Problem 1)');
+// Bildet nach, was aufgabe-ui.js für den Biom-Erzeuger tatsächlich übergibt: die auf Stufe 1
+// offenen Reihen [1,2], bereinigt um die 1er. Vorher wäre hier [1,2] durchgereicht worden —
+// rund die Hälfte aller Aufgaben hätte b=1 gelautet.
+const stufe1Erlaubt = ohneEinserreihe(offeneReihen(ANFANGSSTAND));
+pruefe('kein leerer Reihen-Vorrat auf Stufe 1', stufe1Erlaubt.length > 0);
+const stufe1Proben = Array.from({ length: 100 }, () => generiereMalAufgabe(stufe, { anzahl: 4 }, stufe1Erlaubt));
+pruefe('auf Stufe 1 kommt nach dem Ausschluss nie b=1 vor', stufe1Proben.every(p => p.b !== 1));
+pruefe('stattdessen ausschließlich b=2', stufe1Proben.every(p => p.b === 2));
+pruefe('Ergebnis bleibt stimmig', stufe1Proben.every(p => p.ergebnis === p.a * p.b));
 
 console.log('Mal-Generator: Rückfall ohne dritten Parameter (geschärft)');
 // Schwachstelle der alten Fassung: sie zog EINE Probe und prüfte sie gegen den Bereich 1..10 —
