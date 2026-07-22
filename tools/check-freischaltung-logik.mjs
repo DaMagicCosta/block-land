@@ -5,6 +5,7 @@ import {
 } from '../js/freischaltung-logik.js';
 import { baueQuizFakten } from '../js/aufsagen-logik.js';
 import { generiereMalAufgabe } from '../js/aufgaben/mal.js';
+import { generiereGeteiltAufgabe } from '../js/aufgaben/geteilt.js';
 
 let fehler = 0;
 function pruefe(name, bedingung) {
@@ -110,8 +111,71 @@ pruefe('zieht nur aus erlaubten Reihen', proben.every(p => [1, 2, 10].includes(p
 pruefe('Ergebnis stimmt', proben.every(p => p.ergebnis === p.a * p.b));
 pruefe('fünf Antwort-Optionen', proben.every(p => p.antwort_optionen.length === 5));
 pruefe('richtige Antwort ist dabei', proben.every(p => p.antwort_optionen.includes(p.ergebnis)));
-const ohne = generiereMalAufgabe(stufe, { anzahl: 4 });
-pruefe('ohne Begrenzung wie bisher: b im Stufenbereich', ohne.b >= 1 && ohne.b <= 10);
+
+console.log('Mal-Generator: Rückfall ohne dritten Parameter (geschärft)');
+// Schwachstelle der alten Fassung: sie zog EINE Probe und prüfte sie gegen den Bereich 1..10 —
+// dieser Bereich enthält die eingeschränkte Liste [1,2,10] vollständig, ein kaputter Rückfall,
+// der insgeheim weiter [1,2,10] benutzt, wäre also nie aufgefallen.
+// Stattdessen: viele Proben ziehen und prüfen, dass tatsächlich alle zehn Werte des vollen
+// Stufenbereichs (b_min=1..b_max=10) auftauchen — nicht nur die drei der Liste. Bei 300 Proben
+// ist die Wahrscheinlichkeit, dass ein bestimmter der zehn Werte nie gezogen wird, (9/10)^300
+// ≈ 1,9·10⁻¹⁴ (und für "alle zehn treten auf" entsprechend noch kleiner) — ein insgeheim auf
+// [1,2,10] beschränkter Rückfall würde diese Prüfung mit an Sicherheit grenzender
+// Wahrscheinlichkeit NICHT bestehen, ein echter voller Bereich so gut wie sicher schon.
+const ohneProben = Array.from({ length: 300 }, () => generiereMalAufgabe(stufe, { anzahl: 4 }));
+const ohneWerte = new Set(ohneProben.map(p => p.b));
+pruefe('ohne Begrenzung: alle zehn Werte des Stufenbereichs kommen vor (nicht nur [1,2,10])',
+  Array.from({ length: 10 }, (_, i) => i + 1).every(v => ohneWerte.has(v)));
+pruefe('ohne Begrenzung: Werte außerhalb der eingeschränkten Liste [1,2,10] treten auf',
+  ohneProben.some(p => ![1, 2, 10].includes(p.b)));
+pruefe('ohne Begrenzung: Ergebnis bleibt stimmig', ohneProben.every(p => p.ergebnis === p.a * p.b));
+
+console.log('Geteilt-Generator mit Reihen-Begrenzung');
+// "Alle Reihen" (Stufe 3 im echten Pool, data/aufgaben-pool.json) — bewusst die volle Liste
+// 2..10 als stufenConfig.reihen, damit sich der Rückfall (unten) klar von der 2-elementigen
+// Beschränkung [2,10] dieses Blocks unterscheiden lässt.
+const stufeGeteilt = { nr: 3, reihen: [2, 3, 4, 5, 6, 7, 8, 9, 10], quotient_max: 10 };
+const gProben = Array.from({ length: 300 },
+  () => generiereGeteiltAufgabe(stufeGeteilt, { anzahl: 4 }, [2, 10]));
+pruefe('zieht den Teiler nur aus erlaubten Reihen', gProben.every(p => [2, 10].includes(p.b)));
+pruefe('a geteilt durch b ergibt ergebnis', gProben.every(p => p.a === p.b * p.ergebnis && p.a / p.b === p.ergebnis));
+pruefe('fünf Antwort-Optionen', gProben.every(p => p.antwort_optionen.length === 5));
+pruefe('richtige Antwort ist dabei', gProben.every(p => p.antwort_optionen.includes(p.ergebnis)));
+
+console.log('Geteilt-Generator: Teiler 1 wird immer ausgefiltert');
+const gMit1 = Array.from({ length: 300 },
+  () => generiereGeteiltAufgabe(stufeGeteilt, { anzahl: 4 }, [1, 2, 10]));
+pruefe('1 kommt trotz Angebot nie als Teiler vor', gMit1.every(p => p.b !== 1));
+pruefe('stattdessen weiterhin nur aus dem Rest der Liste (2 oder 10)',
+  gMit1.every(p => [2, 10].includes(p.b)));
+pruefe('a geteilt durch b ergibt ergebnis (mit Filter)',
+  gMit1.every(p => p.a === p.b * p.ergebnis && p.a / p.b === p.ergebnis));
+
+console.log('Geteilt-Generator: nur [1] übergeben -> sicherer Rückfall');
+// Nach dem Herausfiltern von 1 bleibt eine leere Liste — das darf weder NaN noch eine Division
+// durch 0 noch eine Endlosschleife erzeugen. Dass die Schleife hier überhaupt terminiert
+// (50 Proben ohne Hänger), ist bereits ein Beleg gegen eine Endlosschleife.
+const gNur1 = Array.from({ length: 50 }, () => generiereGeteiltAufgabe(stufeGeteilt, { anzahl: 4 }, [1]));
+pruefe('kein NaN in a/b/ergebnis',
+  gNur1.every(p => !Number.isNaN(p.a) && !Number.isNaN(p.b) && !Number.isNaN(p.ergebnis)));
+pruefe('kein Teiler 0 (keine Division durch null)', gNur1.every(p => p.b !== 0));
+pruefe('fällt auf den festen Rückfallwert b=2 zurück', gNur1.every(p => p.b === 2));
+pruefe('Aufgabe bleibt in sich stimmig', gNur1.every(p => p.a === p.b * p.ergebnis));
+
+console.log('Geteilt-Generator: Rückfall ohne dritten Parameter (geschärft)');
+// Gleiche Konstruktion wie beim Mal-Rückfall oben, nur dass der "volle Bereich" hier
+// stufenConfig.reihen ist (bewusst alle neun Reihen 2..10 — die "Alle Reihen"-Stufe aus dem
+// echten Pool), klar unterscheidbar von der 2-elementigen Beschränkung [2,10] weiter oben.
+// Bei 300 Proben über 9 mögliche Werte ist die Wahrscheinlichkeit, dass ein bestimmter Wert nie
+// gezogen wird, (8/9)^300 ≈ 4,6·10⁻¹⁶ — praktisch ausgeschlossen bei echtem vollen Bereich,
+// aber sicher erkennbar, falls der Rückfall insgeheim bei [2,10] hängen bliebe.
+const gOhne = Array.from({ length: 300 }, () => generiereGeteiltAufgabe(stufeGeteilt, { anzahl: 4 }));
+const gOhneWerte = new Set(gOhne.map(p => p.b));
+pruefe('ohne Begrenzung: alle Reihen aus stufenConfig.reihen kommen vor (nicht nur [2,10])',
+  stufeGeteilt.reihen.every(r => gOhneWerte.has(r)));
+pruefe('ohne Begrenzung: Werte außerhalb der eingeschränkten Liste [2,10] treten auf',
+  gOhne.some(p => ![2, 10].includes(p.b)));
+pruefe('ohne Begrenzung: Ergebnis bleibt stimmig', gOhne.every(p => p.ergebnis === p.a / p.b));
 
 console.log(fehler === 0 ? '\nAlles grün.' : `\n${fehler} Fehler.`);
 process.exit(fehler === 0 ? 0 : 1);
