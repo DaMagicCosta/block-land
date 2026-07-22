@@ -6,9 +6,10 @@ import { oeffneModal } from './modal.js';
 import { verteileBelohnung } from './belohnung.js';
 import { baueReihe, baueQuizFakten, baueDistraktoren, mische } from './aufsagen-logik.js';
 import { protokolliereAufsagen, getCurrentProfile, protokolliereEintragen,
-         getFreischaltung, setzeFreischaltung } from './state.js';
+         getFreischaltung, setzeFreischaltung, setzeFehlerboxEintrag } from './state.js';
 import { ANFANGSSTAND, offeneReihen, pruefReihe, sitzt,
          notierePruefung, sollAufsteigen, steigeAuf, bestanden } from './freischaltung-logik.js';
+import { neuerEintrag as neuerFehlerboxEintrag } from './fehlerbox-logik.js';
 import { meldeAufsagen, meldeEintragen } from './sync.js';
 import { kappeLuecke, formatDauer, neuerEintrag, INAKTIV_MS } from './aufsage-protokoll-logik.js';
 import { richtungsHinweis, neuerEintrag as neuerEintragEintragen } from './eintragen-protokoll-logik.js';
@@ -469,6 +470,21 @@ function starteQuiz(wurzel, modal, reward, reihe, rechenart) {
             // danebengehen, ohne die Reihe zu blockieren.
             if (reihe !== 'gemischt' && f.b === reihe) fehlerNeueReihe++;
             rapportiere(false);
+            // Endgültig falsch → in die Fehler-Box, damit die Aufgabe wiederkommt. Ohne das
+            // verschwindet eine im Trainer verfehlte Aufgabe für immer, und das Kind trainiert
+            // Wiedererkennen statt Abruf. Gleiche Schlüsselform wie im Aufgaben-Flow.
+            if (profileId) {
+              const boxAufgabe = {
+                aufgabentyp: rechenart,
+                a: f.a,
+                b: f.b,
+                ergebnis: richtig,
+                text: f.frageText,
+                stufe: 0,
+              };
+              const eintrag = neuerFehlerboxEintrag(boxAufgabe);
+              if (eintrag) setzeFehlerboxEintrag(profileId, eintrag.schluessel, eintrag);
+            }
             const tipp = wurzel.querySelector('.trainer__tipp');
             tipp.hidden = false;
             tipp.textContent = `Die Lösung ist ${richtig} 👍`;
