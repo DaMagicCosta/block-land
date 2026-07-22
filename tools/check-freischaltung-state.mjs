@@ -1,6 +1,6 @@
 // Check der Freischaltungs-Persistenz (Form des gespeicherten Standes, ohne Browser).
 // Aufruf: node tools/check-freischaltung-state.mjs
-import { ANFANGSSTAND, SEQUENZ, notierePruefung, sollAufsteigen, steigeAuf, offeneReihen }
+import { ANFANGSSTAND, SEQUENZ, notierePruefung, sollAufsteigen, steigeAuf, offeneReihen, sitzt }
   from '../js/freischaltung-logik.js';
 
 // localStorage-Attrappe für den zweiten Abschnitt — prüft die echten state.js-Funktionen
@@ -50,7 +50,11 @@ console.log('Form des Standes (JSON-tauglich für localStorage und Sync)');
 const roh = JSON.parse(JSON.stringify(s));
 pruefe('überlebt JSON-Rundreise', roh.stufe === s.stufe);
 pruefe('Prüfungstage sind ein Array', Array.isArray(roh.pruefungen['2']));
-pruefe('Schlüssel sind Zeichenketten', Object.keys(roh.pruefungen).every(x => typeof x === 'string'));
+// Schlussdurchsicht 21.07.2026: die alte Fassung prüfte `typeof x === 'string'` auf
+// Object.keys(...) — das liefert in JavaScript IMMER Zeichenketten, unabhängig vom geprüften
+// Code (Sprachgarantie, kein Verhalten von notierePruefung/JSON). Stattdessen wird jetzt der
+// tatsächliche Inhalt geprüft: genau die geprüfte Reihe (hier die 2er) steht als Schlüssel da.
+pruefe('Schlüssel sind genau die geprüften Reihen', JSON.stringify(Object.keys(roh.pruefungen).sort()) === '["2"]');
 
 console.log('\nPersistenz gegen das echte state.js (localStorage gemockt)');
 
@@ -133,7 +137,17 @@ console.log('Eltern-Override (Nachtrag A): erzwingeFreischaltungsstufe setzt sta
 // anfangen. setzeFreischaltung() (Kind-Pfad) würde ein Herabsetzen wegverschmelzen (Max-Regel)
 // — der Eltern-Pfad muss das können.
 const arthur = addProfile({ name: 'Arthur', weltName: 'Arthurland', avatar: '⚔️', alter: 'klasse-2' });
-setzeFreischaltung(arthur, 'mal', { stufe: 6, pruefungen: { '6': ['2026-07-10', '2026-07-11'] }, fehlversuche: {} });
+// Realistischer Verlauf bis Stufe 6: jede durchlaufene Stufe hat ihre Prüf-Reihe mit zwei guten
+// Tagen stehen (2er/Stufe1, 10er/Stufe2, 5er/Stufe3 — genau die Reihe, an der später wieder
+// geprüft wird, wenn auf Stufe 3 zurückgestuft wird — sowie 6er/Stufe6, die aktuelle).
+setzeFreischaltung(arthur, 'mal', {
+  stufe: 6,
+  pruefungen: {
+    '2': ['2026-06-01', '2026-06-02'], '10': ['2026-06-03', '2026-06-04'],
+    '5': ['2026-06-05', '2026-06-06'], '6': ['2026-07-10', '2026-07-11'],
+  },
+  fehlversuche: {},
+});
 pruefe('Ausgangsstufe ist 6', getFreischaltung(arthur, 'mal').stufe === 6);
 
 erzwingeFreischaltungsstufe(arthur, 'mal', 8);
@@ -141,8 +155,20 @@ pruefe('Heraufsetzen wirkt', getFreischaltung(arthur, 'mal').stufe === 8);
 
 erzwingeFreischaltungsstufe(arthur, 'mal', 3);
 pruefe('Herabsetzen wirkt — die Verschmelzung steht nicht im Weg', getFreischaltung(arthur, 'mal').stufe === 3);
-pruefe('Prüfungshistorie bleibt erhalten (nur die Stufe wird ersetzt)',
-  JSON.stringify(getFreischaltung(arthur, 'mal').pruefungen['6']) === '["2026-07-10","2026-07-11"]');
+pruefe('Reihen STRIKT UNTERHALB der neuen Stufe behalten ihre Historie (2er, Stufe 1)',
+  JSON.stringify(getFreischaltung(arthur, 'mal').pruefungen['2']) === '["2026-06-01","2026-06-02"]');
+pruefe('...auch die 10er (Stufe 2)',
+  JSON.stringify(getFreischaltung(arthur, 'mal').pruefungen['10']) === '["2026-06-03","2026-06-04"]');
+// Fund Schlussdurchsicht 21.07.2026 („Eltern-Herabstufung wird wieder aufgerollt"): die Reihe,
+// die GENAU an der neuen Stufe geprüft wird (5er, Stufe 3), muss ihre alte Historie verlieren —
+// sonst gilt sie dank der beiden alten Tage sofort wieder als „sitzt" und die nächste Prüfung
+// hebt die Rückstufung augenblicklich wieder auf, egal wie sie ausgeht.
+pruefe('Die Reihe AN der neuen Stufe (5er, Stufe 3) verliert ihre alte Historie',
+  getFreischaltung(arthur, 'mal').pruefungen['5'] === undefined);
+pruefe('Reihen OBERHALB der neuen Stufe verlieren ihre Historie (6er, Stufe 6)',
+  getFreischaltung(arthur, 'mal').pruefungen['6'] === undefined);
+pruefe('Die Rückstufung ist dadurch wirksam: die 5er gilt nicht mehr sofort als „sitzt"',
+  sitzt(getFreischaltung(arthur, 'mal'), 5) === false);
 
 erzwingeFreischaltungsstufe(arthur, 'mal', 0);
 pruefe('Stufe wird nach unten auf 1 geklemmt', getFreischaltung(arthur, 'mal').stufe === 1);

@@ -7,7 +7,7 @@ import { zielFuer, neuerAuftrag, aktualisiereTagesauftrag } from './tagesauftrag
 import { klemmeInventar, deserialisiereAnzahl, serialisiereAnzahl } from './zustand-sync-logik.js';
 import { normalisiereTimer } from './timer-logik.js';
 import { hatOffeneAnfrage, fuegeAnfrageHinzu, setzeAnfrageStatus, entferneAnfrage, entferneNachStatus, klemmeAnzahl } from './gutschein-anfrage-logik.js';
-import { ANFANGSSTAND, SEQUENZ, verschmelzeStaende } from './freischaltung-logik.js';
+import { ANFANGSSTAND, SEQUENZ, verschmelzeStaende, kappeTageslistenAbStufe } from './freischaltung-logik.js';
 
 // --- Spielstand-Sync: Melde-Hook (sync.js registriert sich hier — kein Import-Zyklus).
 // Im Einspiel-Modus (fremde Ereignisse anwenden) wird NICHT erneut gemeldet (Echo-Schutz).
@@ -291,18 +291,25 @@ export function setzeFreischaltung(profileId, rechenart, stand) {
 // ist kein solches Ereignis — sie muss die Stufe auch SENKEN können (z.B. Arthur, der schon
 // Trainer-Übung hat, nicht bei Stufe 1 anfangen zu lassen, oder eine Fehlkonfiguration zurück-
 // zudrehen). Deshalb ein eigener, getrennter Weg: ERSETZT die Stufe direkt statt zu verschmelzen.
-// Prüfungs-/Fehlversuchs-Historie bleibt unangetastet (Nachvollziehbarkeit, „wie viele gute Tage
-// wurden für die aktuelle Reihe schon notiert" bleibt danach weiter lesbar). Eigener Ereignistyp
-// ('freischaltungErzwungen', siehe wendeZustandsEreignisAn) statt 'reiheFreigeschaltet', damit
-// ein anderes Gerät die Rückstufung als das behandelt, was sie ist — ein Ersetzen, kein
-// Zusammenführen mit dem monotonen Kind-Fortschritt.
+// Prüfungs-/Fehlversuchs-Historie AB der neuen Stufe wird mitentfernt (kappeTageslistenAbStufe,
+// freischaltung-logik.js) — ohne das bliebe z.B. bei einer Rückstufung von 6 auf 3 die längst
+// notierte Historie der 5er (dem Prüffach der Stufe 3, aus dem ursprünglichen Durchlauf) stehen,
+// und die nächste Prüfung ließe die Stufe sofort wieder steigen, egal wie sie ausgeht — der
+// Rückwärtsgang wäre wirkungslos (Schlussdurchsicht 21.07.2026). Reihen UNTERHALB der neuen
+// Stufe bleiben unangetastet (Nachvollziehbarkeit, „wie viele gute Tage wurden für bereits
+// gefestigte Reihen notiert" bleibt lesbar — die betreffen das Freischalt-Kriterium ohnehin
+// nicht mehr, siehe pruefReihe). Eigener Ereignistyp ('freischaltungErzwungen', siehe
+// wendeZustandsEreignisAn) statt 'reiheFreigeschaltet', damit ein anderes Gerät die Rückstufung
+// als das behandelt, was sie ist — ein Ersetzen, kein Zusammenführen mit dem monotonen
+// Kind-Fortschritt.
 export function erzwingeFreischaltungsstufe(profileId, rechenart, stufe) {
   const p = state.profiles[profileId];
   if (!p || !rechenart) return;
   const geklemmt = Math.max(1, Math.min(SEQUENZ.length, Math.round(Number(stufe)) || 1));
   p.freischaltung = p.freischaltung ?? {};
   const bisher = p.freischaltung[rechenart] ?? structuredClone(ANFANGSSTAND);
-  const neu = { ...bisher, stufe: geklemmt };
+  const { pruefungen, fehlversuche } = kappeTageslistenAbStufe(bisher, geklemmt);
+  const neu = { stufe: geklemmt, pruefungen, fehlversuche };
   p.freischaltung[rechenart] = neu;
   save(state);
   melde('freischaltungErzwungen', { profilId: profileId, rechenart, stand: structuredClone(neu) });
@@ -722,12 +729,10 @@ export function wendeZustandsEreignisAn(ereignis) {
         // der Kind-Fortschritt) und weil das Gegenteil — eine Rückstufung, die durch Verschmelzen
         // stillschweigend verpufft — der schlimmere, weil unsichtbare Fehler wäre.
         //
-        // Kleinerer Nebeneffekt, ebenfalls bewusst nicht behoben: erzwingeFreischaltungsstufe
-        // (state.js oben) setzt nur `stufe` neu, lässt aber `pruefungen` (die Prüfungs-/
-        // Fehlversuchs-Historie je Reihe) oberhalb der neuen Stufe unangetastet stehen. Heute
-        // folgenlos, weil nur `stufe` gelesen wird — falls die Stufe später aber wieder steigt,
-        // tauchen die alten Einträge der übersprungenen Reihen wieder auf, als wären sie gerade
-        // erst notiert worden. Bei Bedarf dort aufräumen, nicht hier.
+        // args.stand kommt bereits über kappeTageslistenAbStufe bereinigt an (siehe
+        // erzwingeFreischaltungsstufe oben) — die Prüfungs-/Fehlversuchs-Historie der Reihen ab
+        // der neuen Stufe ist also schon entfernt, bevor dieses Ereignis überhaupt entsteht.
+        // Hier wird nur noch übernommen, kein eigenes Aufräumen nötig.
         const p = state.profiles[args?.profilId];
         if (!p || !args?.rechenart || !args?.stand) return false;
         p.freischaltung = p.freischaltung ?? {};

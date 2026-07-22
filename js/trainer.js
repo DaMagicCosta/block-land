@@ -418,10 +418,21 @@ function starteQuiz(wurzel, modal, reward, reihe, rechenart) {
   // (ersetzt nur Fragen mit b !== reihe, bei 'gemischt' gibt es keine geprüfte Reihe).
   if (profileId) {
     const faelligeBox = faellige(getFehlerbox(profileId), rechenart);
+    // Obergrenze für ersetzte Fragen (Schlussdurchsicht 21.07.2026, Fund „Gemischt wird zur
+    // reinen Fehler-Runde"): ohne Deckel galt bei 'gemischt' der gesamte Fragensatz als
+    // Wiederholungsanteil — bis zu zehn von zehn Fragen aus der Fehler-Box, ausgerechnet im
+    // Modus, den das Kind freiwillig wählt. Reihen-Prüfung: die Obergrenze ergibt sich aus der
+    // Zahl der tatsächlichen Wiederholungsplätze in DIESER Prüfung (Fragen, deren Reihe nicht
+    // die geprüfte ist). Gemischt: fest 4 — „die Box nutzt den Platz, der ohnehin für
+    // Wiederholung vorgesehen ist" (Design §6), nicht mehr.
+    const maxErsetzen = reihe === 'gemischt'
+      ? 4
+      : fakten.filter(f => Number(f.b) !== Number(reihe)).length;
     fakten = mitFaelligenBoxaufgaben(fakten, rechenart, {
       neueReihe: reihe === 'gemischt' ? null : reihe,
       offeneReihen: alteReihen,
       boxAufgaben: faelligeBox,
+      maxErsetzen,
     });
   }
   let fehlerNeueReihe = 0;   // zählt NUR Fehler bei Fragen der geprüften Reihe
@@ -432,6 +443,7 @@ function starteQuiz(wurzel, modal, reward, reihe, rechenart) {
     const f = fakten[index];
     const richtig = f.richtig;
     let fehler = 0;
+    let gezaehlt = false;   // Freischalt-Kriterium: höchstens 1 Fehler pro Frage zählen (siehe unten)
     const frageStart = performance.now();
     const sperre = neueKlickSperre();   // Doppeltipp-Schutz (siehe klick-sperre.js)
     sperre.verriegeln(frageStart);
@@ -482,19 +494,20 @@ function starteQuiz(wurzel, modal, reward, reihe, rechenart) {
           btn.classList.add('trainer__antwort--falsch');
           btn.disabled = true;
           fehler++;
+          // Für das Freischalt-Kriterium zählt jede Frage der geprüften Reihe höchstens einmal
+          // als Fehler — aber schon beim ERSTEN Fehlgriff, nicht erst wenn die Frage endgültig
+          // scheitert. Vorher stand das Zählen im MAX_FEHLVERSUCHE-Zweig unten: eine Frage, die
+          // im ersten Anlauf falsch und im zweiten richtig war, zählte dann als NULL Fehler —
+          // bei vier Antwortknöpfen konnte ein Kind neun von zehn Fragen zuerst danebengreifen,
+          // sich korrigieren, und bestand mit „null Fehlern", ohne einen einzigen Fakt wirklich
+          // abgerufen zu haben (Schlussdurchsicht 21.07.2026). `gezaehlt` verhindert, dass ein
+          // zweiter Fehlklick auf dieselbe Frage sie doppelt zählt.
+          if (!gezaehlt && reihe !== 'gemischt' && f.b === reihe) { fehlerNeueReihe++; gezaehlt = true; }
           if (fehler >= MAX_FEHLVERSUCHE) {
             ant.querySelectorAll('button').forEach(x => {
               x.disabled = true;
               if (parseInt(x.textContent, 10) === richtig) x.classList.add('trainer__antwort--richtig');
             });
-            // Für das Freischalt-Kriterium zählt jede Frage der geprüften Reihe höchstens
-            // einmal als Fehler — erst hier, wenn sie endgültig scheitert (Lösung wird
-            // gezeigt), nicht bei jedem einzelnen Fehlklick. Sonst würde ein einziger
-            // unbekannter Fakt (bis zu MAX_FEHLVERSUCHE Fehlklicks) mehrfach zählen und
-            // die Prüfung ("höchstens 1 Fehler von 10 Fragen") ungewollt verschärfen. Die
-            // eingestreuten Wiederholungen sind Wiederholung, keine Prüfung — sie dürfen
-            // danebengehen, ohne die Reihe zu blockieren.
-            if (reihe !== 'gemischt' && f.b === reihe) fehlerNeueReihe++;
             rapportiere(false);
             // Endgültig falsch → in die Fehler-Box, damit die Aufgabe wiederkommt. Ohne das
             // verschwindet eine im Trainer verfehlte Aufgabe für immer, und das Kind trainiert

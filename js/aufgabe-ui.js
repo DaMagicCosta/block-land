@@ -11,7 +11,7 @@ import { verteileBelohnung } from './belohnung.js';
 import { loadAufgabenPool, loadBiomManifest } from './data.js';
 import { waehleMechanik, aktuelleStufe, rapportiereErgebnis } from './adaptiv.js';
 import { getCurrentProfile, getAktivesBiom, schalteNaechstesBiomFrei, getAktiveReihe, setzeAktiveReihe, getFehlerbox, setzeFehlerboxEintrag, getFreischaltung } from './state.js';
-import { offeneReihen, ohneEinserreihe } from './freischaltung-logik.js';
+import { offeneReihen, ohneEinserreihe, nurEineReiheOffen } from './freischaltung-logik.js';
 import { aufgabeSchluessel, neuerEintrag, planeWieder, verschiebeAufMorgen, naechsteFaellige, hilfeStufeFuer } from './fehlerbox-logik.js';
 import { normalisiereAufgabe } from './aufgaben/normalisiere.js';
 import { neueKlickSperre } from './klick-sperre.js';
@@ -23,6 +23,20 @@ const MAX_FEHLVERSUCHE = 2;  // Nach 2 Fehlversuchen Lösung zeigen.
 
 let letzteAufgabeKey = null;
 function aufgabeKey(a) { return `${a.aufgabentyp}:${a.a}:${a.b}`; }
+
+// Zähler für den Hütten-Hinweis (siehe zeigeReiheGeschafft): bewusst nicht bei JEDER
+// abgeschlossenen Reihe, sonst wird er bei einem Kind, das zwangsläufig viele Reihen auf
+// derselben einzigen offenen Reihe übt, zur Nörgelei. Gleiches Muster wie letzteWarAusBox
+// weiter unten ("nur jede zweite"), nur session-weit statt pro Frage.
+let huettenHinweisZaehler = 0;
+function sollHuettenHinweisZeigen(profile, typ) {
+  // Nur Mal/Geteilt kennen einen Reihen-Trainer — andere Biome (Plus, Mengen, ...) haben
+  // keine Trainer-Hütte, der Hinweis wäre dort sinnlos.
+  if (typ !== 'mal' && typ !== 'geteilt') return false;
+  if (!nurEineReiheOffen(getFreischaltung(profile.id, typ), typ)) return false;
+  huettenHinweisZaehler++;
+  return huettenHinweisZaehler % 2 === 1;
+}
 function istKleinkind(profile) {
   return profile.alter === 'kindergarten' || profile.alter === 'klasse-1';
 }
@@ -111,6 +125,12 @@ export async function oeffneAufgabe(reward, { onClose, festeStufe = null } = {})
 
   function ausFehlerbox() {
     if (letzteWarAusBox) return null;
+    // Bewusst OHNE Reihen-Filter: eine fällige Box-Konserve kann eine Reihe zeigen, die die
+    // Reihen-Freischaltung noch gar nicht offen hat (z.B. 7·8, während die 7er-Reihe noch
+    // gesperrt ist) — anders als einmalGenerieren() oben, das über erlaubteReihen streng an
+    // die Freischaltung gebunden ist. Das ist keine Lücke, sondern Entscheidung: Die Box zeigt
+    // eine bekannte, bereits gescheiterte Aufgabe erneut — fachlich vertretbar unabhängig vom
+    // aktuellen Freischaltungsstand, weil das Kind ihr schon einmal begegnet ist.
     const eintrag = naechsteFaellige(getFehlerbox(profile.id), typ);
     if (!eintrag) return null;
     // Konserve numerisch säubern (Live-Befund 2026-07-16: ergebnis als String "10" →
@@ -183,7 +203,7 @@ export async function oeffneAufgabe(reward, { onClose, festeStufe = null } = {})
   function naechsteFrage() {
     if (istReiheFertig(reihe)) {
       setzeAktiveReihe(profile.id, reihe.biom, null);
-      zeigeReiheGeschafft(modal, istKleinkind(profile));
+      zeigeReiheGeschafft(modal, istKleinkind(profile), sollHuettenHinweisZeigen(profile, typ));
       return;
     }
     reihe.position += 1;
@@ -606,13 +626,21 @@ function zeigeLoesung(aufgabe, modal, istKlein = false, onWeiter = null) {
 }
 
 // Abschluss-Feier am Ende einer Reihe (kein Extra-Material — Belohnungs-Neutralität).
-function zeigeReiheGeschafft(modal, istKlein = false) {
+// huettenHinweis: beiläufiger Hinweis auf den Reihen-Trainer (siehe sollHuettenHinweisZeigen
+// oben, das auch das „nur jede zweite Reihe" drosselt) — bewusst hier statt bei jeder
+// einzelnen Aufgabe, damit er nicht zur Nörgelei wird. Ziel, kein Vorwurf: kein „gesperrt",
+// kein „musst du" — nur wo die nächste Reihe herkommt.
+function zeigeReiheGeschafft(modal, istKlein = false, huettenHinweis = false) {
+  const huetteHtml = huettenHinweis
+    ? `<p class="feier__unlock">🛖 In der Hütte kannst du die nächste Reihe aufmachen.</p>`
+    : '';
   modal.inhalt.innerHTML = `
     <div class="modal modal--erfolg">
       <div class="modal__emoji feier__huepf">🏆</div>
       <div class="feier__konfetti">✨🎊⭐🎉✨</div>
       <div class="modal__titel">REIHE GESCHAFFT!</div>
       <p class="modal__text">Super durchgehalten!</p>
+      ${huetteHtml}
       <button class="modal__close">Fertig</button>
     </div>
   `;

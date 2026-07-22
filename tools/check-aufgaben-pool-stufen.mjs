@@ -122,10 +122,17 @@ pruefe('Konfiguration: a_max in Stufe 4 ist auf 10 gedeckelt (vorher 12)',
 // die 1er ist bereits vom Aufrufer gefiltert, siehe js/aufgabe-ui.js + ohneEinserreihe).
 const alleReihenOffen = [2, 3, 4, 5, 6, 7, 8, 9, 10];
 const N_MAL = 300;
+// Schlussdurchsicht 21.07.2026: eine frühere Fassung prüfte hier zusätzlich "b bleibt <= 10"
+// gegen dieselbe Testeingabe alleReihenOffen (= [2..10]) — das kann per Konstruktion NIE
+// fehlschlagen, egal was der Code tut, weil b bei übergebenem erlaubteReihen IMMER aus genau
+// diesem Array gezogen wird (siehe generiereMalAufgabe in js/aufgaben/mal.js). b_min/b_max aus
+// der Stufen-Konfiguration sind im echten Biom-Pfad ohnehin tot (siehe Kommentar oben) — es gibt
+// hier also nichts Sinnvolles über b zu prüfen, das nicht schon "zieht nur aus erlaubten Reihen"
+// in check-freischaltung-logik.mjs abdeckt. Diese Schleife bleibt bei ihrem eigentlichen Zweck:
+// dem a_max-Deckel (Nachtrag B, Teil 2).
 for (const s of pool.mal.stufen) {
   const ps = proben(N_MAL, () => generiereMalAufgabe(s, { anzahl: 4 }, alleReihenOffen));
   pruefe(`mal Stufe ${s.nr}: a bleibt bei allen Proben <= 10`, ps.every(p => p.a <= 10));
-  pruefe(`mal Stufe ${s.nr}: b bleibt bei allen Proben <= 10`, ps.every(p => p.b <= 10));
   pruefe(`mal Stufe ${s.nr}: Ergebnis bleibt stimmig`, ps.every(p => p.ergebnis === p.a * p.b));
 }
 

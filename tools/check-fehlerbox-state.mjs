@@ -8,7 +8,7 @@ globalThis.localStorage = {
 };
 globalThis.window = globalThis;   // state.js hängt am Ende __blockLandState an window
 
-const { addProfile, getFehlerbox, setzeFehlerboxEintrag, getProfile, wendeZustandsEreignisAn } = await import('../js/state.js');
+const { addProfile, getFehlerbox, setzeFehlerboxEintrag, getProfile, getState, wendeZustandsEreignisAn } = await import('../js/state.js');
 const { neuerEintrag, planeWieder, naechsteFaellige } = await import('../js/fehlerbox-logik.js');
 
 let fehler = 0;
@@ -59,9 +59,18 @@ pruefe('unbekanntes Profil wird abgelehnt',
   wendeZustandsEreignisAn({ op: 'fehlerboxGesetzt', args: { profilId: 'gibts_nicht', schluessel: 'x', eintrag: eig } }) === false);
 
 console.log('Altprofil ohne Feld (Forward-Compat)');
-const alt = getProfile(id);
-delete alt.fehlerbox;   // simuliert ein Profil aus der Zeit vor diesem Feature
-pruefe('getFehlerbox verträgt fehlendes Feld', Object.keys(getFehlerbox(id)).length >= 0);
+// Schlussdurchsicht 21.07.2026: getProfile() liefert einen structuredClone — ein delete darauf
+// träfe nie den echten State, das fehlerbox-Feld bliebe intern weiter vorhanden. Nur getState()
+// liefert die Live-Referenz, mit der sich ein Profil aus der Zeit vor diesem Feature (fehlendes
+// fehlerbox-Feld) tatsächlich nachbilden lässt (gleiches Muster wie check-freischaltung-state.mjs).
+// Die alte Fassung testete hier außerdem nur `.length >= 0` — eine Array-Länge ist nie negativ,
+// das kann bei KEINEM Bug fehlschlagen. Jetzt wird echt geprüft: kein Wurf UND leeres Objekt.
+delete getState().profiles[id].fehlerbox;
+let warfOhneFeld = false;
+let leerOhneFeld = null;
+try { leerOhneFeld = getFehlerbox(id); } catch { warfOhneFeld = true; }
+pruefe('getFehlerbox verträgt fehlendes Feld (kein Wurf, leeres Objekt)',
+  !warfOhneFeld && leerOhneFeld !== null && Object.keys(leerOhneFeld).length === 0);
 setzeFehlerboxEintrag(id, 'neu|1|1|2', neuerEintrag({ aufgabentyp: 'plus', a: 1, b: 1, ergebnis: 2 }, '2026-07-13'));
 pruefe('setzeFehlerboxEintrag legt das Feld nach', !!getFehlerbox(id)['neu|1|1|2']);
 

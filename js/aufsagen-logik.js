@@ -120,17 +120,23 @@ function faktAusBoxeintrag(eintrag) {
 //   (`neueReihe = null`) — dann ist der gesamte Fragensatz Wiederholungsanteil.
 // - Nur Box-Aufgaben der passenden Rechenart (`rechenart`, doppelt gegen den Aufrufer geprüft)
 //   und aus `offeneReihen` (bereits gelernt) kommen infrage.
-// - Höchstens so viele werden ersetzt, wie es Wiederholungsplätze gibt — die Obergrenze ergibt
-//   sich allein daraus, dass nur in Wiederholungsplätze ersetzt wird (kein extra Deckel nötig).
-//   Sind weniger Box-Aufgaben fällig als Plätze frei sind, bleiben die übrigen Plätze bei den
-//   ursprünglich gezogenen (zufälligen) Fragen — unverändertes Bestandsverhalten.
+// - Höchstens so viele werden ersetzt, wie es Wiederholungsplätze gibt — UND höchstens
+//   `maxErsetzen`, das der Aufrufer explizit mitgibt (Schlussdurchsicht 21.07.2026: ohne
+//   diesen Deckel galt bei 'gemischt' (neueReihe = null) der GESAMTE Fragensatz als
+//   Wiederholungsanteil, also bis zu zehn von zehn Fragen — für den Modus, den das Kind
+//   freiwillig wählt und der die beste Beute gibt, die schlechteste denkbare Runde: eine
+//   reine Fehler-Wiederholung ohne Erfolgserlebnis. Genau das verhindert js/aufgabe-ui.js an
+//   anderer Stelle bewusst („Konserven-Regel"/Strafrunden-Kommentar bei ausFehlerbox()) — hier
+//   fehlte die gleiche Leitplanke.). Sind weniger Box-Aufgaben fällig als Plätze frei sind
+//   (oder greift der Deckel zuerst), bleiben die übrigen Plätze bei den ursprünglich gezogenen
+//   (zufälligen) Fragen — unverändertes Bestandsverhalten.
 // - `boxAufgaben` kommt vorsortiert vom Aufrufer (`faellige()` aus fehlerbox-logik.js,
 //   dringendste zuerst) — diese Funktion fasst Fälligkeit/Reihenfolge nicht selbst an.
 //
 // Reine Funktion: `fakten` und `boxAufgaben` bleiben unangetastet, es entsteht ein neues Array.
 // Jedes Element trägt zusätzlich `boxEintrag` (den rohen Fehlerbox-Eintrag oder null) — der
 // Aufrufer (js/trainer.js) braucht ihn beim Zurückschreiben, um denselben Schlüssel zu treffen.
-export function mitFaelligenBoxaufgaben(fakten, rechenart, { neueReihe = null, offeneReihen = [], boxAufgaben = [] } = {}) {
+export function mitFaelligenBoxaufgaben(fakten, rechenart, { neueReihe = null, offeneReihen = [], boxAufgaben = [], maxErsetzen = Infinity } = {}) {
   const erlaubt = new Set((offeneReihen ?? []).map(Number));
   const passtNichtZurGeprueftenReihe = (b) => neueReihe === null || Number(b) !== Number(neueReihe);
 
@@ -139,9 +145,11 @@ export function mitFaelligenBoxaufgaben(fakten, rechenart, { neueReihe = null, o
     .map(e => ({ eintrag: e, fakt: faktAusBoxeintrag(e) }))
     .filter(({ fakt }) => fakt && erlaubt.has(Number(fakt.b)) && passtNichtZurGeprueftenReihe(fakt.b));
 
+  const grenze = Math.max(0, Math.min(kandidaten.length, Number(maxErsetzen)));
+
   let i = 0;
   return (fakten ?? []).map(f => {
-    if (!passtNichtZurGeprueftenReihe(f.b) || i >= kandidaten.length) return { ...f, boxEintrag: null };
+    if (!passtNichtZurGeprueftenReihe(f.b) || i >= grenze) return { ...f, boxEintrag: null };
     const { eintrag, fakt } = kandidaten[i++];
     return { ...fakt, boxEintrag: eintrag };
   });

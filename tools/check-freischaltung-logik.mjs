@@ -2,7 +2,7 @@
 import {
   SEQUENZ, ANFANGSSTAND, pruefReihe, offeneReihen, istOffen, notierePruefung,
   sitzt, klemmt, sollAufsteigen, steigeAuf, mischeQuizReihen, bestanden, verschmelzeStaende,
-  ohneEinserreihe,
+  ohneEinserreihe, kappeTageslistenAbStufe, nurEineReiheOffen,
 } from '../js/freischaltung-logik.js';
 import { baueQuizFakten } from '../js/aufsagen-logik.js';
 import { generiereMalAufgabe } from '../js/aufgaben/mal.js';
@@ -164,6 +164,43 @@ pruefe('auf Stufe 1 bleibt genau die 2er übrig — kein leerer Reihen-Vorrat',
   JSON.stringify(ohneEinserreihe(offeneReihen(ANFANGSSTAND))) === '[2]');
 pruefe('ab Stufe 2 bleibt die Liste vollständig ohne die 1 (nichts geht verloren)',
   JSON.stringify(ohneEinserreihe(offeneReihen({ ...ANFANGSSTAND, stufe: 3 })).sort((a, b) => a - b)) === '[2,5,10]');
+
+console.log('nurEineReiheOffen (Hütten-Hinweis, Fund Schlussdurchsicht 21.07.2026)');
+pruefe('mal auf Stufe 1: nur die 2er -> true', nurEineReiheOffen(ANFANGSSTAND, 'mal') === true);
+pruefe('geteilt auf Stufe 1: nur die 2er (1 wird gefiltert) -> true', nurEineReiheOffen(ANFANGSSTAND, 'geteilt') === true);
+pruefe('mal auf Stufe 3 (2,5,10 offen): mehr als eine -> false',
+  nurEineReiheOffen({ ...ANFANGSSTAND, stufe: 3 }, 'mal') === false);
+pruefe('geteilt auf Stufe 3: mehr als eine -> false',
+  nurEineReiheOffen({ ...ANFANGSSTAND, stufe: 3 }, 'geteilt') === false);
+pruefe('Rechenart-Default ist mal', nurEineReiheOffen(ANFANGSSTAND) === true);
+
+console.log('kappeTageslistenAbStufe (Eltern-Setz-Knopf, Nachtrag Schlussdurchsicht 21.07.2026)');
+// Kernfall: Profil war einmal bis Stufe 6 gekommen und hat dabei für jede Prüf-Reihe zwei gute
+// Tage notiert (2er/Stufe1, 10er/Stufe2, 5er/Stufe3, 4er/Stufe4, 3er/Stufe5, 6er/Stufe6).
+const standStufe6 = {
+  stufe: 6,
+  pruefungen: {
+    '2': ['2026-06-01', '2026-06-02'], '10': ['2026-06-03', '2026-06-04'],
+    '5': ['2026-06-05', '2026-06-06'], '4': ['2026-06-07', '2026-06-08'],
+    '3': ['2026-06-09', '2026-06-10'], '6': ['2026-07-10', '2026-07-11'],
+  },
+  fehlversuche: { '6': ['2026-07-09'] },
+};
+const gekapptAuf3 = kappeTageslistenAbStufe(standStufe6, 3);
+pruefe('Reihen strikt unterhalb der neuen Stufe (2er/Stufe1, 10er/Stufe2) bleiben',
+  JSON.stringify(gekapptAuf3.pruefungen['2']) === '["2026-06-01","2026-06-02"]'
+  && JSON.stringify(gekapptAuf3.pruefungen['10']) === '["2026-06-03","2026-06-04"]');
+pruefe('die Reihe GENAU an der neuen Stufe (5er, Stufe 3) wird entfernt — sonst gilt sie sofort als "sitzt"',
+  gekapptAuf3.pruefungen['5'] === undefined);
+pruefe('Reihen oberhalb der neuen Stufe (4er/Stufe4, 3er/Stufe5, 6er/Stufe6) werden entfernt',
+  gekapptAuf3.pruefungen['4'] === undefined && gekapptAuf3.pruefungen['3'] === undefined && gekapptAuf3.pruefungen['6'] === undefined);
+pruefe('fehlversuche werden nach derselben Regel gekappt', gekapptAuf3.fehlversuche['6'] === undefined);
+pruefe('kappeTageslistenAbStufe ist pur (Eingabe unverändert)',
+  JSON.stringify(standStufe6.pruefungen['5']) === '["2026-06-05","2026-06-06"]');
+pruefe('Stufe 1 (kein "unterhalb") entfernt alles inklusive der 2er',
+  Object.keys(kappeTageslistenAbStufe(standStufe6, 1).pruefungen).length === 0);
+pruefe('die volle letzte Stufe (9) lässt alles außer der 7er (dort noch nichts notiert) unberührt',
+  JSON.stringify(kappeTageslistenAbStufe(standStufe6, 9).pruefungen) === JSON.stringify(standStufe6.pruefungen));
 
 console.log('Mal-Generator mit Reihen-Begrenzung');
 const stufe = { nr: 2, a_min: 1, a_max: 10, b_min: 1, b_max: 10 };

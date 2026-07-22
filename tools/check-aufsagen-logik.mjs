@@ -192,12 +192,26 @@ function fakt(a, b, richtig, rechenart = 'mal') {
     unveraendert.length === 2 && unveraendert.some(f => f.a === 4 && f.richtig === 12) && unveraendert.some(f => f.a === 6 && f.richtig === 18));
 }
 
-// 'gemischt': keine geprüfte Reihe -> der GESAMTE Fragensatz ist Wiederholungsanteil.
+// 'gemischt': keine geprüfte Reihe -> der GESAMTE Fragensatz ist Wiederholungsanteil, mit
+// mitgegebener Obergrenze werden trotzdem nur so viele ersetzt wie erlaubt.
 {
   const fakten = [fakt(2, 3, 6), fakt(5, 4, 20), fakt(7, 3, 21)];
   const box = [boxEintrag('mal', 9, 3, 27), boxEintrag('mal', 6, 4, 24)];
-  const r = mitFaelligenBoxaufgaben(fakten, 'mal', { neueReihe: null, offeneReihen: [3, 4], boxAufgaben: box });
-  check('gemischt: beide Box-Aufgaben kommen unter (kein neueReihe-Ausschluss)', r.filter(f => f.boxEintrag).length === 2);
+  const r = mitFaelligenBoxaufgaben(fakten, 'mal', { neueReihe: null, offeneReihen: [3, 4], boxAufgaben: box, maxErsetzen: 4 });
+  check('gemischt: beide Box-Aufgaben kommen unter (kein neueReihe-Ausschluss, unter der Obergrenze)', r.filter(f => f.boxEintrag).length === 2);
+}
+
+// 'gemischt' MIT Obergrenze: viele fällige Box-Aufgaben, aber nur bis zu maxErsetzen dürfen
+// ersetzen (Fund Schlussdurchsicht 21.07.2026: „🎲 Gemischt wird zur reinen Fehler-Runde" —
+// ohne Deckel wäre bei 'gemischt' der GESAMTE Fragensatz Wiederholungsanteil gewesen, zehn von
+// zehn Fragen aus der Box möglich). Zehn Fragen, zwölf fällige Kandidaten, maxErsetzen 4 (die
+// entwurfskonforme Zahl aus Design §6) -> maximal vier Substitutionen, kein Mehr.
+{
+  const fakten = Array.from({ length: 10 }, (_, i) => fakt(i + 1, 3, (i + 1) * 3));
+  const box = Array.from({ length: 12 }, (_, i) => boxEintrag('mal', i + 1, 4, (i + 1) * 4, { schluessel: `mal|${i + 1}|4|${(i + 1) * 4}` }));
+  const r = mitFaelligenBoxaufgaben(fakten, 'mal', { neueReihe: null, offeneReihen: [3, 4], boxAufgaben: box, maxErsetzen: 4 });
+  const genutzt = r.filter(f => f.boxEintrag);
+  check('gemischt mit Obergrenze: höchstens 4 von 10 Fragen aus der Box (nicht 10 von 10)', genutzt.length === 4);
 }
 
 // --- Unbrauchbare Box-Einträge werden übersprungen (Nachtrag C: Fehlerbox-Sicherung) ---

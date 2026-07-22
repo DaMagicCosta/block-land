@@ -54,6 +54,19 @@ export function ohneEinserreihe(reihen) {
   return (reihen ?? []).filter(r => Number(r) !== 1);
 }
 
+// Bleibt nach Abzug der wertlosen 1er (siehe ohneEinserreihe) genau EINE Reihe offen? Bei Mal
+// entfällt nur die 1 (Stufe 1: [1,2] -> [2]); bei Geteilt filtert der Erzeuger (js/aufgaben/
+// geteilt.js) jede Reihe <= 1 aus demselben Grund heraus, deshalb hier dieselbe Regel statt
+// ohneEinserreihe. Solange das zutrifft, kommt im Biom JEDE freie Aufgabe aus dieser einen
+// Reihe — Fund Schlussdurchsicht 21.07.2026: nichts sagte dem Kind, dass mehr über den
+// Reihen-Trainer in der Hütte kommt (js/aufgabe-ui.js: Hütten-Hinweis).
+export function nurEineReiheOffen(stand, rechenart = 'mal') {
+  const offen = rechenart === 'geteilt'
+    ? offeneReihen(stand).filter(r => Number(r) > 1)
+    : ohneEinserreihe(offeneReihen(stand));
+  return offen.length === 1;
+}
+
 export function bestanden(fehlerAnzahl) {
   return Number(fehlerAnzahl) <= MAX_FEHLER_PRO_PRUEFUNG;
 }
@@ -95,6 +108,32 @@ export function steigeAuf(stand) {
   const stufe = Math.min((stand?.stufe ?? 1) + 1, SEQUENZ.length);
   return { ...stand, stufe, pruefungen: { ...(stand?.pruefungen ?? {}) },
            fehlversuche: { ...(stand?.fehlversuche ?? {}) } };
+}
+
+// Reihen, deren SEQUENZ-Gruppe STRIKT UNTERHALB der übergebenen Stufe liegt (nicht die
+// öffentliche offeneReihen(): die schließt die Stufe selbst ein, hier soll sie ausgeschlossen
+// bleiben — siehe kappeTageslistenAbStufe).
+function reihenUnterhalb(stufe) {
+  return SEQUENZ.slice(0, Math.max(0, (stufe ?? 1) - 1)).flat();
+}
+
+// Für den Eltern-Setz-Knopf (erzwingeFreischaltungsstufe in state.js): entfernt die
+// Prüfungs-/Fehlversuchs-Tageslisten aller Reihen AB der übergebenen Stufe — also auch die der
+// Reihe, die GENAU an dieser Stufe geprüft wird, nicht nur die darüber. Grund: pruefReihe(stufe)
+// ist bei jeder Stufe eindeutig eine bestimmte Reihe (z.B. Stufe 3 -> 5er) — wurde diese Stufe
+// früher schon einmal durchlaufen (das Kind stand also inzwischen höher), trägt ihr Eintrag
+// noch die alten "sitzt"-Tage von damals. Ohne das Kappen würde eine Rückstufung wirkungslos:
+// die nächste Prüfung an der (jetzt wieder aktuellen) Reihe sähe dank der alten Tage sofort
+// "sitzt", unabhängig vom tatsächlichen heutigen Ergebnis, und die Stufe stiege augenblicklich
+// wieder. Reihen UNTERHALB der neuen Stufe bleiben unangetastet — deren Historie beeinflusst das
+// Freischalt-Kriterium ohnehin nicht mehr (pruefReihe prüft nur die aktuelle Stufe) und bleibt
+// als Nachvollziehbarkeit erhalten.
+export function kappeTageslistenAbStufe(stand, stufe) {
+  const erlaubt = new Set(reihenUnterhalb(stufe));
+  const kappe = (tageslisten) => Object.fromEntries(
+    Object.entries(tageslisten ?? {}).filter(([reihe]) => erlaubt.has(Number(reihe)))
+  );
+  return { pruefungen: kappe(stand?.pruefungen), fehlversuche: kappe(stand?.fehlversuche) };
 }
 
 // Verschmilzt zwei Freischaltungsstände statt einen zu ersetzen. Der Zustand ist MONOTON —
