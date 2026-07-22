@@ -707,7 +707,27 @@ export function wendeZustandsEreignisAn(ereignis) {
       case 'freischaltungErzwungen': {
         // Bewusste Eltern-Eingabe (Setz-Knopf) — ERSETZT den Stand auf jedem Gerät, statt wie
         // 'reiheFreigeschaltet' zu verschmelzen. Das ist Absicht: die Eingabe muss auch nach
-        // unten wirken können (siehe erzwingeFreischaltungsstufe oben).
+        // unten wirken können (siehe erzwingeFreischaltungsstufe oben) — eine Verschmelzung
+        // würde eine gewollte Rückstufung nie unter den bisherigen (höheren) Stand lassen und
+        // den Setz-Knopf damit für sein Kern-Szenario wirkungslos machen.
+        //
+        // Das nimmt bewusst den Schutz in Kauf, den 'reiheFreigeschaltet' nebenan beschreibt:
+        // Setzt ein Elternteil die Stufe OFFLINE herab, während das Kind auf einem anderen
+        // Gerät gleichzeitig echten Fortschritt macht, und überträgt das Kind-Gerät seine
+        // Ereignisse zuerst, dann trifft der später ankommende Herabsetz-Befehl NICHT auf den
+        // Stand, den der Elternteil vor Augen hatte, sondern ersetzt den inzwischen weiter-
+        // gewachsenen Stand des Kindes vollständig — der Fortschritt aus der Zwischenzeit ist
+        // weg, ohne dass irgendein Gerät das als Konflikt erkennt. Das wird hier hingenommen,
+        // weil der Setz-Knopf ein seltener, expliziter Eltern-Akt ist (kein Dauerbetrieb wie
+        // der Kind-Fortschritt) und weil das Gegenteil — eine Rückstufung, die durch Verschmelzen
+        // stillschweigend verpufft — der schlimmere, weil unsichtbare Fehler wäre.
+        //
+        // Kleinerer Nebeneffekt, ebenfalls bewusst nicht behoben: erzwingeFreischaltungsstufe
+        // (state.js oben) setzt nur `stufe` neu, lässt aber `pruefungen` (die Prüfungs-/
+        // Fehlversuchs-Historie je Reihe) oberhalb der neuen Stufe unangetastet stehen. Heute
+        // folgenlos, weil nur `stufe` gelesen wird — falls die Stufe später aber wieder steigt,
+        // tauchen die alten Einträge der übersprungenen Reihen wieder auf, als wären sie gerade
+        // erst notiert worden. Bei Bedarf dort aufräumen, nicht hier.
         const p = state.profiles[args?.profilId];
         if (!p || !args?.rechenart || !args?.stand) return false;
         p.freischaltung = p.freischaltung ?? {};

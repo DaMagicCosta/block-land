@@ -587,7 +587,23 @@ function tabFreischaltung(container, neuRendern) {
   if (!profile.length) { container.innerHTML = '<div class="eltern__leer">Keine Profile.</div>'; return; }
 
   container.innerHTML = profile.map(p => {
-    const bloecke = RECHENARTEN_FREISCHALTUNG.map(([art, label]) => {
+    // Nur Rechenarten zeigen, deren Biom für DIESES Kind offen ist (BIOME_REIHENFOLGE-Id
+    // und Rechenart-Kürzel sind hier identisch: 'mal', 'geteilt'). Sonst zeigt der Tab für
+    // ein Kindergarten-Kind, das den Mal-/Geteilt-Berg nie betreten hat, einen erfundenen
+    // Anfangsstand ("Stufe 1 von 9") — sieht wie echter Fortschritt aus, ist aber nur der
+    // ungenutzte Startwert der Mechanik. Bewusst über istFrei() statt über eine starre
+    // Altersabfrage: Eltern können ein Biom über den Biome-Tab gezielt vorzeitig freigeben
+    // (z.B. Mal-Berg fürs Kindergarten-Kind) — dann IST die Karte aussagekräftig und soll
+    // erscheinen.
+    const biomFreigabe = getBiomFreigabe(p.id);
+    const sichtbareArten = RECHENARTEN_FREISCHALTUNG.filter(([art]) => istFrei(art, biomFreigabe));
+    if (!sichtbareArten.length) {
+      return `<div class="eltern__abschnitt-titel">${escapeHtml(p.name)}</div>
+        <p class="eltern__hinweis">Für ${escapeHtml(p.name)} ist weder der Mal- noch der Geteilt-Berg
+          freigeschaltet — hier gibt es noch nichts zu zeigen. Sobald eines der beiden Biome offen ist
+          (von selbst oder über den Biome-Tab), erscheint hier der Reihen-Stand.</p>`;
+    }
+    const bloecke = sichtbareArten.map(([art, label]) => {
       const stand = getFreischaltung(p.id, art);
       const reihe = pruefReihe(stand.stufe);
       const tage = (stand.pruefungen?.[String(reihe)] ?? []).length;
