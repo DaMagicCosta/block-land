@@ -7,6 +7,7 @@ import { zielFuer, neuerAuftrag, aktualisiereTagesauftrag } from './tagesauftrag
 import { klemmeInventar, deserialisiereAnzahl, serialisiereAnzahl } from './zustand-sync-logik.js';
 import { normalisiereTimer } from './timer-logik.js';
 import { hatOffeneAnfrage, fuegeAnfrageHinzu, setzeAnfrageStatus, entferneAnfrage, entferneNachStatus, klemmeAnzahl } from './gutschein-anfrage-logik.js';
+import { ANFANGSSTAND } from './freischaltung-logik.js';
 
 // --- Spielstand-Sync: Melde-Hook (sync.js registriert sich hier — kein Import-Zyklus).
 // Im Einspiel-Modus (fremde Ereignisse anwenden) wird NICHT erneut gemeldet (Echo-Schutz).
@@ -128,6 +129,7 @@ export function addProfile({ name, weltName, avatar, alter, kindPin = null }) {
     eintragenProtokoll: [],      // Ereignis-Log Mal-Reihen-Eintragen (richtig/fehler/verraten je Reihe)
     aktiveReihen: {},            // laufende Übungsreihen pro Biom (Wiedereinstieg)
     fehlerbox: {},               // Leitner-Box: falsche Aufgaben kommen gezielt wieder (fehlerbox-logik.js)
+    freischaltung: {},           // Reihen-Freischaltung je Rechenart (freischaltung-logik.js)
     schwierigkeit: { plus: 2 },
     statistik: { plus: { gesamt: 0, richtig: 0 } },
     biome: { aktiv: null, autoFrei: [], elternFrei: [], elternGesperrt: [] },
@@ -250,6 +252,30 @@ export function setzeFehlerboxEintrag(profileId, schluessel, eintrag) {
   else delete p.fehlerbox[schluessel];
   save(state);
   melde('fehlerboxGesetzt', { profilId: profileId, schluessel, eintrag: eintrag ? structuredClone(eintrag) : null });
+}
+
+// --- Reihen-Freischaltung ---
+// Pure Logik in freischaltung-logik.js. Hier nur Persistenz.
+// Bestehende Profile haben das Feld nicht — überall defensiv mit ?? lesen, damit ein Profil
+// aus der Zeit vor diesem Vorhaben schlicht beim Anfangsstand beginnt.
+
+export function getFreischaltung(profileId, rechenart) {
+  const roh = state.profiles[profileId]?.freischaltung?.[rechenart];
+  if (!roh) return structuredClone(ANFANGSSTAND);
+  return {
+    stufe: roh.stufe ?? 1,
+    pruefungen: structuredClone(roh.pruefungen ?? {}),
+    fehlversuche: structuredClone(roh.fehlversuche ?? {}),
+  };
+}
+
+export function setzeFreischaltung(profileId, rechenart, stand) {
+  const p = state.profiles[profileId];
+  if (!p || !rechenart || !stand) return;
+  p.freischaltung = p.freischaltung ?? {};
+  p.freischaltung[rechenart] = structuredClone(stand);
+  save(state);
+  melde('reiheFreigeschaltet', { profilId: profileId, rechenart, stand: structuredClone(stand) });
 }
 
 export function getVerlauf(profileId) {
@@ -627,6 +653,17 @@ export function wendeZustandsEreignisAn(ereignis) {
         p.fehlerbox = p.fehlerbox ?? {};
         if (args.eintrag) p.fehlerbox[args.schluessel] = structuredClone(args.eintrag);
         else delete p.fehlerbox[args.schluessel];
+        save(state);
+        return true;
+      }
+      case 'reiheFreigeschaltet': {
+        // Last-write-wins pro Rechenart. Übt das Kind auf zwei Geräten parallel, gewinnt das
+        // zuletzt eingespielte Ereignis. Im schlimmsten Fall wird eine Reihe einmal zu früh
+        // freigegeben — nie eine zu spät, und der Umweg fängt Steckenbleiben ohnehin ab.
+        const p = state.profiles[args?.profilId];
+        if (!p || !args?.rechenart || !args?.stand) return false;
+        p.freischaltung = p.freischaltung ?? {};
+        p.freischaltung[args.rechenart] = structuredClone(args.stand);
         save(state);
         return true;
       }
