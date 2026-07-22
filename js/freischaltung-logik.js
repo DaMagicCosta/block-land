@@ -43,6 +43,17 @@ export function istOffen(stand, reihe) {
   return offeneReihen(stand).includes(Number(reihe));
 }
 
+// Menschlich lesbare Beschreibung einer Stufe für den Eltern-Setz-Dialog (<select>-Optionen in
+// eltern.js) — rein aus SEQUENZ abgeleitet, damit der Text automatisch stimmt, falls sich die
+// Sequenz je ändert (kein von Hand gepflegter Zweittext). Muster:
+// "Stufe 5 — bis zur 3er (offen: 1, 2, 3, 4, 5, 10)".
+export function beschreibeStufe(stufe) {
+  const s = Math.min(Math.max(1, Number(stufe) || 1), SEQUENZ.length);
+  const reihe = pruefReihe(s);
+  const offen = offeneReihen({ stufe: s }).sort((a, b) => a - b);
+  return `Stufe ${s} — bis zur ${reihe}er (offen: ${offen.join(', ')})`;
+}
+
 // Die 1er-Reihe läuft in der SEQUENZ nur trivial mit (sie wird nie eigens geprüft, siehe
 // pruefReihe) und ist als Übungsstoff wertlos: a·1 bzw. a:1 verlangt kein Rechnen. Für freie
 // Übung — den Biom-Erzeuger (Mal) und die Trainer-Wiederholung (alte Reihen im Quiz) — wird sie
