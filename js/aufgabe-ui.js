@@ -10,7 +10,8 @@ import { rendereStellenwert } from './stellenwert.js';
 import { verteileBelohnung } from './belohnung.js';
 import { loadAufgabenPool, loadBiomManifest } from './data.js';
 import { waehleMechanik, aktuelleStufe, rapportiereErgebnis } from './adaptiv.js';
-import { getCurrentProfile, getAktivesBiom, schalteNaechstesBiomFrei, getAktiveReihe, setzeAktiveReihe, getFehlerbox, setzeFehlerboxEintrag } from './state.js';
+import { getCurrentProfile, getAktivesBiom, schalteNaechstesBiomFrei, getAktiveReihe, setzeAktiveReihe, getFehlerbox, setzeFehlerboxEintrag, getFreischaltung } from './state.js';
+import { offeneReihen } from './freischaltung-logik.js';
 import { aufgabeSchluessel, neuerEintrag, planeWieder, verschiebeAufMorgen, naechsteFaellige, hilfeStufeFuer } from './fehlerbox-logik.js';
 import { normalisiereAufgabe } from './aufgaben/normalisiere.js';
 import { neueKlickSperre } from './klick-sperre.js';
@@ -84,11 +85,17 @@ export async function oeffneAufgabe(reward, { onClose, festeStufe = null } = {})
   function einmalGenerieren() {
     const stufe_nr = aktiveFesteStufe ?? aktuelleStufe(profile.id, typ);
     const stufenConfig = pool[typ].stufen.find(s => s.nr === stufe_nr) ?? pool[typ].stufen[0];
-    if (typ === 'mal') return generiereMalAufgabe(stufenConfig, pool.mal.distraktoren);
+    // Reihen-Freischaltung: Mal und Geteilt ziehen nur aus dem, was im Trainer offen ist.
+    // Sonst bliebe die Sperre löchrig — im Biom liefe dem Kind weiterhin 7·8 über den Weg,
+    // während die 7er-Reihe noch gar nicht dran ist.
+    const erlaubteReihen = (typ === 'mal' || typ === 'geteilt')
+      ? offeneReihen(getFreischaltung(profile.id, typ))
+      : null;
+    if (typ === 'mal') return generiereMalAufgabe(stufenConfig, pool.mal.distraktoren, erlaubteReihen);
     if (typ === 'mengen') return generiereMengenAufgabe(stufenConfig, pool.mengen.distraktoren);
     if (typ === 'minus') return generiereMinusAufgabe(stufenConfig, pool.minus.distraktoren);
     if (typ === 'rechnen10') return generiereRechnen10Aufgabe(stufenConfig, pool.rechnen10.distraktoren);
-    if (typ === 'geteilt') return generiereGeteiltAufgabe(stufenConfig, pool.geteilt.distraktoren);
+    if (typ === 'geteilt') return generiereGeteiltAufgabe(stufenConfig, pool.geteilt.distraktoren, erlaubteReihen);
     return generierePlusAufgabe(stufenConfig, pool.plus.distraktoren);
   }
   // Wiedervorlage aus der Fehler-Box (Leitner). Bewusst NUR jede zweite Aufgabe:
@@ -440,6 +447,19 @@ function starteAufgabe(reihe, mechanik, profile, modal, inhalt, maxStufe, onWeit
     setzeFehlerboxEintrag(profile.id, marker.schluessel, neu);   // neu === null → verlässt die Box
   }
 
+  // Bei Mal und Geteilt wandert die Reihe mit ins Protokoll. Grund: Sobald die Reihen
+  // nacheinander aufgehen, sinkt der Gesamtschnitt zwangsläufig (anfangs nur 2er-Aufgaben,
+  // später 7er). Ein späterer Fortschritts-Vergleich über alle Mal-Aufgaben würde dem Kind
+  // deshalb anzeigen, es werde langsamer, während es besser wird. Rückwirkend ist das nicht
+  // zu retten — deshalb ab jetzt mitschreiben.
+  function detailFuer(aufgabe, maxStufe) {
+    const stufe = aufgabe?.stufe ?? maxStufe;
+    if ((aufgabe?.aufgabentyp === 'mal' || aufgabe?.aufgabentyp === 'geteilt') && aufgabe?.b) {
+      return `stufe ${stufe} · reihe ${aufgabe.b}`;
+    }
+    return `stufe ${stufe}`;
+  }
+
   function antwortPruefen(wert) {
     const jetzt = performance.now();
     if (sperre.istGesperrt(jetzt)) return;   // Nachzittern eines Doppeltipps — keine Wertung
@@ -448,7 +468,8 @@ function starteAufgabe(reihe, mechanik, profile, modal, inhalt, maxStufe, onWeit
     if (richtig) {
       const zeit_ms = performance.now() - startZeit;
       pflegeFehlerbox(true, reihe.fehlversuche === 0);
-      rapportiereErgebnis(profile.id, aufgabe.aufgabentyp, true, zeit_ms, { maxStufe, adaptStufe: !reihe.festeStufe });
+      rapportiereErgebnis(profile.id, aufgabe.aufgabentyp, true, zeit_ms,
+        { maxStufe, adaptStufe: !reihe.festeStufe, detail: detailFuer(aufgabe, maxStufe) });
       // Niveau-Abstufung: in Biomen UNTER der Schulstufe weniger Basis-Drops + kein Premium.
       const biomId = getAktivesBiom(profile.id);
       const delta = baselineMaxIndex(profile.alter) - BIOME_REIHENFOLGE.indexOf(biomId);
@@ -467,7 +488,8 @@ function starteAufgabe(reihe, mechanik, profile, modal, inhalt, maxStufe, onWeit
     if (reihe.fehlversuche >= MAX_FEHLVERSUCHE) {
       const zeit_ms = performance.now() - startZeit;
       pflegeFehlerbox(false, false);
-      rapportiereErgebnis(profile.id, aufgabe.aufgabentyp, false, zeit_ms, { maxStufe, adaptStufe: !reihe.festeStufe });
+      rapportiereErgebnis(profile.id, aufgabe.aufgabentyp, false, zeit_ms,
+        { maxStufe, adaptStufe: !reihe.festeStufe, detail: detailFuer(aufgabe, maxStufe) });
       zeigeLoesung(aufgabe, modal, istKleinkind(profile), onWeiter);
       return;
     }

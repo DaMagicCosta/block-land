@@ -4,6 +4,7 @@ import {
   sitzt, klemmt, sollAufsteigen, steigeAuf, mischeQuizReihen, bestanden,
 } from '../js/freischaltung-logik.js';
 import { baueQuizFakten } from '../js/aufsagen-logik.js';
+import { generiereMalAufgabe } from '../js/aufgaben/mal.js';
 
 let fehler = 0;
 function pruefe(name, bedingung) {
@@ -101,6 +102,16 @@ pruefe('geteilt bleibt bei zehn', geteilt.length === 10);
 const alt = baueQuizFakten(3, 'mal');
 pruefe('ohne dritten Parameter wie bisher: alle aus der einen Reihe',
   alt.length === 10 && alt.every(f => f.b === 3));
+
+console.log('Mal-Generator mit Reihen-Begrenzung');
+const stufe = { nr: 2, a_min: 1, a_max: 10, b_min: 1, b_max: 10 };
+const proben = Array.from({ length: 200 }, () => generiereMalAufgabe(stufe, { anzahl: 4 }, [1, 2, 10]));
+pruefe('zieht nur aus erlaubten Reihen', proben.every(p => [1, 2, 10].includes(p.b)));
+pruefe('Ergebnis stimmt', proben.every(p => p.ergebnis === p.a * p.b));
+pruefe('fünf Antwort-Optionen', proben.every(p => p.antwort_optionen.length === 5));
+pruefe('richtige Antwort ist dabei', proben.every(p => p.antwort_optionen.includes(p.ergebnis)));
+const ohne = generiereMalAufgabe(stufe, { anzahl: 4 });
+pruefe('ohne Begrenzung wie bisher: b im Stufenbereich', ohne.b >= 1 && ohne.b <= 10);
 
 console.log(fehler === 0 ? '\nAlles grün.' : `\n${fehler} Fehler.`);
 process.exit(fehler === 0 ? 0 : 1);

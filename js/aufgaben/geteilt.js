@@ -2,9 +2,14 @@
 // b = Teiler-Reihe (aus den je Stufe erlaubten), ergebnis = Quotient 1..quotient_max,
 // a = b * ergebnis (Dividend). Spiegelt das Schema von mal.js (gleiche Feldnamen).
 
-export function generiereGeteiltAufgabe(stufenConfig, distraktorConfig) {
-  const reihen = stufenConfig.reihen ?? [2, 5, 10];
-  const b = reihen[Math.floor(Math.random() * reihen.length)];
+// `erlaubteReihen` (optional): siehe mal.js — Reihen-Freischaltung durchgereicht aus dem Biom.
+// Durch 1 zu teilen ist keine sinnvolle Übung, deshalb wird die 1er hier immer ausgefiltert
+// (anders als bei mal.js, wo die 1er auf Stufe 1 bewusst mitläuft).
+export function generiereGeteiltAufgabe(stufenConfig, distraktorConfig, erlaubteReihen = null) {
+  const reihen = (erlaubteReihen && erlaubteReihen.length)
+    ? erlaubteReihen.filter(r => r > 1)      // durch 1 teilen ist keine sinnvolle Übung
+    : (stufenConfig.reihen ?? [2, 5, 10]);
+  const b = reihen.length ? reihen[Math.floor(Math.random() * reihen.length)] : 2;
   const ergebnis = zufallsZahl(1, stufenConfig.quotient_max ?? 10);
   const a = b * ergebnis;
 

@@ -1,9 +1,15 @@
 // Mal-Aufgaben-Generator (Einmaleins). Bekommt Stufen-Konfiguration aus aufgaben-pool.json.
 // Spiegelt das Schema von plus.js, nutzt aber Malpunkt-Anzeige und multiplikative Distraktoren.
 
-export function generiereMalAufgabe(stufenConfig, distraktorConfig) {
+// `erlaubteReihen` (optional): Nur diese Werte kommen als Reihen-Faktor b in Frage. Wird von
+// der Reihen-Freischaltung durchgereicht, damit im Biom keine Aufgabe auftaucht, deren Reihe
+// im Trainer noch gar nicht offen ist. Ohne den Parameter bleibt das alte Verhalten über
+// Zahlenbereiche erhalten (Rückfall für Profile ohne Freischaltungs-Feld).
+export function generiereMalAufgabe(stufenConfig, distraktorConfig, erlaubteReihen = null) {
   const a = zufallsZahl(stufenConfig.a_min, stufenConfig.a_max);
-  const b = zufallsZahl(stufenConfig.b_min, stufenConfig.b_max);
+  const b = (erlaubteReihen && erlaubteReihen.length)
+    ? erlaubteReihen[Math.floor(Math.random() * erlaubteReihen.length)]
+    : zufallsZahl(stufenConfig.b_min, stufenConfig.b_max);
   const ergebnis = a * b;
 
   const optionen = baueAntwortOptionen(a, b, distraktorConfig);
