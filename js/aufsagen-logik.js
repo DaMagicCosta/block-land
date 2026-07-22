@@ -2,6 +2,7 @@
 // Quiz-Fakten und Distraktoren. KEINE DOM-/State-Abhängigkeit (node-testbar).
 
 import { mische } from './utils.js';
+import { mischeQuizReihen } from './freischaltung-logik.js';
 
 // Re-exportiert für js/trainer.js (`import { ..., mische } from './aufsagen-logik.js'`).
 export { mische };
@@ -35,15 +36,27 @@ export function baueReihe(reihe, rechenart = 'mal') {
   return schritte;
 }
 
-// 10 Quiz-Fakten: eine Reihe (1..10 gemischt) oder 'gemischt' (Faktoren/Teiler 2..10).
-// Faktum: { a, b, richtig, frageText } — geteilt fragt den Quotienten ab (a : b = ?).
-export function baueQuizFakten(reihe, rechenart = 'mal') {
+// 10 Quiz-Fakten. `reihe` ist die geprüfte Reihe, `offeneAlte` die bereits gelernten Reihen,
+// aus denen Wiederholungen eingestreut werden (kumulative Prüfung: sonst verblasst alles
+// früher Gelernte). 'gemischt' zieht weiterhin quer — aber nur aus `offeneAlte`, sofern
+// angegeben, damit nie eine ungeübte Reihe auftaucht.
+export function baueQuizFakten(reihe, rechenart = 'mal', offeneAlte = []) {
   if (reihe === 'gemischt') {
-    const alle = [];
-    for (let x = 2; x <= 10; x++) for (let y = 2; y <= 10; y++) alle.push([x, y]);
-    return mische(alle).slice(0, 10).map(([x, y]) => baueFakt(x, y, rechenart));
+    const quelle = offeneAlte.length ? offeneAlte : bereichVonZweiBisZehn();
+    const paare = [];
+    for (const y of quelle) for (const x of bereichVonZweiBisZehn()) paare.push([x, y]);
+    return mische(paare).slice(0, 10).map(([x, y]) => baueFakt(x, y, rechenart));
   }
-  return mische([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]).map(x => baueFakt(x, reihe, rechenart));
+  const reihenFolge = mischeQuizReihen(reihe, offeneAlte);
+  // Faktoren 1..10 gemischt und positionsweise mit der Reihenfolge verknüpft (statt Ziehung
+  // mit Zurücklegen): so bleibt "jedes a von 1..10 genau einmal" erhalten — Bestandsverhalten,
+  // das der zweistellige Aufruf laut Vertrag weiterhin zeigen muss.
+  const faktoren = mische([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+  return reihenFolge.map((r, i) => baueFakt(faktoren[i], r, rechenart));
+}
+
+function bereichVonZweiBisZehn() {
+  return [2, 3, 4, 5, 6, 7, 8, 9, 10];
 }
 
 function baueFakt(x, reihe, rechenart) {

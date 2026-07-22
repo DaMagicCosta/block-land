@@ -3,6 +3,7 @@ import {
   SEQUENZ, ANFANGSSTAND, pruefReihe, offeneReihen, istOffen, notierePruefung,
   sitzt, klemmt, sollAufsteigen, steigeAuf, mischeQuizReihen, bestanden,
 } from '../js/freischaltung-logik.js';
+import { baueQuizFakten } from '../js/aufsagen-logik.js';
 
 let fehler = 0;
 function pruefe(name, bedingung) {
@@ -85,6 +86,21 @@ const allein = mischeQuizReihen(2, [], 10, 6);
 pruefe('ohne alte Reihen kommen alle zehn aus der neuen', allein.filter(r => r === 2).length === 10);
 const einsAlt = mischeQuizReihen(10, [2], 10, 6);
 pruefe('mit nur einer alten Reihe bleibt es bei zehn Fragen', einsAlt.length === 10);
+
+console.log('Quiz-Fakten über mehrere Reihen');
+const fakten = baueQuizFakten(5, 'mal', [1, 2, 10]);
+pruefe('zehn Fakten', fakten.length === 10);
+pruefe('sechs aus der 5er-Reihe', fakten.filter(f => f.b === 5).length === 6);
+pruefe('vier aus den alten Reihen', fakten.filter(f => [1, 2, 10].includes(f.b)).length === 4);
+pruefe('Ergebnis stimmt bei allen', fakten.every(f => f.richtig === f.a * f.b));
+const nurNeu = baueQuizFakten(2, 'mal', []);
+pruefe('ohne alte Reihen alle zehn aus der neuen', nurNeu.filter(f => f.b === 2).length === 10);
+const geteilt = baueQuizFakten(5, 'geteilt', [2]);
+pruefe('geteilt fragt den Quotienten', geteilt.every(f => f.richtig === f.a / f.b));
+pruefe('geteilt bleibt bei zehn', geteilt.length === 10);
+const alt = baueQuizFakten(3, 'mal');
+pruefe('ohne dritten Parameter wie bisher: alle aus der einen Reihe',
+  alt.length === 10 && alt.every(f => f.b === 3));
 
 console.log(fehler === 0 ? '\nAlles grün.' : `\n${fehler} Fehler.`);
 process.exit(fehler === 0 ? 0 : 1);
