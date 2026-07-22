@@ -404,7 +404,12 @@ function rendereAufsagen(wurzel, container, modal, reward, reihe, rechenart) {
 // --- Schritt 3: Quiz ---
 function starteQuiz(wurzel, modal, reward, reihe, rechenart) {
   const profileId = getCurrentProfile()?.id ?? null;
-  const fakten = baueQuizFakten(reihe, rechenart);
+  const stand = profileId ? getFreischaltung(profileId, rechenart) : { ...ANFANGSSTAND };
+  // Die 1er-Reihe läuft nur trivial mit (siehe SEQUENZ, sie wird nie eigens geprüft) und ist
+  // als Wiederholung wertlos — deshalb hier zusätzlich zur geprüften Reihe ausgeschlossen.
+  const alteReihen = offeneReihen(stand).filter(r => r !== reihe && r !== 1);
+  const fakten = baueQuizFakten(reihe, rechenart, alteReihen);
+  let fehlerNeueReihe = 0;   // zählt NUR Fehler bei Fragen der geprüften Reihe
   let index = 0;
   let sterne = 0;
 
@@ -450,6 +455,10 @@ function starteQuiz(wurzel, modal, reward, reihe, rechenart) {
           btn.classList.add('trainer__antwort--falsch');
           btn.disabled = true;
           fehler++;
+          // Für das Freischalt-Kriterium zählen nur die Fragen der geprüften Reihe. Die
+          // eingestreuten Wiederholungen sind Wiederholung, keine Prüfung — sie dürfen
+          // danebengehen, ohne die Reihe zu blockieren.
+          if (reihe !== 'gemischt' && f.b === reihe) fehlerNeueReihe++;
           if (fehler >= MAX_FEHLVERSUCHE) {
             ant.querySelectorAll('button').forEach(x => {
               x.disabled = true;
@@ -469,20 +478,34 @@ function starteQuiz(wurzel, modal, reward, reihe, rechenart) {
 
   function weiter() {
     index++;
-    if (index >= fakten.length) zeigeAbschluss(wurzel, modal, reward, sterne, fakten.length, rechenart);
-    else zeigeFrage();
+    if (index < fakten.length) { zeigeFrage(); return; }
+
+    let freigeschaltet = null;
+    if (profileId && reihe !== 'gemischt' && reihe === pruefReihe(stand.stufe)) {
+      const heute = tagesSchluessel(new Date());
+      const vorher = stand.stufe;
+      let neu = notierePruefung(stand, reihe, heute, bestanden(fehlerNeueReihe));
+      if (sollAufsteigen(neu)) neu = steigeAuf(neu);
+      setzeFreischaltung(profileId, rechenart, neu);
+      if (neu.stufe > vorher) freigeschaltet = pruefReihe(neu.stufe);
+    }
+    zeigeAbschluss(wurzel, modal, reward, sterne, fakten.length, rechenart, freigeschaltet);
   }
 
   zeigeFrage();
 }
 
 // --- Abschluss ---
-function zeigeAbschluss(wurzel, modal, reward, sterne, max, rechenart) {
+function zeigeAbschluss(wurzel, modal, reward, sterne, max, rechenart, freigeschaltet = null) {
+  const neueReihe = freigeschaltet
+    ? `<p class="trainer__abschluss-text">🌟 Die ${freigeschaltet}er-Reihe ist jetzt auch da!</p>`
+    : '';
   wurzel.innerHTML = `
     <div class="trainer__abschluss">
       <div class="trainer__abschluss-emoji">🎉</div>
       <div class="trainer__kopf">Super gemacht!</div>
       <p class="trainer__abschluss-text">⭐ ${sterne} von ${max} richtig</p>
+      ${neueReihe}
       <button class="trainer__nochmal">🔁 Nochmal</button>
       <button class="trainer__fertig">Fertig</button>
     </div>
