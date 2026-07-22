@@ -480,6 +480,20 @@ function starteQuiz(wurzel, modal, reward, reihe, rechenart) {
                 b: f.b,
                 ergebnis: richtig,
                 text: f.frageText,
+                // vorlese_text wortgleich zu js/aufgaben/mal.js bzw. geteilt.js formuliert —
+                // die Vorlese-Pflicht beim Wiedervorlegen braucht einen echten Satz.
+                vorlese_text: rechenart === 'geteilt' ? `${f.a} geteilt durch ${f.b}` : `${f.a} mal ${f.b}`,
+                // antwort_optionen = exakt die Knöpfe, die das Kind gerade gesehen hat (nicht neu
+                // gewürfelt) — ohne dieses Feld verwirft normalisiereAufgabe() die Konserve als
+                // kaputt (kein antwort_optionen-Array) und die Aufgabe verschwindet beim
+                // Wiedervorlegen aus der Fehler-Box, statt dem Kind erneut gezeigt zu werden.
+                antwort_optionen: optionen,
+                // stufe: 0 = unterhalb jeder echten Aufgaben-Pool-Stufe (js/aufgabe-ui.js
+                // vergleicht aufgabe.stufe mit maxStufe für Premium-Beute/Biom-Freischaltung).
+                // Der Trainer kennt keine solche Stufe (er arbeitet reihenbasiert, nicht
+                // stufenbasiert) — 0 ist bewusst gewählt, damit eine wiedervorgelegte
+                // Fehlerbox-Konserve nie fälschlich Eisen/Diamant oder eine Biom-Freischaltung
+                // auslöst, egal in welchem Biom/Stufenbereich sie später aufschlägt.
                 stufe: 0,
               };
               const eintrag = neuerFehlerboxEintrag(boxAufgabe);
