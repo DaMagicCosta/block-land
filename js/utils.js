@@ -4,6 +4,16 @@ export function escapeHtml(s) {
   ));
 }
 
+// Fisher-Yates; liefert ein NEUES Array (Eingabe unverändert).
+export function mische(arr) {
+  const k = [...arr];
+  for (let i = k.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [k[i], k[j]] = [k[j], k[i]];
+  }
+  return k;
+}
+
 // Deutschsprachige Sprachausgabe (Web Speech API) — genutzt für Vorlese-Text und
 // gesprochenes Feedback. Fehlt die API (nicht unterstützter Browser), passiert nichts.
 export function sprich(text) {

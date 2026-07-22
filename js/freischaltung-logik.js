@@ -7,6 +7,8 @@
 // nicht ableitbaren Aufgaben liegen (7·8 und 8·8). Begründung und Belege:
 // 09_Kinder/Block-Land-Einmaleins-Recherche.md
 
+import { mische } from './utils.js';
+
 export const SEQUENZ = [
   [1, 2],   // Stufe 1 — Kernaufgabe Verdoppeln; die 1er läuft trivial mit
   [10],     // Stufe 2 — Kernaufgabe
@@ -95,14 +97,4 @@ export function mischeQuizReihen(neueReihe, alteReihen, anzahl = 10, anteilNeu =
     liste.push(Number(alte[Math.floor(Math.random() * alte.length)]));
   }
   return mische(liste);
-}
-
-// Fisher-Yates; liefert ein NEUES Array (Eingabe unverändert).
-function mische(arr) {
-  const k = [...arr];
-  for (let i = k.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [k[i], k[j]] = [k[j], k[i]];
-  }
-  return k;
 }

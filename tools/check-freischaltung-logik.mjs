@@ -19,10 +19,16 @@ pruefe('letzte Stufe ist die 7er', JSON.stringify(SEQUENZ[8]) === '[7]');
 pruefe('vorletzte Stufe ist die 8er', JSON.stringify(SEQUENZ[7]) === '[8]');
 pruefe('alle Reihen 1 bis 10 kommen genau einmal vor',
   JSON.stringify([...SEQUENZ.flat()].sort((a, b) => a - b)) === '[1,2,3,4,5,6,7,8,9,10]');
+pruefe('vollständige Reihenfolge steht fest',
+  JSON.stringify(SEQUENZ) === '[[1,2],[10],[5],[4],[3],[6],[9],[8],[7]]');
 
 console.log('Prüfreihe');
 pruefe('Stufe 1 wird an der 2er gemessen, nicht an der 1er', pruefReihe(1) === 2);
 pruefe('Stufe 2 wird an der 10er gemessen', pruefReihe(2) === 10);
+pruefe('Stufe 4 wird an der 4er gemessen', pruefReihe(4) === 4);
+pruefe('Stufe 5 wird an der 3er gemessen', pruefReihe(5) === 3);
+pruefe('Stufe 6 wird an der 6er gemessen', pruefReihe(6) === 6);
+pruefe('Stufe 7 wird an der 9er gemessen', pruefReihe(7) === 9);
 pruefe('Stufe 9 wird an der 7er gemessen', pruefReihe(9) === 7);
 
 console.log('Offene Reihen');

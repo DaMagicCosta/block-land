@@ -1,15 +1,10 @@
 // Pure Logik für den Reihen-Trainer (Mal + Geteilt): Schritte einer Reihe,
 // Quiz-Fakten und Distraktoren. KEINE DOM-/State-Abhängigkeit (node-testbar).
 
-// Fisher-Yates-Mischung; liefert NEUES Array (Eingabe unverändert).
-export function mische(arr) {
-  const k = [...arr];
-  for (let i = k.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [k[i], k[j]] = [k[j], k[i]];
-  }
-  return k;
-}
+import { mische } from './utils.js';
+
+// Re-exportiert für js/trainer.js (`import { ..., mische } from './aufsagen-logik.js'`).
+export { mische };
 
 // Schritte 1..10 der `reihe`er-Reihe. `aufgabeText` = Aufgabenteil fürs Rendern,
 // `ergebnis` = erwartete Antwort, `text` = ganze Zeile, `vorlese` = gesprochener Satz.
