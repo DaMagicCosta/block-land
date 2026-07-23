@@ -503,8 +503,8 @@ function starteAufgabe(reihe, mechanik, profile, modal, inhalt, maxStufe, onWeit
       const biomFaktor = unterNiveau ? Math.max(0.2, 1 - 0.35 * delta) : 1;
       // Premium-Beute zusätzlich am Reihen-Fortschritt skaliert — nur Mal/Geteilt kennen eine
       // Reihen-Freischaltung, alle anderen Rechenarten bleiben bei 1 (siehe beuteFaktor).
-      const reihenFaktor = (typ === 'mal' || typ === 'geteilt')
-        ? beuteFaktor(getFreischaltung(profile.id, typ))
+      const reihenFaktor = (aufgabe.aufgabentyp === 'mal' || aufgabe.aufgabentyp === 'geteilt')
+        ? beuteFaktor(getFreischaltung(profile.id, aufgabe.aufgabentyp))
         : 1;
       const gegeben = verteileBelohnung(aufgabe.stufe, maxStufe, reihe.reward.item, biomFaktor, !unterNiveau, reihenFaktor);
       let neuesBiom = null;
