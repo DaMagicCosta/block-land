@@ -1,11 +1,14 @@
 import { getProfiles, setCurrentProfile, updateProfile, hatKindPin, pruefeKindPin, getAvatarFoto, setzeAvatarFoto } from './state.js';
 import { escapeHtml } from './utils.js';
 import { loadAvatare } from './data.js';
-import { oeffneModal } from './modal.js';
+import { oeffneModal, schliesseAlleModals } from './modal.js';
 import { oeffneElternBereich } from './eltern.js';
 import { oeffneKamera } from './kamera.js';
 
 export async function renderAuswahl(container) {
+  // Offene Modals (z.B. hängengebliebene Aufgabe) dürfen nicht in die Auswahl mitwandern —
+  // gleiches Muster wie in welt.js (Live-Befund 23.07.: Aufgaben-Modal schwebte über „Wer übt heute?").
+  schliesseAlleModals();
   // Auswahl-Screen = kein Kind aktiv: nullt das persistierte Profil, damit der
   // Übungs-Timer nach einem App-Neustart nicht auf dem Auswahl-Screen weitertickt.
   setCurrentProfile(null);
