@@ -78,6 +78,26 @@ const AUFGANG = 6 * 60;               // 6 Uhr
 const DAEMMERUNG_MORGEN_ENDE = 7 * 60 + 30;  // 7:30 — Morgendämmerung endet hier
 const DAEMMERUNG_ABEND_BEGINN = 19 * 60 + 30; // 19:30 — Abenddämmerung beginnt hier
 const UNTERGANG = 21 * 60;            // 21 Uhr — Sommerabend, bewusst großzügig
+
+// Tagesfenster für die GESTELLTE Zeit und für JEDEN Distraktor — ein gemeinsames Paar
+// Grenzen, damit beide nicht wieder auseinanderdriften (Befund 29.07.2026).
+// Untergrenze: nachts wird nicht gefragt — 3 Uhr früh ist für ein Kind keine sinnvolle
+// Uhrzeit. Dieselbe Begründung gilt für die falschen Antworten: eine 4:00 als Distraktor zu
+// 6:00 war ein Auffüller, der der eigenen Regel widersprach.
+// Obergrenze: ohne sie reichten die Stufen 3 und 4 bis 23:45 bzw. 23:55. Ab UNTERGANG steht
+// aber der Mond am Himmel — rund jede sechste Frage wäre ohne Sonne gestellt, und genau die
+// Sonne trägt die Kernlektion („Sonne steigt, Sonne sinkt"). 20 Uhr liegt sicher davor und
+// ist eine Uhrzeit, die ein Kind aus seinem eigenen Tag kennt.
+// Beide Grenzen werden exklusiv gerechnet (letzte mögliche Frage: 19:55 auf Stufe 4).
+const TAG_BEGINN = AUFGANG;           // 6 Uhr
+const TAG_ENDE = 20 * 60;             // 20 Uhr
+const VORMITTAG_ENDE = 12 * 60;       // Stufen 1+2 bleiben im aufsteigenden Ast der Sonne
+
+// Obergrenze der jeweiligen Stufe: vormittags endet der Tag für die Aufgabe schon um 12.
+function obergrenzeFuer(stufenConfig) {
+  return stufenConfig.nachmittag ? TAG_ENDE : VORMITTAG_ENDE;
+}
+
 export function sonnenPositionAmTag(minuten) {
   const x = minuten / 1439;
   // Höhe: Scheitel um 12 Uhr, 0 an den Tagesrändern. Cosinus über den halben Tag.
@@ -95,7 +115,7 @@ export function sonnenPositionAmTag(minuten) {
 function baueDistraktoren(minuten, stufenConfig, rnd) {
   const stunde = Math.floor(minuten / 60);
   const m = minuten % 60;
-  const grenze = stufenConfig.nachmittag ? 1440 : 720;
+  const obergrenze = obergrenzeFuer(stufenConfig);
   const kandidaten = [];
 
   // 1. Minutenzeiger als Ziffer gelesen — der Klassiker (15:45 → „3:09")
@@ -119,7 +139,9 @@ function baueDistraktoren(minuten, stufenConfig, rnd) {
   for (const k of kandidaten) {
     if (optionen.size >= 5) break;
     if (!Number.isInteger(k)) continue;
-    if (k < 0 || k >= grenze) continue;
+    // Kein Distraktor verlässt das Tagesfenster — auch keiner, der aus einem benannten
+    // Ablesefehler entsteht. Sonst stünde neben einer 6:00-Frage eine 4:00 als Antwort.
+    if (k < TAG_BEGINN || k >= obergrenze) continue;
     optionen.add(k);
   }
   // Hier bewusst KEIN 5-Minuten-Raster: Der wichtigste Distraktor überhaupt — der als Ziffer
@@ -130,7 +152,7 @@ function baueDistraktoren(minuten, stufenConfig, rnd) {
   let abstand = schritt;
   while (optionen.size < 5 && abstand < 720) {
     for (const k of [minuten + abstand, minuten - abstand]) {
-      if (optionen.size < 5 && k >= 0 && k < grenze && k % 5 === 0) optionen.add(k);
+      if (optionen.size < 5 && k >= TAG_BEGINN && k < obergrenze && k % 5 === 0) optionen.add(k);
     }
     abstand += schritt;
   }
@@ -140,12 +162,11 @@ function baueDistraktoren(minuten, stufenConfig, rnd) {
 export function generiereUhrAufgabe(stufenConfig, rnd = Math.random) {
   const schritt = stufenConfig.rastung;
   // Stufen 1+2 bleiben am Vormittag: Die zweite Zeigerrunde ist ein eigener Lernschritt und
-  // hat nichts in der vollen/halben Stunde verloren.
-  const grenze = stufenConfig.nachmittag ? 1440 : 720;
-  // Nachts wird nicht gefragt — 3 Uhr früh ist für ein Kind keine sinnvolle Uhrzeit.
-  const frueheste = 6 * 60;
-  const schritte = Math.floor((grenze - frueheste) / schritt);
-  const minuten = frueheste + Math.floor(rnd() * schritte) * schritt;
+  // hat nichts in der vollen/halben Stunde verloren. Ab Stufe 3 gilt das volle Tagesfenster
+  // (TAG_BEGINN/TAG_ENDE oben) — dieselben Grenzen wie für die Distraktoren.
+  const obergrenze = obergrenzeFuer(stufenConfig);
+  const schritte = Math.floor((obergrenze - TAG_BEGINN) / schritt);
+  const minuten = TAG_BEGINN + Math.floor(rnd() * schritte) * schritt;
 
   return {
     aufgabentyp: 'uhr',

@@ -157,10 +157,11 @@ pruefe('Distraktor „Minutenzeiger als Ziffer" kommt vor', saheZifferFehler);
 // die versehentlich mit der rohen 24-Stunden-Stunde statt Stunde % 12 rechnet, würde hier
 // NICHT auffallen, wenn nur am Vormittag geprüft würde (dort ist Stunde % 12 == Stunde).
 
-// Szenario A: 15:45 (945 Minuten). rnd konstant 0.5439 trifft exakt diesen Quotienten
-// ((945 − 360) / 5 = 117, floor(0.5439 × 216) = 117 → 360 + 117×5 = 945).
+// Szenario A: 15:45 (945 Minuten). rnd konstant 0.70 trifft exakt diesen Quotienten
+// ((945 − 360) / 5 = 117, floor(0.70 × 168) = 117 → 360 + 117×5 = 945). Der Nenner ist die
+// Zahl der Schritte im Tagesfenster 6:00–20:00 ((1200 − 360) / 5 = 168).
 {
-  const rndA = () => 0.5439;
+  const rndA = () => 0.70;
   const a = generiereUhrAufgabe(pool.uhr.stufen[3], rndA);
   pruefe('Szenario A trifft 15:45 (Vorbedingung)', a.ergebnis === 945 && a.a === 15 && a.b === 45);
   pruefe('Kandidat 1 „Minutenzeiger als Ziffer": 15:45 → 15:09 (909)',
@@ -173,10 +174,10 @@ pruefe('Distraktor „Minutenzeiger als Ziffer" kommt vor', saheZifferFehler);
     a.antwort_optionen.includes(555) && !a.antwort_optionen.includes(615));
 }
 
-// Szenario B: 15:30 (930 Minuten). rnd konstant 0.53 trifft exakt diesen Quotienten
-// ((930 − 360) / 5 = 114, floor(0.53 × 216) = 114 → 360 + 114×5 = 930).
+// Szenario B: 15:30 (930 Minuten). rnd konstant 0.68 trifft exakt diesen Quotienten
+// ((930 − 360) / 5 = 114, floor(0.68 × 168) = 114 → 360 + 114×5 = 930).
 {
-  const rndB = () => 0.53;
+  const rndB = () => 0.68;
   const a = generiereUhrAufgabe(pool.uhr.stufen[3], rndB);
   pruefe('Szenario B trifft 15:30 (Vorbedingung)', a.ergebnis === 930 && a.a === 15 && a.b === 30);
   // Kandidat 5 „halb auf falsche Stunde bezogen" hat bei m = 30 dieselbe Formel wie
@@ -190,6 +191,51 @@ pruefe('Distraktor „Minutenzeiger als Ziffer" kommt vor', saheZifferFehler);
 
 pruefe('RASTUNG passt zum Pool',
   pool.uhr.stufen.every(s => RASTUNG[s.nr] === s.rastung));
+
+// --- Tagesfenster 6:00–20:00 (Nachbesserung 29.07.2026) ---
+// Vorher war nur die Untergrenze gesetzt: Stufe 3/4 fragte bis 23:45 bzw. 23:55, also
+// bei Mondschein statt bei Sonne — ausgerechnet die Sonne trägt aber die Kernlektion.
+// Und die Auffüller-Distraktoren durften nachts liegen (4:00 als falsche Antwort zu 6:00).
+// Hier wird über viele Läufe abgesichert, dass auf JEDER Stufe weder die gestellte Zeit
+// noch IRGENDEIN Distraktor aus dem Fenster fällt.
+{
+  const FENSTER_VON = 6 * 60, FENSTER_BIS = 20 * 60;
+  let alleImFenster = true, hoechsteZeit = 0, tiefsteZeit = 1439;
+  let hoechsterDistraktor = 0, tiefsterDistraktor = 1439;
+  const stufenAusserhalb = new Set();
+  for (const stufe of pool.uhr.stufen) {
+    for (let i = 0; i < 500; i++) {
+      const a = generiereUhrAufgabe(stufe);   // echter Math.random(), nicht seed-fest
+      const werte = [a.ergebnis, ...a.antwort_optionen];
+      for (const w of werte) {
+        if (w < FENSTER_VON || w > FENSTER_BIS) { alleImFenster = false; stufenAusserhalb.add(`${stufe.nr}:${w}`); }
+      }
+      hoechsteZeit = Math.max(hoechsteZeit, a.ergebnis);
+      tiefsteZeit = Math.min(tiefsteZeit, a.ergebnis);
+      for (const o of a.antwort_optionen) {
+        hoechsterDistraktor = Math.max(hoechsterDistraktor, o);
+        tiefsterDistraktor = Math.min(tiefsterDistraktor, o);
+      }
+    }
+  }
+  if (stufenAusserhalb.size) console.error('      Ausreisser:', [...stufenAusserhalb].join(' '));
+  pruefe('Gestellte Zeit UND jeder Distraktor liegen auf allen 4 Stufen im Fenster 6:00–20:00',
+    alleImFenster);
+  pruefe(`Keine Frage vor 6:00 (tiefste gesehen: ${formatiereDigital(tiefsteZeit)})`,
+    tiefsteZeit >= FENSTER_VON);
+  pruefe(`Keine Frage nach 20:00 (hoechste gesehen: ${formatiereDigital(hoechsteZeit)})`,
+    hoechsteZeit <= FENSTER_BIS);
+  pruefe(`Kein Distraktor vor 6:00 (tiefster gesehen: ${formatiereDigital(tiefsterDistraktor)})`,
+    tiefsterDistraktor >= FENSTER_VON);
+  pruefe(`Kein Distraktor nach 20:00 (hoechster gesehen: ${formatiereDigital(hoechsterDistraktor)})`,
+    hoechsterDistraktor <= FENSTER_BIS);
+  // Gegenprobe zum Sinn der Obergrenze: im ganzen Fenster steht die Sonne, nie der Mond.
+  let immerSonne = true;
+  for (let m = FENSTER_VON; m <= FENSTER_BIS; m++) {
+    if (sonnenPositionAmTag(m).istNacht) immerSonne = false;
+  }
+  pruefe('Im gesamten Tagesfenster steht die Sonne am Himmel, nie der Mond', immerSonne);
+}
 
 // --- Sprechweise pro Frage (Nachbesserung 29.07.2026: der Eltern-Hinweis behauptete eine
 // Toleranz, die es nicht gab — die andere Form kam nie vor. Jetzt entscheidet
