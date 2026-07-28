@@ -107,6 +107,16 @@ export function rendereStelluhr(startMinuten, container, onChange, options = {})
   const { rastung = 15, minutenBeschriftung = true } = options;
   let minuten = rasteMinuten(startMinuten, rastung);
 
+  // touch-action muss auf dem GESAMTEN Ziehbereich liegen: Die Pointer-Listener hängen
+  // unten am `container` (er umschließt Himmel UND Zifferblatt), nicht nur am SVG. Die
+  // CSS-Klasse .zifferblatt__svg--stellbar (touch-action: none) sitzt aber nur auf dem
+  // SVG selbst — beginnt ein Zug auf dem Himmelsbild, scrollt das Handy die Seite mit,
+  // während der Zeiger gleichzeitig springt (Live-Befund 28.07.2026). Deshalb hier direkt
+  // auf dem Container gesetzt, EINMALIG außerhalb von zeichne(): zeichne() ersetzt nur
+  // die Kinder über innerHTML, der Container-Knoten selbst bleibt über alle Redraws hinweg
+  // derselbe, der Stil geht also nicht verloren.
+  container.style.touchAction = 'none';
+
   function zeichne() {
     container.innerHTML = rendereUhr(minuten, { minutenBeschriftung, zeigeHimmel: true });
     container.querySelector('.zifferblatt__svg')?.classList.add('zifferblatt__svg--stellbar');

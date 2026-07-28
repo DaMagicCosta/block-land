@@ -145,6 +145,14 @@ export async function oeffneAufgabe(reward, { onClose, festeStufe = null } = {})
       setzeFehlerboxEintrag(profile.id, eintrag.schluessel, null);
       return null;
     }
+    // Uhr-Konserve: zeigeDigital NICHT aus der Box übernehmen (Live-Befund 28.07.2026).
+    // Die Konserve wurde ggf. beim ursprünglichen Fehlversuch mit einer gewürfelten Form
+    // gespeichert (rendereFrageInModal schreibt zeigeDigital auf dasselbe Aufgabe-Objekt,
+    // das pflegeFehlerbox() unverändert einlagert). Bliebe das Feld gesetzt, würde
+    // rendereFrageInModal es nie neu würfeln (der Guard dort prüft nur „noch undefined") —
+    // die Wiedervorlage käme jedes Mal in derselben Form zurück. Das entfernt genau den
+    // Lernzweck der Box: „dreiviertel vier" und „15:45" als dieselbe Zeit erkennen.
+    delete sauber.zeigeDigital;
     return {
       ...sauber,
       // Marker für antwortPruefen(). Fährt mit der Reihe mit (wird persistiert).
@@ -284,8 +292,12 @@ function schleifeHilfeAus(inhalt, aufgabe) {
 
 function rendereFrageInModal(modal, reihe, profile, maxStufe, onWeiter) {
   const aufgabe = reihe.aufgabe;
-  // zeigeDigital wird beim Rendern gewürfelt, nicht im Generator — es ist eine
-  // Anzeige-Entscheidung und darf die Fehler-Box-Konserve nicht verändern.
+  // zeigeDigital wird beim Rendern gewürfelt, nicht im Generator — es ist eine reine
+  // Anzeige-Entscheidung für DIESE Frageninstanz (wird z. B. beim erneuten Rendern nach
+  // Mitten-drin-Verlassen NICHT neu gewürfelt, damit eine offene Frage nicht die Form
+  // wechselt). Bei Wiedervorlage aus der Fehler-Box ist das Feld hier absichtlich wieder
+  // `undefined`: ausFehlerbox() oben entfernt es explizit aus der Konserve, bevor sie zu
+  // reihe.aufgabe wird — genau deshalb würfelt dieser Guard bei jeder Box-Wiedervorlage neu.
   if (aufgabe.aufgabentyp === 'uhr' && aufgabe.zeigeDigital === undefined) {
     aufgabe.zeigeDigital = Math.random() < 0.5;
   }
@@ -591,7 +603,7 @@ function starteAufgabe(reihe, mechanik, profile, modal, inhalt, maxStufe, onWeit
       pflegeFehlerbox(false, false);
       rapportiereErgebnis(profile.id, aufgabe.aufgabentyp, false, zeit_ms,
         { maxStufe, adaptStufe: !reihe.festeStufe, detail: detailFuer(aufgabe, maxStufe) });
-      zeigeLoesung(aufgabe, modal, istKleinkind(profile), onWeiter);
+      zeigeLoesung(aufgabe, profile, modal, istKleinkind(profile), onWeiter);
       return;
     }
     feedbackZeigen('Versuch es nochmal!', 'fehler');
@@ -701,18 +713,24 @@ function zeigeErfolg(modal, gegeben = [], istKlein = false, neuesBiom = null, on
   weiter.addEventListener('click', onWeiter ?? (() => modal.schliessen()));
 }
 
-function zeigeLoesung(aufgabe, modal, istKlein = false, onWeiter = null) {
+// Lösungs-Anzeige nach 2 Fehlversuchen. Bei der Uhr ist aufgabe.ergebnis die Minutenzahl
+// seit Mitternacht — für die Anzeige gilt dieselbe Darstellungsentscheidung wie für die
+// Antwort-Knöpfe DIESER Frage (knopfBeschriftung, gesteuert über aufgabe.zeigeDigital),
+// sonst stünde hier „Die Lösung ist 450." statt einer lesbaren Uhrzeit. Für alle anderen
+// Aufgabentypen liefert knopfBeschriftung unverändert String(wert) — keine Änderung.
+function zeigeLoesung(aufgabe, profile, modal, istKlein = false, onWeiter = null) {
+  const loesungsText = escapeHtml(knopfBeschriftung(aufgabe.ergebnis, aufgabe, profile));
   modal.inhalt.querySelector('.aufgabe__inhalt').innerHTML = `
     <div class="aufgabe__loesung">
       <div class="aufgabe__text">${aufgabe.text}</div>
-      <div class="aufgabe__loesung-text">Die Lösung ist <strong>${aufgabe.ergebnis}</strong>.</div>
+      <div class="aufgabe__loesung-text">Die Lösung ist <strong>${loesungsText}</strong>.</div>
       <p class="aufgabe__loesung-hinweis">Macht nichts — beim nächsten Mal klappt es!</p>
       <button class="modal__close">Weiter</button>
     </div>
   `;
   const weiter = modal.inhalt.querySelector('.modal__close');
   if (istKlein) {
-    sprich(`Die Lösung ist ${aufgabe.ergebnis}. Tippe auf Weiter.`);
+    sprich(`Die Lösung ist ${loesungsText}. Tippe auf Weiter.`);
     weiter.classList.add('modal__close--puls');
   }
   weiter.addEventListener('click', onWeiter ?? (() => modal.schliessen()));
