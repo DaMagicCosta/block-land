@@ -43,3 +43,8 @@
   .zifferblatt__svg { width: 180px; height: 180px; }
   .uhr-himmel { width: 180px; height: 56px; }
 }
+
+/* Stelluhr (Mechanik B): Ziehen statt Antippen. touch-action: none ist Pflicht — sonst
+   scrollt das Handy die Seite, statt den Zeiger zu ziehen. */
+.zifferblatt__svg--stellbar { cursor: grab; touch-action: none; }
+.zifferblatt__svg--stellbar:active { cursor: grabbing; }

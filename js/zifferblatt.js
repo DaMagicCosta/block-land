@@ -71,3 +71,71 @@ export function rendereUhr(minuten, options = {}) {
 
   return `<div class="zifferblatt">${zeigeHimmel ? rendereHimmel(minuten) : ''}${svg}</div>`;
 }
+
+// --- Reine Zeiger-Rechnung (node-testbar, Check: tools/check-zeiger-logik.mjs) ---
+
+export function rasteMinuten(rohMinuten, rastung) {
+  let gerastet = Math.round(rohMinuten / rastung) * rastung;
+  // Tagesgrenzen NICHT hart auf 1439 klemmen — das würde die Rastung verletzen (z. B.
+  // wäre 1439 bei Rastung 60 kein Vielfaches mehr). Stattdessen auf den letzten gültigen
+  // Rastungs-Schritt vor Mitternacht bzw. den ersten ab 0 Uhr zurückfallen.
+  if (gerastet > 1439) gerastet = Math.floor(1439 / rastung) * rastung;
+  if (gerastet < 0) gerastet = 0;
+  return gerastet;
+}
+
+// Der Minutenzeiger nimmt den Stundenzeiger mit — eine Uhr, bei der beide Zeiger unabhängig
+// springen, gibt es nicht. Und genau die Zwischenstellung des Stundenzeigers ist der Grund,
+// warum „halb vier" nicht 4:30 heißt.
+// Über die 12 hinaus läuft der Zeiger rund weiter in die nächste Stunde, statt zurückzuspringen.
+export function winkelZuMinuten(winkelGrad, aktuelleMinuten) {
+  const zielMinute = ((winkelGrad % 360) + 360) % 360 / 6;   // 0..59.99
+  const stunde = Math.floor(aktuelleMinuten / 60);
+  const alteMinute = aktuelleMinuten % 60;
+  let neueStunde = stunde;
+  // Sprung über die 12 erkennen: mehr als eine halbe Umdrehung Unterschied heißt,
+  // der Finger ist über die 12 gegangen.
+  if (alteMinute - zielMinute > 30) neueStunde += 1;
+  else if (zielMinute - alteMinute > 30) neueStunde -= 1;
+  const gesamt = neueStunde * 60 + Math.round(zielMinute);
+  return Math.min(1439, Math.max(0, gesamt));
+}
+
+// B-Mechanik: Das Kind zieht die Zeiger, Sonne und Himmel wandern live mit. Das ist die
+// eingebaute Hilfestufe — adaptiv.js schaltet hierher, wenn Ablesen hakt.
+export function rendereStelluhr(startMinuten, container, onChange, options = {}) {
+  const { rastung = 15, minutenBeschriftung = true } = options;
+  let minuten = rasteMinuten(startMinuten, rastung);
+
+  function zeichne() {
+    container.innerHTML = rendereUhr(minuten, { minutenBeschriftung, zeigeHimmel: true });
+    container.querySelector('.zifferblatt__svg')?.classList.add('zifferblatt__svg--stellbar');
+  }
+
+  function ausZeigerPosition(ev) {
+    const svg = container.querySelector('.zifferblatt__svg');
+    if (!svg) return;
+    const r = svg.getBoundingClientRect();
+    const dx = ev.clientX - (r.left + r.width / 2);
+    const dy = ev.clientY - (r.top + r.height / 2);
+    const winkel = (Math.atan2(dy, dx) * 180) / Math.PI + 90;
+    const neu = rasteMinuten(winkelZuMinuten(winkel, minuten), rastung);
+    if (neu === minuten) return;
+    minuten = neu;
+    zeichne();
+    onChange(minuten);
+  }
+
+  let zieht = false;
+  container.addEventListener('pointerdown', (ev) => {
+    zieht = true;
+    container.setPointerCapture?.(ev.pointerId);
+    ausZeigerPosition(ev);
+  });
+  container.addEventListener('pointermove', (ev) => { if (zieht) ausZeigerPosition(ev); });
+  container.addEventListener('pointerup', () => { zieht = false; });
+  container.addEventListener('pointercancel', () => { zieht = false; });
+
+  zeichne();
+  return { getMinuten: () => minuten };
+}
