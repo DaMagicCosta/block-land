@@ -600,7 +600,17 @@ function starteAufgabe(reihe, mechanik, profile, modal, inhalt, maxStufe, onWeit
     const richtig = wert === aufgabe.ergebnis;
     if (richtig) {
       const zeit_ms = performance.now() - startZeit;
-      pflegeFehlerbox(true, reihe.fehlversuche === 0);
+      // In der Stell-Form (Uhr + Mechanik B) steht die Zielzeit im Klartext im Aufgabentext
+      // („Stell die Uhr auf dreiviertel vier"), und der richtige Antwortknopf trägt wörtlich
+      // dieselbe Beschriftung. Das Kind zieht die Zeiger, bis die Knöpfe erscheinen, und
+      // tippt den textgleichen — ein Treffer belegt hier also KEIN Abrufen aus dem Kopf,
+      // sondern nur einen Textvergleich. Als „auf Anhieb gekonnt" gewertet, würde die
+      // Aufgabe im Fehler-Box-Fach aufsteigen und mit weniger Hilfe wiederkommen, ohne dass
+      // das Kind sie je abgerufen hätte — genau der Mechanismus, gegen den die Box gebaut
+      // wurde. Deshalb wie ein Treffer im zweiten Anlauf behandelt: Fach bleibt, die Aufgabe
+      // kommt wieder, ein Fehler wird nicht angerechnet (verschiebeAufMorgen in pflegeFehlerbox).
+      const istStellForm = aufgabe.aufgabentyp === 'uhr' && mechanik === 'B';
+      pflegeFehlerbox(true, reihe.fehlversuche === 0 && !istStellForm);
       rapportiereErgebnis(profile.id, aufgabe.aufgabentyp, true, zeit_ms,
         { maxStufe, adaptStufe: !reihe.festeStufe, detail: detailFuer(aufgabe, maxStufe) });
       // Niveau-Abstufung: in Biomen UNTER der Schulstufe weniger Basis-Drops + kein Premium.
