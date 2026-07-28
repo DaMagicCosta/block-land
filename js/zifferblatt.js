@@ -116,6 +116,14 @@ export function rendereStelluhr(startMinuten, container, onChange, options = {})
     const svg = container.querySelector('.zifferblatt__svg');
     if (!svg) return;
     const r = svg.getBoundingClientRect();
+    // Diese Rechnung setzt voraus, dass r.width === r.height ist — nur dann entspricht
+    // das Verhältnis von dx zu dy dem quadratischen Koordinatensystem des SVG (viewBox
+    // "0 0 200 200"). Wäre der Rahmen rechteckig (z. B. weil CSS width und height
+    // unabhängig voneinander begrenzt), würde Math.atan2 einen verzerrten Winkel liefern —
+    // das Kind zieht auf eine Stelle, der Zeiger springt woandershin. Deshalb erzwingt
+    // css/zifferblatt.css für .zifferblatt__svg `aspect-ratio: 1 / 1` + `height: auto`
+    // statt eines zweiten festen Höhenwerts: Breite und Höhe dürfen nie getrennt
+    // begrenzbar sein. Diese Kopplung nicht entfernen, ohne diese Stelle mitzudenken.
     const dx = ev.clientX - (r.left + r.width / 2);
     const dy = ev.clientY - (r.top + r.height / 2);
     const winkel = (Math.atan2(dy, dx) * 180) / Math.PI + 90;

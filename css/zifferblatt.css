@@ -9,7 +9,14 @@
   gap: var(--space-sm);
 }
 
-.zifferblatt__svg { width: 220px; height: 220px; max-width: 60vw; }
+/* aspect-ratio + height: auto statt eines zweiten festen Höhenwerts: width und height
+   dürfen NIE unabhängig voneinander begrenzt werden können, sonst wird das SVG auf
+   schmalen Anzeigen rechteckig — max-width greift, height bliebe stur beim Fixwert.
+   Genau darauf ist die Zeiger-Rechnung in ausZeigerPosition() (js/zifferblatt.js)
+   angewiesen: sie geht von einem quadratischen getBoundingClientRect() aus. Mit
+   aspect-ratio folgt die Höhe der Breite auf jeder Stufe (Basis-Regel UND Mobil-Block),
+   egal wodurch die Breite gerade bestimmt wird. */
+.zifferblatt__svg { width: 220px; max-width: 60vw; aspect-ratio: 1 / 1; height: auto; }
 
 .zifferblatt__ring { fill: #f7f3e8; stroke: var(--color-border); stroke-width: 3; }
 .zifferblatt__strich { stroke: #8a8577; stroke-width: 2; }
@@ -40,7 +47,10 @@
 .uhr-himmel__boden { position: absolute; left: 0; right: 0; bottom: 0; height: 10px; background: #3a5a3a; }
 
 @media (max-width: 480px) {
-  .zifferblatt__svg { width: 180px; height: 180px; }
+  /* Nur width wird hier verkleinert — height bleibt bewusst weg. Es bleibt bei
+     aspect-ratio: 1 / 1 + height: auto aus der Basis-Regel oben, sonst wäre genau hier
+     wieder ein zweiter, unabhängiger Höhenwert im Spiel. */
+  .zifferblatt__svg { width: 180px; }
   .uhr-himmel { width: 180px; height: 56px; }
 }
 
