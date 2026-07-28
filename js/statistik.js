@@ -13,7 +13,14 @@ const AVATAR_EMOJI = {
   krieger: '🗡️', bergmann: '⛏️', magier: '🧙', ninja: '🥷',
   ritter: '🛡️', schurke: '🦹', tier: '🐺', drache: '🐉',
 };
-const TYP_LABEL = { mengen: 'Mengen', plus: 'Plus', minus: 'Minus', mal: 'Mal', text: 'Textaufgaben' };
+// Klartextnamen der BIOME (Zeile „Freigeschaltet"). Die Schlüssel sind Biom-Kennungen, nicht
+// Aufgabentypen — die beiden fallen nur zufällig meist zusammen. Beim Zeitenland tun sie es
+// nicht: Biom `zeitenland`, Aufgabentyp `uhr`. Ohne eigenen Eintrag stand hier die rohe
+// Kennung.
+const BIOM_LABEL = {
+  mengen: 'Mengen', rechnen10: 'Rechnen bis 10', plus: 'Plus', minus: 'Minus',
+  mal: 'Mal', geteilt: 'Geteilt', text: 'Textaufgaben', zeitenland: 'Zeitenland',
+};
 
 function prozent(quote) { return `${Math.round(quote * 100)}%`; }
 
@@ -162,9 +169,13 @@ function sitzungenHtml(zeiten) {
 }
 
 const ALTER_LABEL = { 'kindergarten': 'Vorschule', 'klasse-1': '1. Klasse', 'klasse-2': '2. Klasse', 'klasse-3': '3. Klasse' };
+// Klartextnamen der AUFGABENTYPEN (Typentabelle, Filter-Chips, Förder-Kompass).
+// Muss zur Tabelle in sync/familien-sync.gs passen, sonst zeigen Gerät und Server
+// unterschiedliche Namen für dieselbe Rechenart.
 const SYNC_TYP_LABEL = {
   mengen: 'Mengen bis 10', plus: 'Plus', minus: 'Minus', mal: 'Mal-Reihen',
   geteilt: 'Geteilt', rechnen10: 'Rechnen bis 10', stellenwert: 'Stellenwert', text: 'Textaufgaben',
+  uhr: 'Uhrzeit',
 };
 
 // Server-Daten holen; kinder=null heißt: lokaler Fallback (mit Hinweis-Text).
@@ -326,7 +337,7 @@ export function tabStatistik(container, neuRendern) {
     // Kind auf DIESEM Gerät ein Profil hat — diese Daten werden bewusst nicht gesynct.
     const geraeteTeil = p ? `
         <div class="stat-detail__abschnitt">📱 Auf diesem Gerät</div>
-        <div class="stat-biome">Freigeschaltet: ${escapeHtml(freieBiome(getBiomFreigabe(p.id)).map(id => SYNC_TYP_LABEL[id] ?? TYP_LABEL[id] ?? id).join(' · ') || '—')}</div>
+        <div class="stat-biome">Freigeschaltet: ${escapeHtml(freieBiome(getBiomFreigabe(p.id)).map(id => BIOM_LABEL[id] ?? SYNC_TYP_LABEL[id] ?? id).join(' · ') || '—')}</div>
 
         <div class="stat-detail__abschnitt">🗣️ Aufsagen-Protokoll</div>
         ${aufsagenProtokollHtml(p.id)}

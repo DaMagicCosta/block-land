@@ -529,7 +529,7 @@ function tabKinder(container, neuRendern) {
           </label>
           <p class="eltern__hinweis">Beides ist richtig. Stell die Form ein, die in der Schule verwendet wird —
             sie ist dann die Hauptform, damit das Kind kein zweites System lernen muss. Ab den Viertelstunden
-            zeigt sich gelegentlich auch die andere Form, damit klar wird: beide meinen dieselbe Uhrzeit.</p>
+            zeigt etwa jede zweite Frage die andere Form, damit klar wird: beide meinen dieselbe Uhrzeit.</p>
         </div>
         <button class="eltern__mini eltern__mini--rot eltern__kind-loeschen" data-delkind="${p.id}">🗑️ Kind löschen</button>
       </div>
