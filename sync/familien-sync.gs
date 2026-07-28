@@ -13,6 +13,7 @@ const SPALTEN = ['ts', 'kind', 'alter', 'art', 'typ', 'richtig', 'gesamt', 'zeit
 const TYP_NAMEN = {
   mengen: 'Mengen bis 10', plus: 'Plus', minus: 'Minus', mal: 'Mal-Reihen',
   geteilt: 'Geteilt', rechnen10: 'Rechnen bis 10', stellenwert: 'Stellenwert', text: 'Textaufgaben',
+  uhr: 'Uhrzeit',
 };
 const ALTER_NAMEN = {
   'kindergarten': 'Vorschule', 'klasse-1': '1. Klasse',

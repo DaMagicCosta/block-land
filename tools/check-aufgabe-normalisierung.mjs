@@ -69,5 +69,22 @@ function check(name, bedingung) {
   check('Eingabe unangetastet', roh.a === '3' && roh.ergebnis === '7' && roh.antwort_optionen[0] === '7');
 }
 
+// 7) Uhr-Konserve: Minuten seit Mitternacht. Kommt sie als String aus localStorage oder Sync
+//    zurück, muss sie koerziert werden — sonst lehnt der strikte Vergleich in antwortPruefen
+//    die richtige Antwort ab, obwohl jede Anzeige korrekt aussieht.
+{
+  const uhrKonserve = {
+    aufgabentyp: 'uhr', stufe: 3, a: '15', b: '45',
+    ergebnis: '945', antwort_optionen: ['945', '189', '1005', '195', '555'],
+    text: 'Wie spät ist es?', vorlese_text: 'Wie spät ist es?',
+  };
+  const uhrSauber = normalisiereAufgabe(uhrKonserve);
+  check('Uhr-Konserve wird koerziert, nicht verworfen', uhrSauber !== null);
+  check('Uhr-Ergebnis ist danach eine Zahl', uhrSauber?.ergebnis === 945);
+  check('Uhr-Optionen sind danach Zahlen',
+    uhrSauber?.antwort_optionen.every(Number.isInteger) && uhrSauber.antwort_optionen.includes(945));
+  check('Uhr-Stunde/Minute sind danach Zahlen', uhrSauber?.a === 15 && uhrSauber?.b === 45);
+}
+
 if (fehler) { console.error(`\n${fehler} Check(s) fehlgeschlagen.`); process.exit(1); }
 console.log('\nAlle aufgabe-normalisierung-Checks grün.');
