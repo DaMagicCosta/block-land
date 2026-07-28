@@ -46,6 +46,24 @@ export function formatiereZeit(minuten, sprechweise = 'sued') {
 const ZAHLWORT = { 5: 'fünf', 10: 'zehn', 20: 'zwanzig' };
 function zahlwort(n) { return ZAHLWORT[n] ?? String(n); }
 
+// Kippt zwischen den beiden Sprechweisen.
+export function andereSprechweise(sprechweise) {
+  return sprechweise === 'nord' ? 'sued' : 'nord';
+}
+
+// Legt fest, in welcher Sprechweise EINE Frage angezeigt wird — einmal pro Frage, nicht pro
+// Knopf (der Aufrufer speichert das Ergebnis auf dem Aufgabe-Objekt und ruft diese Funktion
+// nur, solange das Feld noch fehlt; siehe aufgabe-ui.js rendereFrageInModal). Unterhalb
+// Stufe 3 gibt es noch keine Viertelstunden (RASTUNG 60/30) — ein Formwechsel hätte dort
+// keinen Gegenstand, deshalb bleibt es immer bei der eingestellten Form. Ab Stufe 3
+// (Viertelstunden, RASTUNG 15/5) zeigt sich mit halber Wahrscheinlichkeit die jeweils andere
+// Form: die eingestellte bleibt die Hauptform (Übereinstimmung mit der Schule), die andere
+// kommt daneben vor, damit das Kind lernt, dass beide dieselbe Uhrzeit meinen.
+export function wuerfleAngezeigteSprechweise(stufe, eingestellt, rnd = Math.random) {
+  if (stufe >= 3 && rnd() < 0.5) return andereSprechweise(eingestellt);
+  return eingestellt;
+}
+
 // Sonnenstand für die Szene. Der Bogen ist die eigentliche Lektion: Die Sonne läuft EINMAL
 // am Tag über den Himmel, der Stundenzeiger ZWEIMAL durchs Zifferblatt. Steigt die Sonne,
 // ist es die erste Runde (1–12); sinkt sie, die zweite (13–24). Hell/dunkel taugt dafür

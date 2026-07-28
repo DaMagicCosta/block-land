@@ -6,7 +6,7 @@ import { generiereMengenAufgabe } from './aufgaben/mengen.js';
 import { generiereMinusAufgabe } from './aufgaben/minus.js';
 import { generiereRechnen10Aufgabe } from './aufgaben/rechnen10.js';
 import { generiereGeteiltAufgabe } from './aufgaben/geteilt.js';
-import { generiereUhrAufgabe, formatiereZeit, formatiereDigital, RASTUNG } from './aufgaben/uhr.js';
+import { generiereUhrAufgabe, formatiereZeit, formatiereDigital, RASTUNG, wuerfleAngezeigteSprechweise } from './aufgaben/uhr.js';
 import { rendereUhr, rendereStelluhr, ziehRastungFuer } from './zifferblatt.js';
 import { rendereStellenwert } from './stellenwert.js';
 import { verteileBelohnung } from './belohnung.js';
@@ -153,6 +153,11 @@ export async function oeffneAufgabe(reward, { onClose, festeStufe = null } = {})
     // die Wiedervorlage käme jedes Mal in derselben Form zurück. Das entfernt genau den
     // Lernzweck der Box: „dreiviertel vier" und „15:45" als dieselbe Zeit erkennen.
     delete sauber.zeigeDigital;
+    // Dieselbe Überlegung gilt für die Sprechweise DIESER Frage (angezeigteSprechweise,
+    // siehe rendereFrageInModal): bliebe sie aus der Konserve stehen, käme eine
+    // Fehlerbox-Wiedervorlage jedes Mal in derselben Sprechweise zurück, statt neu zwischen
+    // eingestellter und anderer Form zu würfeln.
+    delete sauber.angezeigteSprechweise;
     return {
       ...sauber,
       // Marker für antwortPruefen(). Fährt mit der Reihe mit (wird persistiert).
@@ -301,6 +306,19 @@ function rendereFrageInModal(modal, reihe, profile, maxStufe, onWeiter) {
   if (aufgabe.aufgabentyp === 'uhr' && aufgabe.zeigeDigital === undefined) {
     aufgabe.zeigeDigital = Math.random() < 0.5;
   }
+  // Sprechweise DIESER Frage — gleiches Muster wie zeigeDigital direkt darüber: einmal pro
+  // Frageninstanz gewürfelt, über Fehlversuche und erneutes Rendern hinweg stabil, bei
+  // Fehlerbox-Wiedervorlage neu entschieden (ausFehlerbox() unten entfernt das Feld explizit
+  // aus der Konserve). Erst ab Stufe 3 kommen Viertelstunden vor — darunter bleibt es immer
+  // bei der eingestellten Form, ein Wechsel hätte noch keinen Gegenstand. Ab Stufe 3 zeigt sich
+  // mit halber Wahrscheinlichkeit statt der eingestellten Form die jeweils andere: die
+  // eingestellte bleibt die Hauptform (Übereinstimmung mit der Schule), die andere kommt
+  // gelegentlich daneben vor, genau daran soll das Kind erkennen, dass beide dieselbe Zeit
+  // meinen (siehe Kommentar in aufgaben/uhr.js: „dreiviertel vier"/„viertel vor vier" führen
+  // auf denselben Wert, nie zwei richtige Knöpfe).
+  if (aufgabe.aufgabentyp === 'uhr' && aufgabe.angezeigteSprechweise === undefined) {
+    aufgabe.angezeigteSprechweise = wuerfleAngezeigteSprechweise(aufgabe.stufe, getSprechweise(profile.id));
+  }
   const istKlein = istKleinkind(profile);
   // Bei der Uhr sind a/b Stunde und Minute, keine Rechengröße — die Schwelle für „große Zahl"
   // (die bei Plus/Minus das Würfelbild sinnlos macht) darf hier nicht greifen.
@@ -433,12 +451,17 @@ function baueRechnen10Visualisierung(aufgabe) {
 // Der data-wert eines Antwort-Knopfes ist IMMER die Zahl (antwortPruefen vergleicht strikt).
 // Nur die Beschriftung unterscheidet sich: Die Uhr zeigt mal die gesprochene, mal die
 // geschriebene Form — beide führen auf denselben Wert. Genau dadurch lernt das Kind, dass
-// „dreiviertel vier" und „15:45" dasselbe meinen.
+// „dreiviertel vier" und „15:45" dasselbe meinen. Innerhalb der gesprochenen Form gilt
+// dasselbe Prinzip nochmal eine Ebene tiefer: aufgabe.angezeigteSprechweise (siehe
+// rendereFrageInModal) entscheidet EINMAL pro Frage zwischen „sued"/„nord" — alle Knöpfe
+// UND die Lösungsanzeige (zeigeLoesung ruft dieselbe Funktion auf) einer Frage benutzen
+// dieselbe Form. Fallback auf getSprechweise, falls die Frage das Feld ausnahmsweise nicht
+// trägt (defensiv, sollte über rendereFrageInModal immer gesetzt sein).
 function knopfBeschriftung(wert, aufgabe, profile) {
   if (aufgabe.aufgabentyp !== 'uhr') return String(wert);
   return aufgabe.zeigeDigital
     ? formatiereDigital(wert)
-    : formatiereZeit(wert, getSprechweise(profile.id));
+    : formatiereZeit(wert, aufgabe.angezeigteSprechweise ?? getSprechweise(profile.id));
 }
 
 function baueOptionenHtml(aufgabe, profile) {
@@ -471,7 +494,7 @@ function baueAufgabeInhalt(aufgabe, mechanik) {
       // Stellen: Die Zeit steht als Text da, das Kind zieht die Zeiger.
       const ziel = aufgabe.zeigeDigital
         ? formatiereDigital(aufgabe.ergebnis)
-        : formatiereZeit(aufgabe.ergebnis, getSprechweise(profile.id));
+        : formatiereZeit(aufgabe.ergebnis, aufgabe.angezeigteSprechweise ?? getSprechweise(profile.id));
       return `
         <div class="aufgabe__text">Stell die Uhr auf ${escapeHtml(ziel)}</div>
         <div class="aufgabe__stelluhr" data-soll="${aufgabe.ergebnis}"></div>

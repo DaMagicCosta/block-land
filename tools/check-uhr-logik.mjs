@@ -1,6 +1,6 @@
 // Ad-hoc-Checks für js/aufgaben/uhr.js. Lauf: node tools/check-uhr-logik.mjs
 import { readFileSync } from 'node:fs';
-import { generiereUhrAufgabe, formatiereZeit, formatiereDigital, RASTUNG, sonnenPositionAmTag } from '../js/aufgaben/uhr.js';
+import { generiereUhrAufgabe, formatiereZeit, formatiereDigital, RASTUNG, sonnenPositionAmTag, andereSprechweise, wuerfleAngezeigteSprechweise } from '../js/aufgaben/uhr.js';
 
 const pool = JSON.parse(readFileSync(new URL('../data/aufgaben-pool.json', import.meta.url), 'utf8'));
 let fehler = 0;
@@ -190,6 +190,52 @@ pruefe('Distraktor „Minutenzeiger als Ziffer" kommt vor', saheZifferFehler);
 
 pruefe('RASTUNG passt zum Pool',
   pool.uhr.stufen.every(s => RASTUNG[s.nr] === s.rastung));
+
+// --- Sprechweise pro Frage (Nachbesserung 29.07.2026: der Eltern-Hinweis behauptete eine
+// Toleranz, die es nicht gab — die andere Form kam nie vor. Jetzt entscheidet
+// wuerfleAngezeigteSprechweise() pro Frage, welche der beiden Formen erscheint.) ---
+pruefe('andereSprechweise kippt in beide Richtungen',
+  andereSprechweise('sued') === 'nord' && andereSprechweise('nord') === 'sued');
+
+{
+  // Deterministische rnd-Folgen (Muster wie bei generiereUhrAufgabe oben): erst bei rnd() < 0.5
+  // wird gewechselt, alles darüber bleibt bei der eingestellten Form.
+  const rndWechselt = () => 0.1;   // < 0.5 → Wechsel, falls Stufe es zulässt
+  const rndBleibt = () => 0.9;     // >= 0.5 → bleibt in jedem Fall bei der eingestellten Form
+
+  pruefe('Stufe 1: bleibt bei "sued", auch wenn der Zufall wechseln würde',
+    wuerfleAngezeigteSprechweise(1, 'sued', rndWechselt) === 'sued');
+  pruefe('Stufe 2: bleibt bei "nord", auch wenn der Zufall wechseln würde',
+    wuerfleAngezeigteSprechweise(2, 'nord', rndWechselt) === 'nord');
+  pruefe('Stufe 3: rnd < 0.5 → wechselt auf die andere Form',
+    wuerfleAngezeigteSprechweise(3, 'sued', rndWechselt) === 'nord');
+  pruefe('Stufe 3: rnd >= 0.5 → bleibt bei der eingestellten Form',
+    wuerfleAngezeigteSprechweise(3, 'sued', rndBleibt) === 'sued');
+  pruefe('Stufe 4: rnd < 0.5 → wechselt auf die andere Form',
+    wuerfleAngezeigteSprechweise(4, 'nord', rndWechselt) === 'sued');
+  pruefe('Stufe 4: rnd >= 0.5 → bleibt bei der eingestellten Form',
+    wuerfleAngezeigteSprechweise(4, 'nord', rndBleibt) === 'nord');
+}
+
+{
+  // Über viele Läufe (echter Math.random(), nicht seed-fest): Stufe 1+2 zeigen NIE die andere
+  // Form, Stufe 3+4 zeigen BEIDE Formen — mit ausreichend Läufen ist ein Ausbleiben der
+  // zweiten Form durch Zufall praktisch ausgeschlossen (2^-500 bei echtem 50/50).
+  const LAEUFE = 500;
+  const eingestellt = 'sued';
+  let stufe1NieAbweichung = true, stufe2NieAbweichung = true;
+  let stufe3SahBeide = new Set(), stufe4SahBeide = new Set();
+  for (let i = 0; i < LAEUFE; i++) {
+    if (wuerfleAngezeigteSprechweise(1, eingestellt) !== eingestellt) stufe1NieAbweichung = false;
+    if (wuerfleAngezeigteSprechweise(2, eingestellt) !== eingestellt) stufe2NieAbweichung = false;
+    stufe3SahBeide.add(wuerfleAngezeigteSprechweise(3, eingestellt));
+    stufe4SahBeide.add(wuerfleAngezeigteSprechweise(4, eingestellt));
+  }
+  pruefe(`Stufe 1 zeigt über ${LAEUFE} Läufe ausschließlich die eingestellte Form`, stufe1NieAbweichung);
+  pruefe(`Stufe 2 zeigt über ${LAEUFE} Läufe ausschließlich die eingestellte Form`, stufe2NieAbweichung);
+  pruefe(`Stufe 3 zeigt über ${LAEUFE} Läufe beide Formen`, stufe3SahBeide.size === 2);
+  pruefe(`Stufe 4 zeigt über ${LAEUFE} Läufe beide Formen`, stufe4SahBeide.size === 2);
+}
 
 if (fehler) { console.error(`\n${fehler} Check(s) fehlgeschlagen.`); process.exit(1); }
 console.log('\nAlle uhr-logik-Checks grün.');
