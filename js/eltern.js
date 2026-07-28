@@ -11,6 +11,7 @@ import {
   getSyncConfig, setzeSyncConfig,
   updateProfile, getTimer, setzeTimerStand,
   getFreischaltung, erzwingeFreischaltungsstufe,
+  getSprechweise, setzeSprechweise,
 } from './state.js';
 import { SEQUENZ, pruefReihe, offeneReihen, beschreibeStufe } from './freischaltung-logik.js';
 import {
@@ -512,6 +513,19 @@ function tabKinder(container, neuRendern) {
             <button class="eltern__mini" data-savekpin="${p.id}">PIN setzen</button>
           </div>
         </div>
+        <div class="eltern__kind-block">
+          <div class="eltern__kind-label">🕐 Uhrzeit</div>
+          <label class="eltern__zeile">
+            <span>Uhrzeit sagt man</span>
+            <select class="eltern__feld" data-sprechweise="${p.id}">
+              <option value="sued"${getSprechweise(p.id) === 'sued' ? ' selected' : ''}>viertel vier / dreiviertel vier</option>
+              <option value="nord"${getSprechweise(p.id) === 'nord' ? ' selected' : ''}>viertel nach drei / viertel vor vier</option>
+            </select>
+          </label>
+          <p class="eltern__hinweis">Beides ist richtig. Stell die Form ein, die in der Schule verwendet wird —
+            sonst lernt das Kind zwei Systeme gleichzeitig. Die jeweils andere Form wird ab Stufe 3 als
+            richtige Antwort mitakzeptiert.</p>
+        </div>
         <button class="eltern__mini eltern__mini--rot eltern__kind-loeschen" data-delkind="${p.id}">🗑️ Kind löschen</button>
       </div>
     `;
@@ -531,6 +545,12 @@ function tabKinder(container, neuRendern) {
       const pid = btn.dataset.savekpin;
       const val = kinder.querySelector(`[data-kpinp="${pid}"]`).value.trim();
       setzeKindPin(pid, val || null);
+      neuRendern();
+    });
+  });
+  kinder.querySelectorAll('[data-sprechweise]').forEach(sel => {
+    sel.addEventListener('change', () => {
+      setzeSprechweise(sel.dataset.sprechweise, sel.value);
       neuRendern();
     });
   });

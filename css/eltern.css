@@ -276,6 +276,9 @@
 }
 .eltern__kind-loeschen { align-self: flex-end; }
 .eltern__roh-speichern { align-self: flex-start; border-color: var(--color-action); color: var(--color-action); }
+.eltern__zeile { display: flex; align-items: center; gap: var(--space-sm); width: 100%; }
+.eltern__zeile > span { flex: 1; min-width: 0; }
+.eltern__zeile select { flex: 1; min-width: 0; }
 
 .eltern__regler { display: flex; flex-direction: column; gap: var(--space-xs); }
 .eltern__regler-zeile {

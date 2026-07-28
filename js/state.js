@@ -197,6 +197,16 @@ export function setSchwierigkeit(profileId, aufgabentyp, stufe) {
   melde('schwierigkeitGesetzt', { profilId: profileId, typ: aufgabentyp, stufe });
 }
 
+// Setzt die Sprechweise der Uhrzeit für EIN Kind (Eltern-Bereich, Kinder-Tab) — eine
+// unbekannte oder ungültige Eingabe fällt immer auf 'sued' zurück, nie auf undefined.
+export function setzeSprechweise(profileId, wert) {
+  const p = state.profiles[profileId];
+  if (!p) return;
+  p.sprechweise = wert === 'nord' ? 'nord' : 'sued';
+  save(state);
+  melde('sprechweiseGesetzt', { profilId: profileId, wert: p.sprechweise });
+}
+
 export function trackeAufgabe(profileId, aufgabentyp, war_richtig, zeit_ms = 0, datum = new Date()) {
   if (!state.profiles[profileId]) throw new Error(`[state] Profil ${profileId} existiert nicht`);
   const stat = state.profiles[profileId].statistik ?? {};
@@ -833,6 +843,10 @@ export function wendeZustandsEreignisAn(ereignis) {
       case 'schwierigkeitGesetzt':
         if (!state.profiles[args?.profilId]) return false;
         setSchwierigkeit(args.profilId, args.typ, args.stufe);
+        return true;
+      case 'sprechweiseGesetzt':
+        if (!state.profiles[args?.profilId]) return false;
+        setzeSprechweise(args.profilId, args.wert);
         return true;
       case 'rohstoffGesetzt':
         if (!state.profiles[args?.profilId]) return false;
