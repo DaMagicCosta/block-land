@@ -16,10 +16,9 @@ function zeigerLinie(winkelGrad, laenge, klasse) {
 
 // Der Himmel ist die eigentliche Lektion: Sonne steigt = erste Runde, Sonne sinkt = zweite.
 export function rendereHimmel(minuten) {
-  const { x, hoehe, istNacht } = sonnenPositionAmTag(minuten);
+  const { x, hoehe, istNacht, istDaemmerung } = sonnenPositionAmTag(minuten);
   const gestirn = istNacht ? '🌙' : '☀️';
-  const randStunde = !istNacht && hoehe < 0.35;
-  const klasse = istNacht ? ' uhr-himmel--nacht' : (randStunde ? ' uhr-himmel--rand' : '');
+  const klasse = istNacht ? ' uhr-himmel--nacht' : (istDaemmerung ? ' uhr-himmel--rand' : '');
   const bottom = 10 + hoehe * 46;
   return `
     <div class="uhr-himmel${klasse}" aria-hidden="true">

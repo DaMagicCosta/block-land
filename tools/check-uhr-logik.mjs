@@ -47,6 +47,60 @@ pruefe('x waechst streng ueber den Tag',
   [0, 300, 600, 900, 1200, 1439].every((m, i, arr) =>
     i === 0 || sonnenPositionAmTag(m).x > sonnenPositionAmTag(arr[i - 1]).x));
 
+// --- Dämmerung (Nachbesserung 28.07.2026: fest an Uhrzeiten gehängt, nicht an die
+// Sonnenhöhe — sonst wird der Zustand nie erreicht, siehe Kommentar in uhr.js) ---
+// Grenzen: Morgendämmerung 6:00–7:30 (360–450), Abenddämmerung 19:30–21:00 (1170–1260).
+pruefe('Morgendämmerung mitten drin (7:00) ist Dämmerung, nicht Nacht/Tag',
+  sonnenPositionAmTag(420).istDaemmerung === true
+  && sonnenPositionAmTag(420).istNacht === false);
+pruefe('Abenddämmerung mitten drin (20:00) ist Dämmerung, nicht Nacht/Tag',
+  sonnenPositionAmTag(1200).istDaemmerung === true
+  && sonnenPositionAmTag(1200).istNacht === false);
+pruefe('Mitten am Tag (12:00) ist weder Dämmerung noch Nacht',
+  sonnenPositionAmTag(720).istDaemmerung === false
+  && sonnenPositionAmTag(720).istNacht === false);
+pruefe('Mitten in der Nacht (2:00) ist weder Dämmerung noch Tag',
+  sonnenPositionAmTag(120).istDaemmerung === false
+  && sonnenPositionAmTag(120).istNacht === true);
+pruefe('Grenze 6:00 (360): Nacht endet, Morgendämmerung beginnt',
+  sonnenPositionAmTag(359).istNacht === true && sonnenPositionAmTag(359).istDaemmerung === false
+  && sonnenPositionAmTag(360).istNacht === false && sonnenPositionAmTag(360).istDaemmerung === true);
+pruefe('Grenze 7:30 (450): Morgendämmerung endet, Tag beginnt',
+  sonnenPositionAmTag(449).istDaemmerung === true
+  && sonnenPositionAmTag(450).istDaemmerung === false && sonnenPositionAmTag(450).istNacht === false);
+pruefe('Grenze 19:30 (1170): Tag endet, Abenddämmerung beginnt',
+  sonnenPositionAmTag(1169).istDaemmerung === false && sonnenPositionAmTag(1169).istNacht === false
+  && sonnenPositionAmTag(1170).istDaemmerung === true);
+pruefe('Grenze 21:00 (1260): Abenddämmerung endet, Nacht beginnt',
+  sonnenPositionAmTag(1259).istDaemmerung === true
+  && sonnenPositionAmTag(1260).istDaemmerung === false && sonnenPositionAmTag(1260).istNacht === true);
+
+// Die Prüfung, die den ursprünglichen Fehler gefunden hätte: über alle 1440 Minuten des
+// Tages hat jede Minute GENAU einen der drei Zustände (Tag/Dämmerung/Nacht), und die
+// Übergänge liegen exakt an den vier erwarteten Grenzen — kein doppelter, kein fehlender
+// Zustand irgendwo dazwischen.
+{
+  let genauEinZustand = true;
+  const uebergaenge = [];
+  let vorherZustand = null;
+  for (let m = 0; m < 1440; m++) {
+    const { istNacht, istDaemmerung } = sonnenPositionAmTag(m);
+    const istTag = !istNacht && !istDaemmerung;
+    const anzahl = (istNacht ? 1 : 0) + (istDaemmerung ? 1 : 0) + (istTag ? 1 : 0);
+    if (anzahl !== 1) genauEinZustand = false;
+    const zustand = istNacht ? 'nacht' : (istDaemmerung ? 'daemmerung' : 'tag');
+    if (zustand !== vorherZustand) {
+      uebergaenge.push(m);
+      vorherZustand = zustand;
+    }
+  }
+  pruefe('Jede der 1440 Minuten hat genau einen Zustand (Tag/Dämmerung/Nacht)', genauEinZustand);
+  pruefe('Genau vier Übergänge über den Tag (0 zählt als erster nicht mit)',
+    uebergaenge.length === 5 && uebergaenge[0] === 0);
+  pruefe('Übergänge liegen exakt bei 6:00/7:30/19:30/21:00 (360/450/1170/1260)',
+    uebergaenge.slice(1).join(',') === '360,450,1170,1260');
+}
+
 // --- Generierung, deterministisch über alle Stufen ---
 let laeufe = 0, gueltig = 0, sahNachmittag = false;
 for (const stufe of pool.uhr.stufen) {

@@ -51,13 +51,24 @@ function zahlwort(n) { return ZAHLWORT[n] ?? String(n); }
 // ist es die erste Runde (1–12); sinkt sie, die zweite (13–24). Hell/dunkel taugt dafür
 // nicht — der Nachmittag ist hell.
 // x läuft streng monoton 0→1 über den ganzen Tag, hoehe ist der Scheitel um 12 Uhr.
-const AUFGANG = 6 * 60;     // 6 Uhr
-const UNTERGANG = 21 * 60;  // 21 Uhr — Sommerabend, bewusst großzügig
+// Alle Tagesgrenzen stehen bewusst HIER beieinander (nicht in js/zifferblatt.js) — sie
+// gehören zusammen gepflegt, sonst driften Nacht- und Dämmerungsgrenzen auseinander
+// (Befund 28.07.2026: eine an der Sonnenhöhe statt an der Uhrzeit hängende Dämmerung
+// wurde nie erreicht, weil AUFGANG/UNTERGANG bereits Höhen jenseits ihres Schwellwerts
+// hatten — toter Code, harter Farbsprung im Himmelsbild).
+const AUFGANG = 6 * 60;               // 6 Uhr
+const DAEMMERUNG_MORGEN_ENDE = 7 * 60 + 30;  // 7:30 — Morgendämmerung endet hier
+const DAEMMERUNG_ABEND_BEGINN = 19 * 60 + 30; // 19:30 — Abenddämmerung beginnt hier
+const UNTERGANG = 21 * 60;            // 21 Uhr — Sommerabend, bewusst großzügig
 export function sonnenPositionAmTag(minuten) {
   const x = minuten / 1439;
   // Höhe: Scheitel um 12 Uhr, 0 an den Tagesrändern. Cosinus über den halben Tag.
   const hoehe = Math.max(0, Math.cos(((minuten - 720) / 720) * (Math.PI / 2)));
-  return { x, hoehe, istNacht: minuten < AUFGANG || minuten >= UNTERGANG };
+  const istNacht = minuten < AUFGANG || minuten >= UNTERGANG;
+  const istDaemmerung = !istNacht
+    && ((minuten >= AUFGANG && minuten < DAEMMERUNG_MORGEN_ENDE)
+      || (minuten >= DAEMMERUNG_ABEND_BEGINN && minuten < UNTERGANG));
+  return { x, hoehe, istNacht, istDaemmerung };
 }
 
 // Distraktoren sind hier KEINE Zahlenabstände, sondern benannte Ablesefehler. Zufällige
