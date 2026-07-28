@@ -6,11 +6,13 @@ import { generiereMengenAufgabe } from './aufgaben/mengen.js';
 import { generiereMinusAufgabe } from './aufgaben/minus.js';
 import { generiereRechnen10Aufgabe } from './aufgaben/rechnen10.js';
 import { generiereGeteiltAufgabe } from './aufgaben/geteilt.js';
+import { generiereUhrAufgabe, formatiereZeit, formatiereDigital, RASTUNG } from './aufgaben/uhr.js';
+import { rendereUhr, rendereStelluhr } from './zifferblatt.js';
 import { rendereStellenwert } from './stellenwert.js';
 import { verteileBelohnung } from './belohnung.js';
 import { loadAufgabenPool, loadBiomManifest } from './data.js';
 import { waehleMechanik, aktuelleStufe, rapportiereErgebnis } from './adaptiv.js';
-import { getCurrentProfile, getAktivesBiom, schalteNaechstesBiomFrei, getAktiveReihe, setzeAktiveReihe, getFehlerbox, setzeFehlerboxEintrag, getFreischaltung } from './state.js';
+import { getCurrentProfile, getAktivesBiom, schalteNaechstesBiomFrei, getAktiveReihe, setzeAktiveReihe, getFehlerbox, setzeFehlerboxEintrag, getFreischaltung, getSprechweise } from './state.js';
 import { offeneReihen, ohneEinserreihe, nurEineReiheOffen, beuteFaktor } from './freischaltung-logik.js';
 import { aufgabeSchluessel, neuerEintrag, planeWieder, verschiebeAufMorgen, naechsteFaellige, hilfeStufeFuer } from './fehlerbox-logik.js';
 import { normalisiereAufgabe } from './aufgaben/normalisiere.js';
@@ -116,6 +118,7 @@ export async function oeffneAufgabe(reward, { onClose, festeStufe = null } = {})
     if (typ === 'minus') return generiereMinusAufgabe(stufenConfig, pool.minus.distraktoren);
     if (typ === 'rechnen10') return generiereRechnen10Aufgabe(stufenConfig, pool.rechnen10.distraktoren);
     if (typ === 'geteilt') return generiereGeteiltAufgabe(stufenConfig, pool.geteilt.distraktoren, erlaubteReihen);
+    if (typ === 'uhr') return generiereUhrAufgabe(stufenConfig);
     return generierePlusAufgabe(stufenConfig, pool.plus.distraktoren);
   }
   // Wiedervorlage aus der Fehler-Box (Leitner). Bewusst NUR jede zweite Aufgabe:
@@ -241,6 +244,30 @@ function schleifeHilfeAus(inhalt, aufgabe) {
   const stufe = aufgabe.box?.hilfe;
   if (!stufe || stufe === 'voll') return;
 
+  // Bei der Uhr ist die HILFE nur die äußere Minuten-Beschriftung — das Zifferblatt selbst
+  // und der Himmel sind die Aufgabe, nicht ihre Erleichterung. Das Bild darf hier also
+  // niemals ganz verschwinden, sonst gäbe es nichts mehr abzulesen.
+  if (aufgabe.aufgabentyp === 'uhr') {
+    const bild = inhalt.querySelector('.aufgabe__visualisierung');
+    if (!bild) return;
+    if (stufe === 'keine') {
+      bild.querySelectorAll('.zifferblatt__minutenzahl').forEach(el => el.remove());
+      return;
+    }
+    // 'anstoss': Beschriftung verbergen, das Kind holt sie sich selbst.
+    const zahlen = [...bild.querySelectorAll('.zifferblatt__minutenzahl')];
+    zahlen.forEach(el => { el.style.display = 'none'; });
+    const knopf = document.createElement('button');
+    knopf.className = 'aufgabe__hilfe-knopf';
+    knopf.textContent = '💡 Ich brauche die Minuten';
+    knopf.addEventListener('click', () => {
+      zahlen.forEach(el => { el.style.display = ''; });
+      knopf.remove();
+    });
+    bild.insertAdjacentElement('beforebegin', knopf);
+    return;
+  }
+
   const bild = inhalt.querySelector('.aufgabe__visualisierung');
   if (!bild) return;
 
@@ -257,8 +284,15 @@ function schleifeHilfeAus(inhalt, aufgabe) {
 
 function rendereFrageInModal(modal, reihe, profile, maxStufe, onWeiter) {
   const aufgabe = reihe.aufgabe;
+  // zeigeDigital wird beim Rendern gewürfelt, nicht im Generator — es ist eine
+  // Anzeige-Entscheidung und darf die Fehler-Box-Konserve nicht verändern.
+  if (aufgabe.aufgabentyp === 'uhr' && aufgabe.zeigeDigital === undefined) {
+    aufgabe.zeigeDigital = Math.random() < 0.5;
+  }
   const istKlein = istKleinkind(profile);
-  const grosseZahl = aufgabe.a > 20 || aufgabe.b > 20;
+  // Bei der Uhr sind a/b Stunde und Minute, keine Rechengröße — die Schwelle für „große Zahl"
+  // (die bei Plus/Minus das Würfelbild sinnlos macht) darf hier nicht greifen.
+  const grosseZahl = aufgabe.aufgabentyp !== 'uhr' && (aufgabe.a > 20 || aufgabe.b > 20);
   const mechanik = (aufgabe.aufgabentyp === 'mengen' || aufgabe.aufgabentyp === 'geteilt' || aufgabe.form === 'subitizing' || grosseZahl)
     ? 'A'
     : waehleMechanik(profile.id, aufgabe.aufgabentyp);
@@ -384,6 +418,23 @@ function baueRechnen10Visualisierung(aufgabe) {
   return '';
 }
 
+// Der data-wert eines Antwort-Knopfes ist IMMER die Zahl (antwortPruefen vergleicht strikt).
+// Nur die Beschriftung unterscheidet sich: Die Uhr zeigt mal die gesprochene, mal die
+// geschriebene Form — beide führen auf denselben Wert. Genau dadurch lernt das Kind, dass
+// „dreiviertel vier" und „15:45" dasselbe meinen.
+function knopfBeschriftung(wert, aufgabe, profile) {
+  if (aufgabe.aufgabentyp !== 'uhr') return String(wert);
+  return aufgabe.zeigeDigital
+    ? formatiereDigital(wert)
+    : formatiereZeit(wert, getSprechweise(profile.id));
+}
+
+function baueOptionenHtml(aufgabe, profile) {
+  return aufgabe.antwort_optionen.map(opt =>
+    `<button class="aufgabe__option" data-wert="${opt}">${escapeHtml(knopfBeschriftung(opt, aufgabe, profile))}</button>`
+  ).join('');
+}
+
 function baueAufgabeInhalt(aufgabe, mechanik) {
   // 'subitizing' wird nicht mehr erzeugt, aber alte (persistierte) Reihen sollen noch
   // korrekt rendern + abschließbar bleiben (Rückwärts-Kompatibilität).
@@ -402,18 +453,37 @@ function baueAufgabeInhalt(aufgabe, mechanik) {
   if (aufgabe.aufgabentyp === 'rechnen10') {
     return baueRechnen10Inhalt(aufgabe, mechanik);
   }
+  if (aufgabe.aufgabentyp === 'uhr') {
+    const profile = getCurrentProfile();
+    if (mechanik === 'B') {
+      // Stellen: Die Zeit steht als Text da, das Kind zieht die Zeiger.
+      const ziel = aufgabe.zeigeDigital
+        ? formatiereDigital(aufgabe.ergebnis)
+        : formatiereZeit(aufgabe.ergebnis, getSprechweise(profile.id));
+      return `
+        <div class="aufgabe__text">Stell die Uhr auf ${escapeHtml(ziel)}</div>
+        <div class="aufgabe__stelluhr" data-soll="${aufgabe.ergebnis}"></div>
+        <div class="aufgabe__optionen" hidden></div>
+        <div class="aufgabe__feedback" hidden></div>
+      `;
+    }
+    return `
+      <div class="aufgabe__text">${escapeHtml(aufgabe.text)}</div>
+      <div class="aufgabe__visualisierung">${rendereUhr(aufgabe.ergebnis)}</div>
+      <div class="aufgabe__optionen">${baueOptionenHtml(aufgabe, profile)}</div>
+      <div class="aufgabe__feedback" hidden></div>
+    `;
+  }
   const aufgabenText = `<div class="aufgabe__text">${aufgabe.text}</div>`;
 
   if (mechanik === 'A') {
-    const knoepfe = aufgabe.antwort_optionen.map(opt =>
-      `<button class="aufgabe__option" data-wert="${opt}">${opt}</button>`
-    ).join('');
+    const profile = getCurrentProfile();
     if (istStellenwertFall(aufgabe)) {
       // Optionen zunächst verborgen — werden nach den Schritten (oder per Skip) gezeigt.
       return `
         ${aufgabenText}
         <div class="aufgabe__stellenwert"></div>
-        <div class="aufgabe__optionen" hidden>${knoepfe}</div>
+        <div class="aufgabe__optionen" hidden>${baueOptionenHtml(aufgabe, profile)}</div>
         <div class="aufgabe__feedback" hidden></div>
       `;
     }
@@ -421,7 +491,7 @@ function baueAufgabeInhalt(aufgabe, mechanik) {
     return `
       ${aufgabenText}
       ${visualisierung}
-      <div class="aufgabe__optionen">${knoepfe}</div>
+      <div class="aufgabe__optionen">${baueOptionenHtml(aufgabe, profile)}</div>
       <div class="aufgabe__feedback" hidden></div>
     `;
   }
@@ -545,6 +615,26 @@ function starteAufgabe(reihe, mechanik, profile, modal, inhalt, maxStufe, onWeit
       btn.addEventListener('click', () => antwortPruefen(parseInt(btn.dataset.wert, 10)));
     });
   } else {
+    const stelluhr = inhalt.querySelector('.aufgabe__stelluhr');
+    if (stelluhr) {
+      const soll = parseInt(stelluhr.dataset.soll, 10);
+      const rastung = RASTUNG[aufgabe.stufe] ?? 15;
+      // Startzeit bewusst versetzt: Stünde die Uhr schon richtig, wäre nichts zu tun.
+      const start = Math.max(0, Math.min(1439, soll - rastung * 3));
+      rendereStelluhr(start, stelluhr, (minuten) => {
+        if (minuten !== soll) return;
+        const optionen = inhalt.querySelector('.aufgabe__optionen');
+        if (!optionen.hidden) return;
+        optionen.hidden = false;
+        optionen.innerHTML = baueOptionenHtml(aufgabe, profile);
+        optionen.querySelectorAll('.aufgabe__option').forEach(btn => {
+          btn.addEventListener('click', () => antwortPruefen(parseInt(btn.dataset.wert, 10)));
+        });
+        sperre.verriegeln(performance.now());   // Reveal: der letzte Zieh-Tipp darf nicht gleich antworten
+      }, { rastung });
+      return;
+    }
+
     const legeBereich = inhalt.querySelector('.aufgabe__legebereich');
     const sollZahl = parseInt(legeBereich.dataset.soll, 10);
     const startGefuellt = parseInt(legeBereich.dataset.start ?? '0', 10) || 0;
@@ -553,9 +643,7 @@ function starteAufgabe(reihe, mechanik, profile, modal, inhalt, maxStufe, onWeit
         const optionen = inhalt.querySelector('.aufgabe__optionen');
         if (optionen.hidden) {
           optionen.hidden = false;
-          optionen.innerHTML = aufgabe.antwort_optionen.map(opt =>
-            `<button class="aufgabe__option" data-wert="${opt}">${opt}</button>`
-          ).join('');
+          optionen.innerHTML = baueOptionenHtml(aufgabe, profile);
           optionen.querySelectorAll('.aufgabe__option').forEach(btn => {
             btn.addEventListener('click', () => antwortPruefen(parseInt(btn.dataset.wert, 10)));
           });

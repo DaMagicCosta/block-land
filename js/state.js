@@ -181,6 +181,14 @@ export function getSchwierigkeit(profileId, aufgabentyp) {
   return state.profiles[profileId]?.schwierigkeit?.[aufgabentyp] ?? 1;
 }
 
+// Sprechweise der Uhrzeit, pro Profil. 'sued' = viertel vier / dreiviertel vier,
+// 'nord' = viertel nach drei / viertel vor vier. Beides ist korrekt — entscheidend ist,
+// dass die App dieselbe Form benutzt wie die Schule, sonst lernt das Kind zwei Systeme
+// gleichzeitig. Gesetzt wird sie im Eltern-Bereich (Kinder-Tab).
+export function getSprechweise(profileId) {
+  return state.profiles[profileId]?.sprechweise ?? 'sued';
+}
+
 export function setSchwierigkeit(profileId, aufgabentyp, stufe) {
   if (!state.profiles[profileId]) throw new Error(`[state] Profil ${profileId} existiert nicht`);
   state.profiles[profileId].schwierigkeit = state.profiles[profileId].schwierigkeit ?? {};
