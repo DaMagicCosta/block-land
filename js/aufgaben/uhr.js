@@ -75,8 +75,11 @@ function baueDistraktoren(minuten, stufenConfig, rnd) {
   if (m >= 30) kandidaten.push((stunde + 1) * 60 + m);
   // 3. viertel und dreiviertel verwechselt (Zeiger gespiegelt)
   if (m === 15 || m === 45) kandidaten.push(stunde * 60 + (60 - m));
-  // 4. Zeiger vertauscht: Minutenzeiger als Stunde gelesen und umgekehrt
-  if (m % 5 === 0 && m !== 0) kandidaten.push((m / 5) * 60 + stunde * 5);
+  // 4. Zeiger vertauscht: Minutenzeiger als Stunde gelesen und umgekehrt. Das Zifferblatt
+  // kennt nur die Positionen 0–11 — deshalb hier zwingend stunde % 12 (Befund 28.07.2026:
+  // mit der rohen 24-Stunden-Stunde rutschte jede Nachmittagszeit um eine volle Stunde,
+  // z. B. 15:45 → 10:15 statt der gemeinten 9:15).
+  if (m % 5 === 0 && m !== 0) kandidaten.push((m / 5) * 60 + (stunde % 12) * 5);
   // 5. halb auf die falsche Stunde bezogen (halb vier als 4:30)
   if (m === 30) kandidaten.push((stunde + 1) * 60 + 30);
   // 6. Auffüller: Nachbarn im Raster der Stufe

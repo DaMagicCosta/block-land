@@ -96,6 +96,44 @@ for (let i = 0; i < 300; i++) {
 }
 pruefe('Distraktor „Minutenzeiger als Ziffer" kommt vor', saheZifferFehler);
 
+// --- Gezielte Zusicherungen je benannter Ablesefehler (Nachbesserung 28.07.2026) ---
+// Zwei fest verdrahtete, von Hand nachgerechnete Szenarien auf Stufe 4 (Nachmittag,
+// pool.uhr.stufen[3] = rastung 5, nachmittag true) — bewusst am Nachmittag, weil genau
+// dort der Unterschied zwischen 12- und 24-Stunden-Zählung zum Tragen kommt. Eine Formel,
+// die versehentlich mit der rohen 24-Stunden-Stunde statt Stunde % 12 rechnet, würde hier
+// NICHT auffallen, wenn nur am Vormittag geprüft würde (dort ist Stunde % 12 == Stunde).
+
+// Szenario A: 15:45 (945 Minuten). rnd konstant 0.5439 trifft exakt diesen Quotienten
+// ((945 − 360) / 5 = 117, floor(0.5439 × 216) = 117 → 360 + 117×5 = 945).
+{
+  const rndA = () => 0.5439;
+  const a = generiereUhrAufgabe(pool.uhr.stufen[3], rndA);
+  pruefe('Szenario A trifft 15:45 (Vorbedingung)', a.ergebnis === 945 && a.a === 15 && a.b === 45);
+  pruefe('Kandidat 1 „Minutenzeiger als Ziffer": 15:45 → 15:09 (909)',
+    a.antwort_optionen.includes(909));
+  pruefe('Kandidat 2 „Stunde aufgerundet": 15:45 → 16:45 (1005)',
+    a.antwort_optionen.includes(1005));
+  pruefe('Kandidat 3 „viertel/dreiviertel vertauscht": 15:45 → 15:15 (915)',
+    a.antwort_optionen.includes(915));
+  pruefe('Kandidat 4 „Zeiger vertauscht" nachmittags (Befund 28.07.2026): 15:45 → 9:15 (555), NICHT 10:15 (615)',
+    a.antwort_optionen.includes(555) && !a.antwort_optionen.includes(615));
+}
+
+// Szenario B: 15:30 (930 Minuten). rnd konstant 0.53 trifft exakt diesen Quotienten
+// ((930 − 360) / 5 = 114, floor(0.53 × 216) = 114 → 360 + 114×5 = 930).
+{
+  const rndB = () => 0.53;
+  const a = generiereUhrAufgabe(pool.uhr.stufen[3], rndB);
+  pruefe('Szenario B trifft 15:30 (Vorbedingung)', a.ergebnis === 930 && a.a === 15 && a.b === 30);
+  // Kandidat 5 „halb auf falsche Stunde bezogen" hat bei m = 30 dieselbe Formel wie
+  // Kandidat 2 „Stunde aufgerundet" ((stunde+1)*60 + m mit m=30) — beide Fehlbilder fallen
+  // hier zusammen, ein Wert deckt beide ab.
+  pruefe('Kandidat 2/5 „Stunde aufgerundet" bzw. „halb falsche Stunde": 15:30 → 16:30 (990)',
+    a.antwort_optionen.includes(990));
+  pruefe('Kandidat 4 „Zeiger vertauscht" nachmittags (Befund 28.07.2026): 15:30 → 6:15 (375), NICHT 7:15 (435)',
+    a.antwort_optionen.includes(375) && !a.antwort_optionen.includes(435));
+}
+
 pruefe('RASTUNG passt zum Pool',
   pool.uhr.stufen.every(s => RASTUNG[s.nr] === s.rastung));
 
