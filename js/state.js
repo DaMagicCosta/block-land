@@ -635,7 +635,7 @@ export function setzeKindPin(profileId, pin) {
 }
 
 // --- Drop-Häufigkeit pro Material (Eltern-Regler) ---
-const DEFAULT_DROP = { holz: 0.9, stein: 0.85, blume: 0.85, eisen: 0.4, diamant: 0.07 };
+const DEFAULT_DROP = { holz: 0.9, stein: 0.85, blume: 0.85, eisen: 0.4, diamant: 0.07, zahnrad: 0.85 };
 
 export function getDropChancen() {
   return { ...DEFAULT_DROP, ...(state.parentSettings?.dropChancen ?? {}) };

@@ -166,6 +166,7 @@ function tabBelohnungen(container, neuRendern) {
   const MATERIAL = [
     ['holz', '🪵 Holz'], ['stein', '🪨 Stein'], ['blume', '🌸 Blume'],
     ['eisen', '⛏️ Eisen (schwere Aufgaben)'], ['diamant', '💎 Diamant (schwere Aufgaben)'],
+    ['zahnrad', '⚙️ Zahnrad'],
   ];
   const ALTER_LABEL = { 'kindergarten': 'Vorschule', 'klasse-1': '1. Klasse', 'klasse-2': '2. Klasse', 'klasse-3': '3. Klasse' };
   const avatarEmojiMapTimer = Object.fromEntries(AVATARE);

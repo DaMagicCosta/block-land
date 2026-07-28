@@ -24,7 +24,7 @@ export const INFO_SEITEN = [
         emoji: '🗺️', titel: 'Wie ist die App aufgebaut?', offen: true,
         inhaltHtml: `
           <ul>
-            <li><strong>Eine Welt aus Biomen</strong> — jedes Biom ist eine Rechenart: Mengen-Wiese (Vorschule), Würfel-Teich (bis 10), Plus-Wald, Minus-Höhle, Mal-Berg, Geteilt-Schlucht und das Geschichten-Dorf (Textaufgaben).</li>
+            <li><strong>Eine Welt aus Biomen</strong> — jedes Biom ist eine Rechenart: Mengen-Wiese (Vorschule), Würfel-Teich (bis 10), Plus-Wald, Minus-Höhle, Mal-Berg, Geteilt-Schlucht, das Geschichten-Dorf (Textaufgaben) und das Zeitenland (Uhrzeit ablesen).</li>
             <li><strong>Aufgaben mit Vorlese-Pflicht:</strong> Erst laut vorlesen, dann rechnen — Lesen übt mit.</li>
             <li><strong>Die Belohnungskette:</strong> Richtig gelöste Aufgaben geben Rohstoffe (🪵 🪨 🌸) → in der Werkstatt werden daraus Gutscheine gebaut → eingelöst wird nur mit Zustimmung von Mama und Papa.</li>
             <li><strong>Tagesauftrag:</strong> Wenige Aufgaben pro Tag füllen eine Schatztruhe — bewusst klein gehalten, damit tägliches Üben leicht fällt.</li>
