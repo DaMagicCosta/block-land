@@ -126,7 +126,13 @@ export function winkelZuMinuten(winkelGrad, aktuelleMinuten) {
 // B-Mechanik: Das Kind zieht die Zeiger, Sonne und Himmel wandern live mit. Das ist die
 // eingebaute Hilfestufe — adaptiv.js schaltet hierher, wenn Ablesen hakt.
 export function rendereStelluhr(startMinuten, container, onChange, options = {}) {
-  const { rastung = 15, minutenBeschriftung = true } = options;
+  const { rastung = 15 } = options;
+  // Bewusst `let` und NICHT aus options destrukturiert-konstant: Die Hilfestufe der
+  // Fehler-Box kann während der Aufgabe umschlagen (Knopf „💡 Ich brauche die Minuten").
+  // Weil zeichne() bei JEDER Zeigerbewegung neu zeichnet, muss die Einstellung hier im
+  // Verschluss liegen — eine nachträgliche DOM-Reparatur wäre nach dem ersten Ziehen wieder
+  // fort. Umgeschaltet wird ausschließlich über setzeMinutenBeschriftung() unten.
+  let zeigeMinuten = options.minutenBeschriftung ?? true;
   let minuten = rasteMinuten(startMinuten, rastung);
 
   // touch-action muss auf dem GESAMTEN Ziehbereich liegen: Die Pointer-Listener hängen
@@ -140,7 +146,7 @@ export function rendereStelluhr(startMinuten, container, onChange, options = {})
   container.style.touchAction = 'none';
 
   function zeichne() {
-    container.innerHTML = rendereUhr(minuten, { minutenBeschriftung, zeigeHimmel: true });
+    container.innerHTML = rendereUhr(minuten, { minutenBeschriftung: zeigeMinuten, zeigeHimmel: true });
     container.querySelector('.zifferblatt__svg')?.classList.add('zifferblatt__svg--stellbar');
   }
 
@@ -177,5 +183,14 @@ export function rendereStelluhr(startMinuten, container, onChange, options = {})
   container.addEventListener('pointercancel', () => { zieht = false; });
 
   zeichne();
-  return { getMinuten: () => minuten };
+  return {
+    getMinuten: () => minuten,
+    // Blendet die Minuten-Beschriftung nachträglich ein oder aus — überlebt jede
+    // Zeigerbewegung, weil zeichne() den Wert aus dem Verschluss liest (siehe oben).
+    setzeMinutenBeschriftung(anzeigen) {
+      if (zeigeMinuten === anzeigen) return;
+      zeigeMinuten = anzeigen;
+      zeichne();
+    },
+  };
 }

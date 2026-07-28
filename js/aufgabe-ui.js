@@ -257,29 +257,14 @@ function schleifeHilfeAus(inhalt, aufgabe) {
   const stufe = aufgabe.box?.hilfe;
   if (!stufe || stufe === 'voll') return;
 
-  // Bei der Uhr ist die HILFE nur die äußere Minuten-Beschriftung — das Zifferblatt selbst
-  // und der Himmel sind die Aufgabe, nicht ihre Erleichterung. Das Bild darf hier also
-  // niemals ganz verschwinden, sonst gäbe es nichts mehr abzulesen.
-  if (aufgabe.aufgabentyp === 'uhr') {
-    const bild = inhalt.querySelector('.aufgabe__visualisierung');
-    if (!bild) return;
-    if (stufe === 'keine') {
-      bild.querySelectorAll('.zifferblatt__minutenzahl').forEach(el => el.remove());
-      return;
-    }
-    // 'anstoss': Beschriftung verbergen, das Kind holt sie sich selbst.
-    const zahlen = [...bild.querySelectorAll('.zifferblatt__minutenzahl')];
-    zahlen.forEach(el => { el.style.display = 'none'; });
-    const knopf = document.createElement('button');
-    knopf.className = 'aufgabe__hilfe-knopf';
-    knopf.textContent = '💡 Ich brauche die Minuten';
-    knopf.addEventListener('click', () => {
-      zahlen.forEach(el => { el.style.display = ''; });
-      knopf.remove();
-    });
-    bild.insertAdjacentElement('beforebegin', knopf);
-    return;
-  }
+  // Die Uhr regelt ihr Ausschleichen NICHT hier, sondern beim Zeichnen: rendereUhr() und
+  // rendereStelluhr() bekommen die Hilfestufe als Parameter (uhrHilfeStufe/baueAufgabeInhalt,
+  // verdrahtet in starteAufgabe). Grund (Befund 29.07.2026): In der Stell-Form heißt der
+  // Container `.aufgabe__stelluhr` und ist zum Aufrufzeitpunkt noch leer — hier war also gar
+  // nichts zu finden, Fach 2 und 3 zeigten die volle Beschriftung. Und selbst eine
+  // nachträgliche DOM-Reparatur wäre nach der ersten Zeigerbewegung wieder fort, weil die
+  // Stelluhr bei jeder Bewegung neu zeichnet.
+  if (aufgabe.aufgabentyp === 'uhr') return;
 
   const bild = inhalt.querySelector('.aufgabe__visualisierung');
   if (!bild) return;
@@ -470,6 +455,12 @@ function baueOptionenHtml(aufgabe, profile) {
   ).join('');
 }
 
+// Hilfestufe der Fehler-Box für eine Uhr-Aufgabe ('voll' | 'anstoss' | 'keine').
+// Ohne Box-Marker (normale, nicht wiedervorgelegte Aufgabe) gilt immer 'voll'.
+function uhrHilfeStufe(aufgabe) {
+  return aufgabe.box?.hilfe ?? 'voll';
+}
+
 function baueAufgabeInhalt(aufgabe, mechanik) {
   // 'subitizing' wird nicht mehr erzeugt, aber alte (persistierte) Reihen sollen noch
   // korrekt rendern + abschließbar bleiben (Rückwärts-Kompatibilität).
@@ -490,6 +481,15 @@ function baueAufgabeInhalt(aufgabe, mechanik) {
   }
   if (aufgabe.aufgabentyp === 'uhr') {
     const profile = getCurrentProfile();
+    // Hilfe-Ausschleichen der Fehler-Box: Bei der Uhr ist die HILFE ausschließlich die äußere
+    // Minuten-Beschriftung. Zifferblatt, Zeiger und Himmel sind die Aufgabe selbst und
+    // bleiben in JEDEM Fach. Die Stufe wird beim Zeichnen durchgereicht, nicht danach im DOM
+    // repariert — siehe Kommentar in schleifeHilfeAus().
+    const hilfe = uhrHilfeStufe(aufgabe);
+    const zeigeMinuten = hilfe === 'voll';
+    const hilfeKnopf = hilfe === 'anstoss'
+      ? '<button class="aufgabe__hilfe-knopf" data-uhr-hilfe>💡 Ich brauche die Minuten</button>'
+      : '';
     if (mechanik === 'B') {
       // Stellen: Die Zeit steht als Text da, das Kind zieht die Zeiger.
       const ziel = aufgabe.zeigeDigital
@@ -497,6 +497,7 @@ function baueAufgabeInhalt(aufgabe, mechanik) {
         : formatiereZeit(aufgabe.ergebnis, aufgabe.angezeigteSprechweise ?? getSprechweise(profile.id));
       return `
         <div class="aufgabe__text">Stell die Uhr auf ${escapeHtml(ziel)}</div>
+        ${hilfeKnopf}
         <div class="aufgabe__stelluhr" data-soll="${aufgabe.ergebnis}"></div>
         <div class="aufgabe__optionen" hidden></div>
         <div class="aufgabe__feedback" hidden></div>
@@ -504,7 +505,8 @@ function baueAufgabeInhalt(aufgabe, mechanik) {
     }
     return `
       <div class="aufgabe__text">${escapeHtml(aufgabe.text)}</div>
-      <div class="aufgabe__visualisierung">${rendereUhr(aufgabe.ergebnis)}</div>
+      ${hilfeKnopf}
+      <div class="aufgabe__visualisierung">${rendereUhr(aufgabe.ergebnis, { minutenBeschriftung: zeigeMinuten })}</div>
       <div class="aufgabe__optionen">${baueOptionenHtml(aufgabe, profile)}</div>
       <div class="aufgabe__feedback" hidden></div>
     `;
@@ -636,7 +638,19 @@ function starteAufgabe(reihe, mechanik, profile, modal, inhalt, maxStufe, onWeit
     setTimeout(() => inhalt.classList.remove('aufgabe--puls-fehler'), 600);
   }
 
+  // Hilfe-Knopf der Uhr (Fach 2 'anstoss'). Er wird beim Bauen erzeugt (baueAufgabeInhalt)
+  // und hier verdrahtet, weil erst hier die gezeichnete Uhr bzw. ihre Steuerung vorliegt.
+  const uhrHilfeKnopf = inhalt.querySelector('[data-uhr-hilfe]');
+
   if (mechanik === 'A') {
+    if (uhrHilfeKnopf) {
+      uhrHilfeKnopf.addEventListener('click', () => {
+        const bild = inhalt.querySelector('.aufgabe__visualisierung');
+        // Neu zeichnen statt im DOM herumzuschneiden — dieselbe Quelle wie beim ersten Bauen.
+        if (bild) bild.innerHTML = rendereUhr(aufgabe.ergebnis, { minutenBeschriftung: true });
+        uhrHilfeKnopf.remove();
+      });
+    }
     const swContainer = inhalt.querySelector('.aufgabe__stellenwert');
     if (swContainer) {
       rendereStellenwert(aufgabe, swContainer, {
@@ -663,9 +677,15 @@ function starteAufgabe(reihe, mechanik, profile, modal, inhalt, maxStufe, onWeit
       // es auf Stufe 1 bis zu drei Stunden Unterschied. Sichtbar daneben reicht, keine
       // Weltreise.
       const start = Math.max(0, Math.min(1439, soll - ziehRastung * 3));
-      rendereStelluhr(start, stelluhr, (minuten) => {
-        if (minuten !== soll) return;
+      const steuerung = rendereStelluhr(start, stelluhr, (minuten) => {
         const optionen = inhalt.querySelector('.aufgabe__optionen');
+        if (minuten !== soll) {
+          // Uhr wieder verstellt: Antwortknöpfe verschwinden erneut (Befund 29.07.2026).
+          // Sonst blieben sie nach einem Treffer stehen, und das Kind könnte antworten,
+          // während das Zifferblatt längst eine andere Zeit zeigt.
+          if (!optionen.hidden) { optionen.hidden = true; optionen.innerHTML = ''; }
+          return;
+        }
         if (!optionen.hidden) return;
         optionen.hidden = false;
         optionen.innerHTML = baueOptionenHtml(aufgabe, profile);
@@ -673,7 +693,13 @@ function starteAufgabe(reihe, mechanik, profile, modal, inhalt, maxStufe, onWeit
           btn.addEventListener('click', () => antwortPruefen(parseInt(btn.dataset.wert, 10)));
         });
         sperre.verriegeln(performance.now());   // Reveal: der letzte Zieh-Tipp darf nicht gleich antworten
-      }, { rastung: ziehRastung });
+      }, { rastung: ziehRastung, minutenBeschriftung: uhrHilfeStufe(aufgabe) === 'voll' });
+      if (uhrHilfeKnopf) {
+        uhrHilfeKnopf.addEventListener('click', () => {
+          steuerung.setzeMinutenBeschriftung(true);   // überlebt jede weitere Zeigerbewegung
+          uhrHilfeKnopf.remove();
+        });
+      }
       return;
     }
 
