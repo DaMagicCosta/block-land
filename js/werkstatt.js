@@ -8,7 +8,7 @@ import { flushSync } from './sync.js';
 import { aktualisiereInventarHeader } from './inventar.js';
 import { escapeHtml } from './utils.js';
 
-const ITEM_EMOJI = { holz: '🪵', stein: '🪨', blume: '🌸', eisen: '⛏️', diamant: '💎' };
+const ITEM_EMOJI = { holz: '🪵', stein: '🪨', blume: '🌸', eisen: '⛏️', diamant: '💎', zahnrad: '⚙️' };
 
 // nachSchliessen: optionaler Callback, der NACH dem Aufräumen abgelehnter Anfragen läuft
 // (Final-Review I3: app.js re-rendert bei blockland:zustandEingespielt nur, wenn kein Modal

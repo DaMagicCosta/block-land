@@ -16,6 +16,7 @@
 .welt--rechnen10 { background: linear-gradient(180deg, #16323a, #0f2027); }
 .welt--geteilt { background: linear-gradient(180deg, #2a211c, #14100c); }
 .welt--text   { background: linear-gradient(180deg, #4a331e, #2a1c10); }
+.welt--zeitenland { background: #6d7f8f; }
 
 .welt__header {
   width: 100%;
@@ -98,6 +99,11 @@
 .tile--dorf-bauer       { background: #5a7a3a; cursor: pointer; }
 .tile--dorf-handwerker  { background: #5a3f26; cursor: pointer; }
 .tile--dorf-gaertnerin  { background: #5a7a3a; cursor: pointer; }
+.tile--zeit-wiese      { background: #4a6b45; }
+.tile--zeit-weg        { background: #8d7f63; }
+.tile--zeit-turm       { background: #5c5750; }
+.tile--zeit-sonnenuhr  { background: #7a8a5e; cursor: pointer; }
+.tile--zeit-glocke     { background: #6b6355; cursor: pointer; }
 .tile--werkbank { background: #4a3f6a; cursor: pointer; }
 .tile--trainer {
   background: #4a3f6a;
