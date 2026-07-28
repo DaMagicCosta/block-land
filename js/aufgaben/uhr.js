@@ -43,7 +43,28 @@ export function formatiereZeit(minuten, sprechweise = 'sued') {
   return `${zahlwort(60 - m)} vor ${naechste}`;
 }
 
-const ZAHLWORT = { 5: 'fünf', 10: 'zehn', 20: 'zwanzig' };
+// Zahlwörter für die Minutenangabe der Sprechform — vollständig für 1 bis 29.
+// Vorher standen nur 5, 10 und 20 in der Tabelle, alles andere fiel auf die Ziffer zurück.
+// Das traf ausgerechnet den wichtigsten Distraktor (Befund 29.07.2026): Der als Ziffer
+// gelesene Minutenzeiger erzeugt Minutenwerte von 1 bis 12, also Beschriftungen wie
+// „9 nach drei" für 15:45. So sagt das niemand — das Kind konnte den Distraktor allein an
+// der Schreibweise ausschließen, ohne die Uhr überhaupt anzusehen. Damit war der
+// wichtigste Ablesefehler als Lehrmittel wirkungslos.
+//
+// Welche Werte auftreten können: Der Minutenzeiger-Distraktor liefert 1–12, alle übrigen
+// Kandidaten und Auffüller bleiben im Fünf-Minuten-Raster. formatiereZeit() ruft zahlwort()
+// mit m (unter 30) oder mit 60 − m (über 30), also nie über 29. Die Tabelle deckt 1–29
+// deshalb lückenlos ab — auch die Werte, die heute nicht vorkommen, damit ein künftiger
+// Distraktor nicht wieder eine Ziffer auf den Knopf schreibt.
+// (15 und 25 stehen mit drin, werden aber in formatiereZeit gesondert behandelt.)
+const ZAHLWORT = [
+  '',              // 0 — kommt hier nie an (m === 0 ist „X Uhr")
+  'eins', 'zwei', 'drei', 'vier', 'fünf', 'sechs', 'sieben', 'acht', 'neun', 'zehn',
+  'elf', 'zwölf', 'dreizehn', 'vierzehn', 'fünfzehn', 'sechzehn', 'siebzehn', 'achtzehn',
+  'neunzehn', 'zwanzig', 'einundzwanzig', 'zweiundzwanzig', 'dreiundzwanzig',
+  'vierundzwanzig', 'fünfundzwanzig', 'sechsundzwanzig', 'siebenundzwanzig',
+  'achtundzwanzig', 'neunundzwanzig',
+];
 function zahlwort(n) { return ZAHLWORT[n] ?? String(n); }
 
 // Kippt zwischen den beiden Sprechweisen.

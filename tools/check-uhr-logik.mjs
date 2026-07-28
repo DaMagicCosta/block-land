@@ -237,6 +237,44 @@ pruefe('RASTUNG passt zum Pool',
   pruefe('Im gesamten Tagesfenster steht die Sonne am Himmel, nie der Mond', immerSonne);
 }
 
+// --- Sprechform: nie eine Ziffer auf einem Knopf (Nachbesserung 29.07.2026) ---
+// Die Zahlwort-Tabelle kannte nur 5, 10 und 20. Der wichtigste Distraktor — der als Ziffer
+// gelesene Minutenzeiger — erzeugt aber Minutenwerte von 1 bis 12 und wurde dadurch zu
+// „9 nach drei". So spricht niemand: Das Kind konnte den Distraktor an der Schreibweise
+// erkennen, ohne die Uhr zu lesen. Hier wird über alle Stufen, alle Antwortknöpfe und
+// BEIDE Sprechweisen abgesichert, dass keine Beschriftung eine Ziffer enthält.
+{
+  let ohneZiffer = true;
+  const gesehen = new Set();
+  const beispiele = new Set();
+  for (const stufe of pool.uhr.stufen) {
+    for (let i = 0; i < 500; i++) {
+      const a = generiereUhrAufgabe(stufe);
+      for (const o of a.antwort_optionen) {
+        gesehen.add(o % 60);
+        for (const form of ['sued', 'nord']) {
+          const text = formatiereZeit(o, form);
+          if (/[0-9]/.test(text)) { ohneZiffer = false; beispiele.add(`${formatiereDigital(o)} → "${text}"`); }
+        }
+      }
+    }
+  }
+  if (beispiele.size) console.error('      Ziffern-Beschriftungen:', [...beispiele].slice(0, 8).join(' · '));
+  pruefe(`Keine Knopfbeschriftung der Sprechform enthält eine Ziffer (${gesehen.size} verschiedene Minutenwerte gesehen)`,
+    ohneZiffer);
+  // Der Fall aus dem Befund, fest verdrahtet: 15:45 → Minutenzeiger als Ziffer = 15:09.
+  pruefe('15:09 heißt „neun nach drei", nicht „9 nach drei"',
+    formatiereZeit(909, 'sued') === 'neun nach drei');
+  // Und die Gegenprobe über den gesamten möglichen Wertebereich der Minutenangabe.
+  let alleMinutenHabenWort = true;
+  for (let m = 0; m < 60; m++) {
+    if (/[0-9]/.test(formatiereZeit(600 + m, 'sued')) || /[0-9]/.test(formatiereZeit(600 + m, 'nord'))) {
+      alleMinutenHabenWort = false;
+    }
+  }
+  pruefe('Alle 60 Minutenwerte einer Stunde haben ein Zahlwort', alleMinutenHabenWort);
+}
+
 // --- Sprechweise pro Frage (Nachbesserung 29.07.2026: der Eltern-Hinweis behauptete eine
 // Toleranz, die es nicht gab — die andere Form kam nie vor. Jetzt entscheidet
 // wuerfleAngezeigteSprechweise() pro Frage, welche der beiden Formen erscheint.) ---
