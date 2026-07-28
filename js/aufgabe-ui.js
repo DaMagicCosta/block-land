@@ -7,7 +7,7 @@ import { generiereMinusAufgabe } from './aufgaben/minus.js';
 import { generiereRechnen10Aufgabe } from './aufgaben/rechnen10.js';
 import { generiereGeteiltAufgabe } from './aufgaben/geteilt.js';
 import { generiereUhrAufgabe, formatiereZeit, formatiereDigital, RASTUNG } from './aufgaben/uhr.js';
-import { rendereUhr, rendereStelluhr } from './zifferblatt.js';
+import { rendereUhr, rendereStelluhr, ziehRastungFuer } from './zifferblatt.js';
 import { rendereStellenwert } from './stellenwert.js';
 import { verteileBelohnung } from './belohnung.js';
 import { loadAufgabenPool, loadBiomManifest } from './data.js';
@@ -630,9 +630,15 @@ function starteAufgabe(reihe, mechanik, profile, modal, inhalt, maxStufe, onWeit
     const stelluhr = inhalt.querySelector('.aufgabe__stelluhr');
     if (stelluhr) {
       const soll = parseInt(stelluhr.dataset.soll, 10);
-      const rastung = RASTUNG[aufgabe.stufe] ?? 15;
-      // Startzeit bewusst versetzt: Stünde die Uhr schon richtig, wäre nichts zu tun.
-      const start = Math.max(0, Math.min(1439, soll - rastung * 3));
+      const aufgabenRastung = RASTUNG[aufgabe.stufe] ?? 15;
+      // Zieh-Rastung ist bewusst von der Aufgaben-Rastung entkoppelt — Begründung und
+      // Eigenschaften stehen bei ziehRastungFuer() in js/zifferblatt.js.
+      const ziehRastung = ziehRastungFuer(aufgabenRastung);
+      // Startzeit bewusst versetzt: Stünde die Uhr schon richtig, wäre nichts zu tun. Der
+      // Versatz richtet sich nach der ZIEH-Rastung, nicht der Aufgaben-Rastung — sonst wären
+      // es auf Stufe 1 bis zu drei Stunden Unterschied. Sichtbar daneben reicht, keine
+      // Weltreise.
+      const start = Math.max(0, Math.min(1439, soll - ziehRastung * 3));
       rendereStelluhr(start, stelluhr, (minuten) => {
         if (minuten !== soll) return;
         const optionen = inhalt.querySelector('.aufgabe__optionen');
@@ -643,7 +649,7 @@ function starteAufgabe(reihe, mechanik, profile, modal, inhalt, maxStufe, onWeit
           btn.addEventListener('click', () => antwortPruefen(parseInt(btn.dataset.wert, 10)));
         });
         sperre.verriegeln(performance.now());   // Reveal: der letzte Zieh-Tipp darf nicht gleich antworten
-      }, { rastung });
+      }, { rastung: ziehRastung });
       return;
     }
 

@@ -84,6 +84,28 @@ export function rasteMinuten(rohMinuten, rastung) {
   return gerastet;
 }
 
+// Zieh-Rastung der Stelluhr — bewusst von der Aufgaben-Rastung ENTKOPPELT (Befund
+// 28.07.2026, Prüfungsrunde 2). Übernähme das Ziehen die Aufgaben-Rastung direkt, bewegen
+// auf Stufe 1 (60 Minuten) aus einer Ruhelage heraus nur rund 4 von 360 Winkelgraden
+// überhaupt die eingestellte Zeit — fast jede Zeigerbewegung wird entweder weggerundet
+// oder als Überlauf über die 12 gewertet und hebt sich auf (siehe winkelZuMinuten: erst ab
+// mehr als einer halben Umdrehung Unterschied zählt ein Überlauf, bei grober Rastung tritt
+// dieser Fall fast immer ein). Ausgerechnet das trifft die Auffangstufe: Hierher schaltet
+// die App, wenn ein Kind beim Ablesen schon zweimal danebenlag — eine Uhr, die sich in
+// diesem Moment tot anfühlt, ist schlimmer als keine Auffangstufe.
+//
+// Deshalb gilt beim Ziehen höchstens ein 15-Minuten-Schritt, nie feiner als die
+// Aufgabenstufe ohnehin verlangt (Math.min ist nie GRÖBER als aufgabenRastung) — die
+// Anforderung an das Kind sinkt dadurch nicht, nur die Bedienung wird benutzbar. Bei
+// unseren RASTUNG-Werten {60,30,15,5} (js/aufgaben/uhr.js) ist das Ergebnis immer ein
+// Teiler der Aufgaben-Rastung — genau das hält jeden geforderten Zielwert exakt
+// erreichbar. NICHT wieder mit der Aufgaben-Rastung vereinheitlichen, ohne diese Begründung
+// neu zu widerlegen — siehe tools/check-zeiger-logik.mjs („Bewegbarkeit"/„Erreichbarkeit"),
+// das genau diese beiden Eigenschaften absichert.
+export function ziehRastungFuer(aufgabenRastung) {
+  return Math.min(aufgabenRastung, 15);
+}
+
 // Der Minutenzeiger nimmt den Stundenzeiger mit — eine Uhr, bei der beide Zeiger unabhängig
 // springen, gibt es nicht. Und genau die Zwischenstellung des Stundenzeigers ist der Grund,
 // warum „halb vier" nicht 4:30 heißt.
