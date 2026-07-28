@@ -1,0 +1,45 @@
+/* Zifferblatt und Himmelsbogen des Zeitenlands.
+   Farben kommen aus tokens.css; die Himmelsfarben sind bewusst hartcodiert — sie sind
+   Welt-Atmosphäre, keine UI-Tokens (gleiche Begründung wie die Tile-Farben in welt.css). */
+
+.zifferblatt {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.zifferblatt__svg { width: 220px; height: 220px; max-width: 60vw; }
+
+.zifferblatt__ring { fill: #f7f3e8; stroke: var(--color-border); stroke-width: 3; }
+.zifferblatt__strich { stroke: #8a8577; stroke-width: 2; }
+.zifferblatt__strich--voll { stroke: #3d3a33; stroke-width: 4; }
+.zifferblatt__stundenzahl { fill: #3d3a33; font-size: 15px; font-weight: 700; text-anchor: middle; dominant-baseline: central; }
+.zifferblatt__minutenzahl { fill: #a09a8a; font-size: 9px; text-anchor: middle; dominant-baseline: central; }
+
+.zifferblatt__zeiger--stunde { stroke: #3d3a33; stroke-width: 7; stroke-linecap: round; }
+.zifferblatt__zeiger--minute { stroke: var(--color-action); stroke-width: 4; stroke-linecap: round; }
+.zifferblatt__mitte { fill: #3d3a33; }
+
+/* Himmelsbogen: die Sonne läuft EINMAL über den Tag, der Zeiger ZWEIMAL durchs Blatt. */
+.uhr-himmel {
+  position: relative;
+  width: 220px; max-width: 60vw; height: 68px;
+  border-radius: 12px 12px 0 0;
+  overflow: hidden;
+  background: linear-gradient(#7ec8f0, #cfeaf8);
+}
+.uhr-himmel--nacht { background: linear-gradient(#0d1b3d, #1c2f5e); }
+.uhr-himmel--rand  { background: linear-gradient(#f2a65a, #ffd9a0); }
+.uhr-himmel__gestirn {
+  position: absolute;
+  font-size: 22px;
+  transform: translate(-50%, 50%);
+  transition: left 0.25s linear, bottom 0.25s linear;
+}
+.uhr-himmel__boden { position: absolute; left: 0; right: 0; bottom: 0; height: 10px; background: #3a5a3a; }
+
+@media (max-width: 480px) {
+  .zifferblatt__svg { width: 180px; height: 180px; }
+  .uhr-himmel { width: 180px; height: 56px; }
+}
