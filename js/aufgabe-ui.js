@@ -18,7 +18,7 @@ import { aufgabeSchluessel, neuerEintrag, planeWieder, verschiebeAufMorgen, naec
 import { normalisiereAufgabe } from './aufgaben/normalisiere.js';
 import { neueKlickSperre } from './klick-sperre.js';
 import { reihenLaenge, istReiheFertig, fortschrittPunkte } from './reihe-logik.js';
-import { BIOME_REIHENFOLGE, baselineMaxIndex } from './biome-logik.js';
+import { beuteNiveau } from './biome-logik.js';
 import { escapeHtml, sprich } from './utils.js';
 
 const MAX_FEHLVERSUCHE = 2;  // Nach 2 Fehlversuchen Lösung zeigen.
@@ -602,16 +602,17 @@ function starteAufgabe(reihe, mechanik, profile, modal, inhalt, maxStufe, onWeit
       rapportiereErgebnis(profile.id, aufgabe.aufgabentyp, true, zeit_ms,
         { maxStufe, adaptStufe: !reihe.festeStufe, detail: detailFuer(aufgabe, maxStufe) });
       // Niveau-Abstufung: in Biomen UNTER der Schulstufe weniger Basis-Drops + kein Premium.
+      // Die Einstufung hängt an der Biom-Kennung, NICHT an der Listenposition (siehe
+      // beuteNiveau in js/biome-logik.js) — sonst würde jedes neu angehängte Biom die
+      // Beute in allen bestehenden Ländern absenken.
       const biomId = getAktivesBiom(profile.id);
-      const delta = baselineMaxIndex(profile.alter) - BIOME_REIHENFOLGE.indexOf(biomId);
-      const unterNiveau = delta > 0;
-      const biomFaktor = unterNiveau ? Math.max(0.2, 1 - 0.35 * delta) : 1;
+      const { faktor: biomFaktor, premiumErlaubt } = beuteNiveau(profile.alter, biomId);
       // Premium-Beute zusätzlich am Reihen-Fortschritt skaliert — nur Mal/Geteilt kennen eine
       // Reihen-Freischaltung, alle anderen Rechenarten bleiben bei 1 (siehe beuteFaktor).
       const reihenFaktor = (aufgabe.aufgabentyp === 'mal' || aufgabe.aufgabentyp === 'geteilt')
         ? beuteFaktor(getFreischaltung(profile.id, aufgabe.aufgabentyp))
         : 1;
-      const gegeben = verteileBelohnung(aufgabe.stufe, maxStufe, reihe.reward.item, biomFaktor, !unterNiveau, reihenFaktor);
+      const gegeben = verteileBelohnung(aufgabe.stufe, maxStufe, reihe.reward.item, biomFaktor, premiumErlaubt, reihenFaktor);
       let neuesBiom = null;
       if (aufgabe.stufe === maxStufe) {
         neuesBiom = schalteNaechstesBiomFrei(profile.id, biomId);
