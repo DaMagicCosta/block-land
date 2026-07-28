@@ -4,7 +4,7 @@
     "g": { "label": "Wiese", "emoji": "🌿", "interaktiv": false, "klasse": "tile--zeit-wiese" },
     ".": { "label": "Weg", "emoji": "", "interaktiv": false, "klasse": "tile--zeit-weg" },
     "t": { "label": "Turm", "emoji": "🗼", "interaktiv": false, "klasse": "tile--zeit-turm" },
-    "s": { "label": "Sonnenuhr", "emoji": "🌞", "interaktiv": true, "klasse": "tile--zeit-sonnenuhr", "reward": { "item": "zahnrad", "emoji": "⚙️", "label": "Zahnrad" } },
+    "s": { "label": "Sonnenuhr", "emoji": "🌞", "interaktiv": true, "klasse": "tile--zeit-sonnenuhr", "reward": { "item": "sanduhr", "emoji": "⌛", "label": "Sanduhr" } },
     "u": { "label": "Glockenturm", "emoji": "🔔", "interaktiv": true, "klasse": "tile--zeit-glocke", "reward": { "item": "stein", "emoji": "🪨", "label": "Stein" } }
   },
   "spielfigur_start": { "spalte": 6, "zeile": 4 },

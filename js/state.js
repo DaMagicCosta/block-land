@@ -35,6 +35,11 @@ const STANDARD_REZEPTE = [
   { id: 'r_mama',       name: "Mama: ich such's aus", emoji: '👩', kategorie: 'Ich bestimme',    kosten: { holz: 6 },            aktiv: true },
   { id: 'r_brettspiel', name: 'Brettspiel aussuchen', emoji: '🧩', kategorie: 'Ich bestimme',    kosten: { holz: 8 },            aktiv: true },
   { id: 'r_forschen',   name: 'Forscher-Wunsch',      emoji: '🔬', kategorie: 'Ich bestimme',    kosten: { holz: 10 },           aktiv: true },
+  // Einlösung für die Sanduhr aus dem Zeitenland — bis hierher war sie das einzige Material
+  // ohne Rezept und damit ohne Zweck. Bewusst KEIN zeitbezogener Wunsch („eine Stunde mit
+  // Papa", „länger mit Mama aufbleiben"): Der Materialname legt genau das nahe, und genau das
+  // verbietet der Beschluss oben. „Musik aussuchen" ist ein reines Bestimmungsrecht.
+  { id: 'r_musik',      name: 'Musik aussuchen',      emoji: '🎵', kategorie: 'Ich bestimme',    kosten: { sanduhr: 6 },         aktiv: true },
   { id: 'r_geschichte', name: 'Extra-Geschichte',     emoji: '📖', kategorie: 'Extra obendrauf', kosten: { holz: 4 },            aktiv: true },
   { id: 'r_nachtisch',  name: 'Nachtisch wünschen',  emoji: '🍨', kategorie: 'Naschen & Essen', kosten: { stein: 6 },           aktiv: true },
   { id: 'r_nasch',      name: 'Nasch-Gutschein',     emoji: '🍫', kategorie: 'Naschen & Essen', kosten: { stein: 8 },           aktiv: true },
@@ -645,7 +650,7 @@ export function setzeKindPin(profileId, pin) {
 }
 
 // --- Drop-Häufigkeit pro Material (Eltern-Regler) ---
-const DEFAULT_DROP = { holz: 0.9, stein: 0.85, blume: 0.85, eisen: 0.4, diamant: 0.07, zahnrad: 0.85 };
+const DEFAULT_DROP = { holz: 0.9, stein: 0.85, blume: 0.85, eisen: 0.4, diamant: 0.07, sanduhr: 0.85 };
 
 export function getDropChancen() {
   return { ...DEFAULT_DROP, ...(state.parentSettings?.dropChancen ?? {}) };

@@ -17,7 +17,7 @@ const TRUHEN_ITEM_INFO = {
   blume: { e: '🌸', l: 'Blume' },
   eisen: { e: '⛏️', l: 'Eisen' },
   diamant: { e: '💎', l: 'Diamant' },
-  zahnrad: { e: '⚙️', l: 'Zahnrad' },
+  sanduhr: { e: '⌛', l: 'Sanduhr' },
 };
 
 // Schatztruhen-Modal beim Erfüllen des Tagesauftrags. Öffnet ZUERST das Modal (Singleton-

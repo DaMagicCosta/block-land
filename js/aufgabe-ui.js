@@ -738,7 +738,7 @@ const ITEM_INFO = {
   blume: { e: '🌸', l: 'Blume' },
   eisen: { e: '⛏️', l: 'Eisen' },
   diamant: { e: '💎', l: 'Diamant' },
-  zahnrad: { e: '⚙️', l: 'Zahnrad' },
+  sanduhr: { e: '⌛', l: 'Sanduhr' },
 };
 
 function zeigeErfolg(modal, gegeben = [], istKlein = false, neuesBiom = null, onWeiter = null) {

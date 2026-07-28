@@ -27,8 +27,13 @@ import { istFrei, BIOME_REIHENFOLGE } from './biome-logik.js';
 import { standardFuer, wirksameKonfig, GRENZEN, istNacht, frischerTag } from './timer-logik.js';
 import { verwerfeLaufzeitStand } from './uebungs-timer.js';
 
-const ITEM_KEYS = ['holz', 'stein', 'blume', 'eisen', 'diamant'];
-const ITEM_EMOJI = { holz: '🪵', stein: '🪨', blume: '🌸', eisen: '⛏️', diamant: '💎' };
+// Alle Materialien, die in Preisen und Vorräten vorkommen können. Die Sanduhr muss hier
+// mitstehen, seit es ein Rezept gibt, das sie verbraucht (r_musik in state.js): Ohne Eintrag
+// hätte das Preis-Formular kein Feld dafür — und leseKostenForm() liest nur vorhandene
+// Felder, ein Eltern-Klick auf „Speichern" würde die Sanduhr-Kosten also stillschweigend
+// löschen. Neues Material immer in BEIDEN Zeilen ergänzen.
+const ITEM_KEYS = ['holz', 'stein', 'blume', 'eisen', 'diamant', 'sanduhr'];
+const ITEM_EMOJI = { holz: '🪵', stein: '🪨', blume: '🌸', eisen: '⛏️', diamant: '💎', sanduhr: '⌛' };
 // „Ich bestimme" statt „Eltern-Zeit": Gutscheine sind Bestimmungsrechte, keine erspielte
 // Elternzeit (Beschluss 13.07.2026, siehe STANDARD_REZEPTE in state.js).
 const KATEGORIEN = ['Ich bestimme', 'Extra obendrauf', 'Naschen & Essen', 'Bildschirm-Zeit', 'Erlebnisse'];
@@ -167,7 +172,7 @@ function tabBelohnungen(container, neuRendern) {
   const MATERIAL = [
     ['holz', '🪵 Holz'], ['stein', '🪨 Stein'], ['blume', '🌸 Blume'],
     ['eisen', '⛏️ Eisen (schwere Aufgaben)'], ['diamant', '💎 Diamant (schwere Aufgaben)'],
-    ['zahnrad', '⚙️ Zahnrad'],
+    ['sanduhr', '⌛ Sanduhr'],
   ];
   const ALTER_LABEL = { 'kindergarten': 'Vorschule', 'klasse-1': '1. Klasse', 'klasse-2': '2. Klasse', 'klasse-3': '3. Klasse' };
   const avatarEmojiMapTimer = Object.fromEntries(AVATARE);

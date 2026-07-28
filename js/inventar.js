@@ -6,7 +6,7 @@ const ITEM_DEFS = {
   blume:   { emoji: '🌸', label: 'Blume' },
   eisen:   { emoji: '⛏️', label: 'Eisen' },
   diamant: { emoji: '💎', label: 'Diamant' },
-  zahnrad: { emoji: '⚙️', label: 'Zahnrad' },
+  sanduhr: { emoji: '⌛', label: 'Sanduhr' },
 };
 
 export function gebeReward(item, anzahl = 1) {
