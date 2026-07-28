@@ -28,16 +28,30 @@
 .zifferblatt__zeiger--minute { stroke: var(--color-action); stroke-width: 4; stroke-linecap: round; }
 .zifferblatt__mitte { fill: #3d3a33; }
 
-/* Himmelsbogen: die Sonne läuft EINMAL über den Tag, der Zeiger ZWEIMAL durchs Blatt. */
+/* Himmelsbogen: die Sonne läuft EINMAL über den Tag, der Zeiger ZWEIMAL durchs Blatt.
+
+   --himmel-hoehe ist die EINE Stelle, an der die Höhe steht. js/zifferblatt.js rechnet die
+   senkrechte Lage der Sonne als calc() daraus — wird der Wert hier (oder im Mobil-Block
+   unten) geändert, wandert der Sonnenbogen automatisch mit. Nicht durch ein zweites,
+   unabhängiges `height` ersetzen.
+
+   Die Farben sind bewusst ANDERE als die des Übungs-Timers in css/welt.css
+   (.welt--abend / .welt--nacht). Dort bedeutet ein oranger oder dunkler Himmel „die
+   Übungszeit geht zu Ende" — hier bedeutet er „es ist 19:45". Vorher waren die Werte
+   zeichengleich, dieselbe Bildsprache trug also zwei verschiedene Bedeutungen (Befund
+   29.07.2026). Der Aufgaben-Himmel bleibt deshalb in einer eigenen Farbfamilie: türkis am
+   Tag, rosa in der Dämmerung, violett in der Nacht. Werden die Timer-Farben je angefasst,
+   bitte hier nicht angleichen. */
 .uhr-himmel {
+  --himmel-hoehe: 68px;
   position: relative;
-  width: 220px; max-width: 60vw; height: 68px;
+  width: 220px; max-width: 60vw; height: var(--himmel-hoehe);
   border-radius: 12px 12px 0 0;
   overflow: hidden;
-  background: linear-gradient(#7ec8f0, #cfeaf8);
+  background: linear-gradient(#3fa9c9, #cbeef2);
 }
-.uhr-himmel--nacht { background: linear-gradient(#0d1b3d, #1c2f5e); }
-.uhr-himmel--rand  { background: linear-gradient(#f2a65a, #ffd9a0); }
+.uhr-himmel--nacht { background: linear-gradient(#2b1b4d, #56408c); }
+.uhr-himmel--rand  { background: linear-gradient(#c2557f, #f6c39a); }
 .uhr-himmel__gestirn {
   position: absolute;
   font-size: 22px;
@@ -51,7 +65,9 @@
      aspect-ratio: 1 / 1 + height: auto aus der Basis-Regel oben, sonst wäre genau hier
      wieder ein zweiter, unabhängiger Höhenwert im Spiel. */
   .zifferblatt__svg { width: 180px; }
-  .uhr-himmel { width: 180px; height: 56px; }
+  /* Nur die Variable senken — `height` bleibt an var(--himmel-hoehe) aus der Basis-Regel
+     gebunden, damit die Sonnen-Rechnung in js/zifferblatt.js hier automatisch mitgeht. */
+  .uhr-himmel { width: 180px; --himmel-hoehe: 56px; }
 }
 
 /* Stelluhr (Mechanik B): Ziehen statt Antippen. touch-action: none ist Pflicht — sonst

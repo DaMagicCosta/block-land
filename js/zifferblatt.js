@@ -14,15 +14,29 @@ function zeigerLinie(winkelGrad, laenge, klasse) {
   return `<line class="zifferblatt__zeiger--${klasse}" x1="100" y1="100" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}" />`;
 }
 
+// Höhe des Bodenstreifens (css .uhr-himmel__boden) — tiefer als das darf die Sonne nicht.
+const BODEN_PX = 10;
+// Luft über der Sonne. Sie sitzt über translate(-50%, 50%) auf ihrem Mittelpunkt und ragt
+// deshalb rund eine halbe Glyphenhöhe (font-size 22px) über den bottom-Wert hinaus.
+const GESTIRN_LUFT_PX = 14;
+
 // Der Himmel ist die eigentliche Lektion: Sonne steigt = erste Runde, Sonne sinkt = zweite.
 export function rendereHimmel(minuten) {
   const { x, hoehe, istNacht, istDaemmerung } = sonnenPositionAmTag(minuten);
   const gestirn = istNacht ? '🌙' : '☀️';
   const klasse = istNacht ? ' uhr-himmel--nacht' : (istDaemmerung ? ' uhr-himmel--rand' : '');
-  const bottom = 10 + hoehe * 46;
+  // Die senkrechte Lage ergibt sich aus der TATSÄCHLICHEN Höhe des Himmelsbereichs
+  // (--himmel-hoehe in css/zifferblatt.css), nicht aus einer fest eingebauten Zahl.
+  // Vorher war die 68-Pixel-Fassung einbetoniert; der Mobil-Block senkt die Höhe auf 56 —
+  // dadurch lag der Sonnen-Mittelpunkt um 12 Uhr auf der Oberkante und wurde bei
+  // abgeschnittenem Überlauf beschnitten (Befund 29.07.2026), ausgerechnet der Scheitel, der
+  // die ganze Lektion trägt. Als calc() gerechnet, geht jede spätere Höhenänderung im
+  // Stylesheet automatisch mit.
+  const abstandUnten =
+    `calc(${BODEN_PX}px + ${hoehe.toFixed(3)} * (var(--himmel-hoehe, 68px) - ${BODEN_PX + GESTIRN_LUFT_PX}px))`;
   return `
     <div class="uhr-himmel${klasse}" aria-hidden="true">
-      <span class="uhr-himmel__gestirn" style="left:${(x * 100).toFixed(1)}%;bottom:${bottom.toFixed(1)}px">${gestirn}</span>
+      <span class="uhr-himmel__gestirn" style="left:${(x * 100).toFixed(1)}%;bottom:${abstandUnten}">${gestirn}</span>
       <div class="uhr-himmel__boden"></div>
     </div>
   `;
@@ -174,6 +188,13 @@ export function rendereStelluhr(startMinuten, container, onChange, options = {})
 
   let zieht = false;
   container.addEventListener('pointerdown', (ev) => {
+    // Nur Berührungen IM Zifferblatt bewegen die Zeiger (Befund 29.07.2026). Vorher hing der
+    // Listener am gesamten Container und wertete sofort aus — ein Tipp auf das Himmelsbild
+    // verstellte damit die Uhr. Der Himmel ist aber das didaktische Element, das ein Kind
+    // naturgemäß antippt („warum steht die Sonne da?"), und kein Bedienelement.
+    // Die touch-action bleibt trotzdem auf dem GESAMTEN Container (siehe oben) — sonst
+    // scrollt das Handy, sobald ein Zug über das Himmelsbild läuft.
+    if (!(ev.target instanceof Element) || !ev.target.closest('.zifferblatt__svg')) return;
     zieht = true;
     container.setPointerCapture?.(ev.pointerId);
     ausZeigerPosition(ev);
