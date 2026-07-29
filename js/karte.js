@@ -57,6 +57,16 @@ function kartenSzene() {
       <rect x="19" y="19" width="5" height="4" fill="#8a6a44"/><polygon points="19,19 21.5,14.5 24,19" fill="#a5432f"/>
       <rect x="33" y="21" width="5" height="4" fill="#8a6a44"/><polygon points="33,21 35.5,16.5 38,21" fill="#a5432f"/>
       <circle cx="28" cy="28" r="2" fill="#3a2f2a"/><circle cx="28" cy="28" r="1.2" fill="#5b8a9a"/>
+      <!-- Zeitenland (ganz oben rechts, gleichrangig neben dem Dorf): sonnige Insel mit Sonnenuhr + Glockenturm.
+           Der Abzweig ist reine Grafik (eigene Klasse) — die Figur läuft nur den Haupt-Pfad (.karte__pfad). -->
+      <path class="karte__zweig" d="M 49 45 C 62 40, 70 34, 70 24"
+            fill="none" stroke="#d9c89a" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="2 5" opacity="0.8"/>
+      <ellipse cx="70" cy="24" rx="18" ry="10" fill="#57683b"/>
+      <rect x="76.5" y="15" width="5" height="9" fill="#8a6a44"/><polygon points="76.5,15 79,10.5 81.5,15" fill="#a5432f"/>
+      <circle cx="79" cy="17.5" r="1.1" fill="#ffd166"/>
+      <ellipse cx="62" cy="26" rx="5.5" ry="3" fill="#cbb27a"/>
+      <line x1="62" y1="26" x2="64.5" y2="22" stroke="#5a3a22" stroke-width="1"/>
+      <circle cx="59.5" cy="16" r="2.2" fill="#ffd166"/>
       <!-- Wolken, über die ganze Reise verteilt -->
       <g fill="#ffffff" opacity="0.15">
         <ellipse cx="50" cy="255" rx="7" ry="2.6"/>
