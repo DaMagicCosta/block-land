@@ -54,6 +54,26 @@ function rendereWuerfel(augen, farbVar) {
   return `<div class="wuerfel">${felder.join('')}</div>`;
 }
 
+// Malfeld für größere Mal-Aufgaben: `reihen` Reihen mit je `spalten` Punkten. Gleiche Lesart
+// wie die Würfelgruppen ("a mal b" = a Gruppen à b), eine Gruppe ist hier eine Reihe; die
+// Farbe wechselt von Reihe zu Reihe. Nach dem fünften Punkt und nach der fünften Reihe steht
+// eine Lücke (Kraft der Fünf), damit 7 · 8 nicht abgezählt, sondern gesehen werden kann.
+// Grund (Live-Befund 14.09.2026): Die Würfelgruppen wurden ab etwa 9 · 7 höher als der
+// Bildschirm, die Antwortknöpfe verschwanden darunter.
+export function rendereMalfeld(reihen, spalten) {
+  const zeilen = [];
+  for (let r = 0; r < reihen; r++) {
+    const farbVar = r % 2 === 0 ? 'var(--color-success)' : 'var(--color-action)';
+    const punkte = [];
+    for (let s = 0; s < spalten; s++) {
+      punkte.push(`<div class="malfeld__punkt${s === 5 ? ' malfeld__punkt--fuenfer' : ''}" style="background:${farbVar}"></div>`);
+    }
+    const fuenfer = r === 4 && reihen > 5 ? ' malfeld__reihe--fuenfer' : '';
+    zeilen.push(`<div class="malfeld__reihe${fuenfer}">${punkte.join('')}</div>`);
+  }
+  return `<div class="malfeld" data-zahl="${reihen * spalten}">${zeilen.join('')}</div>`;
+}
+
 // B-Mechanik: leeres Zähl-Raster, Punkte werden durch Klick gefüllt.
 // `startGefuellt` = bereits gesetzte (bekannte) Punkte, die nicht zurückgenommen werden können.
 export function rendereLegehaus(soll_zahl, container, onChange, { startGefuellt = 0 } = {}) {

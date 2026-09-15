@@ -6,7 +6,8 @@ import {
 } from './state.js';
 import { flushSync } from './sync.js';
 import { aktualisiereInventarHeader } from './inventar.js';
-import { escapeHtml } from './utils.js';
+import { escapeHtml, istKleinkind, sprich } from './utils.js';
+import { willkommenSatz, vorratSatz, rezeptSatz, gebautSatz, tabSatz, gutscheinSatz, gefragtSatz } from './werkstatt-sprache-logik.js';
 
 const ITEM_EMOJI = { holz: '🪵', stein: '🪨', blume: '🌸', eisen: '⛏️', diamant: '💎', sanduhr: '⌛' };
 
@@ -37,6 +38,9 @@ export function oeffneRezeptbuch(nachSchliessen) {
   if (!modal) { window.removeEventListener('blockland:zustandEingespielt', aufSyncEreignis); return; }
 
   let tab = 'bauen';
+  // Sprachführung für Kinder, die noch nicht lesen (Live-Befund 14.09.2026): Die Aufgaben
+  // sprechen mit ihnen, die Werkstatt war bis dahin reine Schrift. Sätze: werkstatt-sprache-logik.js.
+  const klein = istKleinkind(profile);
 
   function render() {
     const inv = getInventar(profile.id);
@@ -55,13 +59,22 @@ export function oeffneRezeptbuch(nachSchliessen) {
     else rendereGutscheine(inhalt, profile, render);
 
     modal.inhalt.querySelectorAll('.werkstatt__tabs button').forEach(b => {
-      b.addEventListener('click', () => { tab = b.dataset.tab; render(); });
+      b.addEventListener('click', () => {
+        tab = b.dataset.tab;
+        render();
+        if (klein) sprich(tabSatz(tab));
+      });
     });
+    if (klein) {
+      modal.inhalt.querySelector('.werkstatt__vorrat')
+        .addEventListener('click', () => sprich(vorratSatz(getInventar(profile.id))));
+    }
     modal.inhalt.querySelector('.werkstatt__schliessen')
       .addEventListener('click', () => modal.schliessen());
   }
 
   render();
+  if (klein) sprich(willkommenSatz(getInventar(profile.id)));
 }
 
 function rendereVorrat(inv) {
@@ -81,6 +94,7 @@ function kostenText(kosten) {
 }
 
 function rendereRezepte(container, profile, neuRendern) {
+  const klein = istKleinkind(profile);
   const rezepte = getRezepte().filter(r => r.aktiv);
   const kategorien = [...new Set(rezepte.map(r => r.kategorie))];
   container.innerHTML = kategorien.map(kat => `
@@ -89,8 +103,8 @@ function rendereRezepte(container, profile, neuRendern) {
       ${rezepte.filter(r => r.kategorie === kat).map(r => {
         const machbar = kannBauen(profile.id, r.kosten);
         return `
-          <div class="werkstatt__rezept${machbar ? '' : ' werkstatt__rezept--gesperrt'}">
-            <div class="werkstatt__rezept-name">${r.emoji} ${escapeHtml(r.name)}</div>
+          <div class="werkstatt__rezept${machbar ? '' : ' werkstatt__rezept--gesperrt'}${klein ? ' werkstatt__sprechend' : ''}" data-rezept="${escapeHtml(r.id)}">
+            <div class="werkstatt__rezept-name">${klein ? '<span class="werkstatt__lautsprecher" aria-hidden="true">🔊</span> ' : ''}${r.emoji} ${escapeHtml(r.name)}</div>
             <div class="werkstatt__rezept-kosten">${kostenText(r.kosten)}</div>
             <button class="werkstatt__bauen" data-id="${escapeHtml(r.id)}"${machbar ? '' : ' disabled'}>Bauen</button>
           </div>
@@ -99,12 +113,24 @@ function rendereRezepte(container, profile, neuRendern) {
     </div>
   `).join('');
 
+  if (klein) {
+    // Zeile antippen = vorlesen. Den Bauen-Knopf selbst ausnehmen, der hat seine eigene Ansage.
+    container.querySelectorAll('.werkstatt__rezept[data-rezept]').forEach(zeile => {
+      zeile.addEventListener('click', (e) => {
+        if (e.target.closest('.werkstatt__bauen')) return;
+        const rezept = getRezepte().find(r => r.id === zeile.dataset.rezept);
+        if (rezept) sprich(rezeptSatz(rezept, getInventar(profile.id)));
+      });
+    });
+  }
+
   container.querySelectorAll('.werkstatt__bauen').forEach(btn => {
     btn.addEventListener('click', () => {
       const rezept = getRezepte().find(r => r.id === btn.dataset.id);
       if (!rezept) return;
       const gutschein = baueGutschein(profile.id, rezept);
       if (!gutschein) return;
+      if (klein) sprich(gebautSatz(rezept));
       aktualisiereInventarHeader(true);
       // Vorrat-Zeile SOFORT nachziehen (Live-Befund 18.07.2026: „Rohstoffe werden nicht
       // weniger" — der Abzug passierte, war aber bis zum 1,4-s-Re-Render unsichtbar).
@@ -188,6 +214,24 @@ function rendereGutscheine(container, profile, neuRendern, anfrageWahl = null) {
   `;
 
   const neu = (wahl) => rendereGutscheine(container, profile, neuRendern, wahl);
+  if (istKleinkind(profile)) {
+    // Gutschein-Namen antippen = vorlesen, samt Stand der Anfrage (⏳/✅/🌙 sind ohne Lesen
+    // nicht zu deuten). Nur der Name, damit Anfrage-Knöpfe und Stepper unberührt bleiben.
+    container.querySelectorAll('.werkstatt__gutschein-name').forEach((el, i) => {
+      el.classList.add('werkstatt__sprechend');
+      el.insertAdjacentHTML('afterbegin', '<span class="werkstatt__lautsprecher" aria-hidden="true">🔊</span> ');
+      el.addEventListener('click', () => {
+        const s = stapel[i];
+        if (s) {
+          const a = anfragen.find(x => x.rezeptId === s.rezeptId && ['offen', 'freigegeben', 'abgelehnt'].includes(x.status));
+          sprich(gutscheinSatz(s.name, s.anzahl, a?.status ?? null));
+        } else {
+          const f = nurFreigegeben[i - stapel.length];
+          if (f) sprich(gutscheinSatz(f.name ?? 'Gutschein', Number(f.anzahl) || 1, 'freigegeben'));
+        }
+      });
+    });
+  }
   container.querySelectorAll('[data-anfragen]').forEach(btn => {
     btn.addEventListener('click', () => neu({ rezeptId: btn.dataset.anfragen, anzahl: 1 }));
   });

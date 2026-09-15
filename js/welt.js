@@ -2,7 +2,7 @@ import { getCurrentProfile, setCurrentProfile, getAktivesBiom, getAktiveReihe, g
 import { wirksameKonfig, istNacht, istAbend, sonnenAnzeigeProzent, nachtRestMin } from './timer-logik.js';
 import { loadAvatare, loadBiom } from './data.js';
 import { escapeHtml } from './utils.js';
-import { oeffneModal, schliesseAlleModals } from './modal.js';
+import { oeffneModal, schliesseAlleModals, istModalOffen } from './modal.js';
 import { oeffneAufgabe, oeffneRechnen10Auswahl } from './aufgabe-ui.js';
 import { oeffneTextaufgabe } from './textaufgabe-ui.js';
 import { rendereInventarHeader, gebeReward } from './inventar.js';
@@ -154,6 +154,9 @@ export async function renderWelt(container) {
             <p>☀️ In <b>${nachtRestMin(t)} Min</b> geht die Sonne wieder auf.</p>
             <button class="modal__close">Alles klar!</button>
           </div>`,
+        // Nach dem Schließen die Welt neu zeichnen: Hat das Kind hier getippt, zeigte der
+        // Himmel oft noch die Sonne (siehe Himmels-Prüfung am Ende von renderWelt).
+        onClose: () => renderWelt(container),
       });
       modal?.inhalt.querySelector('.modal__close')?.addEventListener('click', () => modal.schliessen());
       return true;
@@ -309,11 +312,23 @@ export async function renderWelt(container) {
     teichAuswahlGezeigtFuer = null;
   }
 
-  // Sonne alle 30 s nachführen — Positions-Update direkt am Element, kein Re-Render.
+  // Himmel alle 5 s prüfen (Live-Befund 14.09.2026: „Block-Land schläft", obwohl die
+  // Sonne noch am Himmel stand). Der Himmel wurde nur beim Zeichnen der Welt bestimmt; den
+  // Phasenwechsel zeichnet app.js bewusst NICHT, solange ein Fenster offen ist. Begann die
+  // Nacht also in der Mal-Hütte oder im Tagesauftrag-Fenster — beide zeichnen beim Schließen
+  // nicht neu —, stand danach weiter die Sonne da, während das Nacht-Gate schon sperrte.
+  // Deshalb hier: Wechselt Nacht oder Abend, wird neu gezeichnet, sobald kein Fenster offen
+  // ist; sonst wandert nur die Sonne.
   clearInterval(container.__sonnenIntervall);
   container.__sonnenIntervall = setInterval(() => {
+    if (!container.querySelector('.welt') || getCurrentProfile()?.id !== profile.id) return;
+    if (!timerKonfig.aktiv) return;
+    const t = getTimer(profile.id);
+    if (istNacht(t) !== nachtAktiv || istAbend(t, timerKonfig) !== abendAktiv) {
+      if (!istModalOffen()) renderWelt(container);
+      return;
+    }
     const sonne = container.querySelector('.welt__sonne');
-    if (!sonne) return;
-    sonne.style.left = `${sonnenAnzeigeProzent(getTimer(profile.id), timerKonfig)}%`;
-  }, 30000);
+    if (sonne) sonne.style.left = `${sonnenAnzeigeProzent(t, timerKonfig)}%`;
+  }, 5000);
 }

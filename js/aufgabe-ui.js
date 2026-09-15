@@ -1,5 +1,5 @@
 import { oeffneModal, schliesseAlleModals } from './modal.js';
-import { rendereZehnerhaus, rendereLegehaus, rendereStatischesFeld } from './wuerfelhaus.js';
+import { rendereZehnerhaus, rendereLegehaus, rendereStatischesFeld, rendereMalfeld } from './wuerfelhaus.js';
 import { generierePlusAufgabe } from './aufgaben/plus.js';
 import { generiereMalAufgabe } from './aufgaben/mal.js';
 import { generiereMengenAufgabe } from './aufgaben/mengen.js';
@@ -19,7 +19,7 @@ import { normalisiereAufgabe } from './aufgaben/normalisiere.js';
 import { neueKlickSperre } from './klick-sperre.js';
 import { reihenLaenge, istReiheFertig, fortschrittPunkte } from './reihe-logik.js';
 import { beuteNiveau } from './biome-logik.js';
-import { escapeHtml, sprich } from './utils.js';
+import { escapeHtml, sprich, istKleinkind } from './utils.js';
 
 const MAX_FEHLVERSUCHE = 2;  // Nach 2 Fehlversuchen Lösung zeigen.
 
@@ -38,9 +38,6 @@ function sollHuettenHinweisZeigen(profile, typ) {
   if (!nurEineReiheOffen(getFreischaltung(profile.id, typ), typ)) return false;
   huettenHinweisZaehler++;
   return huettenHinweisZaehler % 2 === 1;
-}
-function istKleinkind(profile) {
-  return profile.alter === 'kindergarten' || profile.alter === 'klasse-1';
 }
 
 // Würfel-Teich: Auswahl beim Betreten — Querbeet (adaptiv) oder gezielt eine Art.
@@ -358,7 +355,9 @@ function rendereFrageInModal(modal, reihe, profile, maxStufe, onWeiter) {
 // Mal: wiederholte Addition als Würfelgruppen — 9 · 7 zeigt 7 + 7 + … (9 Gruppen à 7),
 //   wörtliche Lesart "a mal b" = a Gruppen mit je b Augen (kein Vertauschen, damit
 //   es zur gesprochenen Aufgabe passt). Abwechselnde Farbe macht die Gruppen zählbar.
-//   Wird immer gezeigt — auch große Reihen (bewusst, zum Live-Beurteilen).
+//   Große Aufgaben (mehr als 5 Gruppen oder mehr als 10 je Gruppe) zeigen stattdessen das
+//   kompakte Malfeld — Entscheidung nach dem Live-Beurteilen (14.09.2026): Die Würfelgruppen
+//   wurden höher als der Bildschirm, die Antwortknöpfe waren nicht mehr zu sehen.
 // Stellenwert-Fall: geführte Schritte statt statischer Visualisierung.
 // Greift bei Plus/Minus, wenn zweistellig ODER mit Zehnerübergang/Borgen.
 function istStellenwertFall(aufgabe) {
@@ -372,6 +371,9 @@ function istStellenwertFall(aufgabe) {
 function baueVisualisierung(aufgabe) {
   if (aufgabe.aufgabentyp === 'mal') {
     if (aufgabe.a < 1) return '';
+    if (aufgabe.a > 5 || aufgabe.b > 10) {
+      return `<div class="aufgabe__visualisierung">${rendereMalfeld(aufgabe.a, aufgabe.b)}</div>`;
+    }
     const gruppen = [];
     for (let i = 0; i < aufgabe.a; i++) {
       gruppen.push(rendereZehnerhaus(aufgabe.b, { farbe: i % 2 === 0 ? 'success' : 'action' }));

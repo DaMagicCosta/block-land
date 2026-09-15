@@ -14,6 +14,12 @@ export function mische(arr) {
   return k;
 }
 
+// Kinder, die noch nicht (sicher) lesen: Die App spricht mit ihnen. Eine Stelle für
+// Aufgaben und Werkstatt, damit beide dieselbe Altersgrenze benutzen.
+export function istKleinkind(profile) {
+  return profile?.alter === 'kindergarten' || profile?.alter === 'klasse-1';
+}
+
 // Deutschsprachige Sprachausgabe (Web Speech API) — genutzt für Vorlese-Text und
 // gesprochenes Feedback. Fehlt die API (nicht unterstützter Browser), passiert nichts.
 export function sprich(text) {

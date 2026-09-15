@@ -67,6 +67,12 @@
 .werkstatt__rezept-kosten { color: var(--color-text-dim); font-size: var(--font-size-sm); white-space: nowrap; }
 .werkstatt__rezept--gesperrt { opacity: 0.55; }
 
+/* Sprachführung (Kindergarten, 1. Klasse): Zeile antippen = vorlesen. Der Lautsprecher zeigt,
+   dass es hier etwas zu hören gibt; gesperrte Wünsche bleiben dafür voll antippbar. */
+.werkstatt__sprechend { cursor: pointer; }
+.werkstatt__rezept--gesperrt.werkstatt__sprechend { opacity: 0.75; }
+.werkstatt__lautsprecher { font-size: 0.9em; }
+
 .werkstatt__bauen {
   background: var(--color-success);
   color: var(--color-bg);

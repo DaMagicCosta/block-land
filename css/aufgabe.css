@@ -112,6 +112,18 @@
 }
 .wuerfel__auge { width: 13px; height: 13px; border-radius: 50%; }
 
+/* Legefeld (B-Mechanik): Häuser umbrechen. Bei Mal-Aufgaben bis 120 Punkte lagen sonst zwölf
+   Zehnerhäuser in einer Zeile, weit breiter als der Bildschirm. */
+.wuerfelhaus--lege .wuerfelhaus__haeuser { flex-wrap: wrap; justify-content: center; }
+
+/* Malfeld für größere Mal-Aufgaben (a Reihen à b Punkte, Lücke nach fünf — Kraft der Fünf).
+   Ersetzt dort die Würfelgruppen, die ab etwa 9 · 7 höher als der Bildschirm wurden. */
+.malfeld { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: var(--space-sm); background: var(--color-surface-2); border-radius: var(--radius-sm); }
+.malfeld__reihe { display: flex; gap: 3px; }
+.malfeld__reihe--fuenfer { margin-bottom: 6px; }
+.malfeld__punkt { width: 12px; height: 12px; border-radius: 50%; }
+.malfeld__punkt--fuenfer { margin-left: 6px; }
+
 /* Antwort-Optionen */
 .aufgabe__optionen {
   display: grid;

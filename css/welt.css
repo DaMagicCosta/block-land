@@ -129,16 +129,24 @@
 }
 
 /* Aufgaben-Modal (Stub) */
+/* Scrollbar als Sicherheitsnetz (Live-Befund 14.09.2026): Mit align-items:center und ohne
+   overflow wurde ein Fenster, das höher als der Bildschirm ist, oben UND unten abgeschnitten
+   und war nicht erreichbar — bei großen Mal-Aufgaben lagen die Antwortknöpfe unsichtbar
+   unter dem Rand. margin-block:auto zentriert weiter, solange Platz ist; sonst beginnt das
+   Fenster oben und der Hintergrund scrollt. */
 .modal-backdrop {
   position: fixed;
   inset: 0;
   background: rgba(0,0,0,0.7);
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
   padding: var(--space-md);
   z-index: 100;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
+.modal-backdrop > * { margin-block: auto; }
 
 .modal {
   background: var(--color-surface);
