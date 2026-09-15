@@ -53,7 +53,7 @@ function pinAbfrage(modal) {
   modal.inhalt.innerHTML = `
     <div class="eltern__kopf">🔒 Eltern-Bereich</div>
     <p class="eltern__hinweis">Bitte PIN eingeben.</p>
-    <input class="eltern__feld eltern__pin" type="password" inputmode="numeric" maxlength="8" />
+    <input class="eltern__feld eltern__pin" type="text" inputmode="numeric" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" maxlength="8" />
     <div class="eltern__fehler" hidden></div>
     <button class="eltern__primary">Öffnen</button>
     <button class="eltern__sekundaer eltern__abbruch">Abbrechen</button>
@@ -76,8 +76,8 @@ function pinErstellen(modal) {
   modal.inhalt.innerHTML = `
     <div class="eltern__kopf">🔒 PIN festlegen</div>
     <p class="eltern__hinweis">Lege eine Eltern-PIN fest (Zahlen). Sie hält die Kinder aus diesem Bereich — kein echter Passwortschutz.</p>
-    <input class="eltern__feld eltern__pin" type="password" inputmode="numeric" maxlength="8" placeholder="Neue PIN" />
-    <input class="eltern__feld eltern__pin2" type="password" inputmode="numeric" maxlength="8" placeholder="Wiederholen" />
+    <input class="eltern__feld eltern__pin" type="text" inputmode="numeric" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" maxlength="8" placeholder="Neue PIN" />
+    <input class="eltern__feld eltern__pin2" type="text" inputmode="numeric" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" maxlength="8" placeholder="Wiederholen" />
     <div class="eltern__fehler" hidden></div>
     <button class="eltern__primary">Speichern</button>
     <button class="eltern__sekundaer eltern__abbruch">Abbrechen</button>
@@ -704,8 +704,8 @@ function tabFreischaltung(container, neuRendern) {
 function tabPin(container) {
   container.innerHTML = `
     <div class="eltern__abschnitt-titel">PIN ändern</div>
-    <input class="eltern__feld eltern__pin" type="password" inputmode="numeric" maxlength="8" placeholder="Neue PIN" />
-    <input class="eltern__feld eltern__pin2" type="password" inputmode="numeric" maxlength="8" placeholder="Wiederholen" />
+    <input class="eltern__feld eltern__pin" type="text" inputmode="numeric" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" maxlength="8" placeholder="Neue PIN" />
+    <input class="eltern__feld eltern__pin2" type="text" inputmode="numeric" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" maxlength="8" placeholder="Wiederholen" />
     <div class="eltern__fehler" hidden></div>
     <button class="eltern__mini" data-savepin>PIN speichern</button>
   `;

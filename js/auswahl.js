@@ -87,7 +87,7 @@ export async function renderAuswahl(container) {
     modal.inhalt.innerHTML = `
       <div class="eltern__kopf">🔒 Dein Profil</div>
       <p class="eltern__hinweis">Gib deine PIN ein.</p>
-      <input class="eltern__feld eltern__pin" type="password" inputmode="numeric" maxlength="8" />
+      <input class="eltern__feld eltern__pin" type="text" inputmode="numeric" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" maxlength="8" />
       <div class="eltern__fehler" hidden></div>
       <button class="eltern__primary">Los</button>
       <button class="eltern__sekundaer eltern__abbruch">Zurück</button>

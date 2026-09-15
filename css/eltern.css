@@ -10,6 +10,12 @@
 }
 .eltern__hinweis { color: var(--color-text-dim); font-size: var(--font-size-sm); text-align: center; }
 
+/* PIN-Felder (Eltern-PIN, Kind-PIN in auswahl.js): bewusst type="text" statt "password"
+   (15.09.2026). Passwortfelder rufen den Google-Passwortmanager auf den Plan — er bot bei jeder
+   PIN Speichern oder Vorschläge an. Verdeckt werden die Ziffern hier über die Gestaltung; die
+   PINs sind ohnehin kein echter Passwortschutz, sondern halten die Kinder nur heraus. */
+.eltern__pin, .eltern__pin2 { -webkit-text-security: disc; text-security: disc; }
+
 /* Fußzeile: aktive App-Version dieses Geräts + Geräte-ID (= Spalte „geraet" im Familien-Log) —
    Diagnose-Anker bei Update-/Cache-Verdacht und für die Log-Zuordnung. */
 .eltern__version {
