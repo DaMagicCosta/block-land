@@ -14,7 +14,9 @@ const mal = (a, b, stufe = 4) => ({ aufgabentyp: 'mal', stufe, a, b, ergebnis: a
 
 check('der Befund: 12 · 11 wird verworfen', !passtZumPool(mal(12, 11), pool));
 check('11 · 12 ebenso', !passtZumPool(mal(11, 12), pool));
-check('10 · 12 (heutige Stufe 4) bleibt', passtZumPool(mal(10, 12), pool));
+check('zweiter Befund: 3 · 11 aus der Fehler-Box wird verworfen', !passtZumPool(mal(3, 11), pool));
+check('10 · 12 wird verworfen (kleines 1x1 endet bei 10)', !passtZumPool(mal(10, 12), pool));
+check('10 · 10 bleibt', passtZumPool(mal(10, 10), pool));
 check('7 · 8 bleibt', passtZumPool(mal(7, 8, 2), pool));
 check('Trainer-Konserve stufe 0 (10 · 10) bleibt', passtZumPool(mal(10, 10, 0), pool));
 check('Einserreihe (1 · 5, Stufe 1) bleibt', passtZumPool(mal(1, 5, 1), pool));

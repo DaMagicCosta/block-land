@@ -115,6 +115,11 @@ console.log('\nMal: keine Faktoren über 10 (Nachtrag B, Teil 2 — kleines 1x1)
 
 pruefe('Konfiguration: a_max in Stufe 4 ist auf 10 gedeckelt (vorher 12)',
   pool.mal.stufen.find(s => s.nr === 4).a_max === 10);
+// Befund 15.09.2026 (Fehler-Raupe): b_max stand in Stufe 4 noch auf 12. Im Biom-Pfad war das tot
+// (erlaubteReihen), aber konserven-grenzen.js misst Altbestände an diesen Grenzen — eine 3 · 11
+// aus der Fehler-Box ging deshalb durch. Beide Faktoren aller Mal-Stufen bleiben im kleinen 1x1.
+pruefe('Konfiguration: kein Mal-Faktor über 10 in irgendeiner Stufe (a_max und b_max)',
+  pool.mal.stufen.every(s => s.a_max <= 10 && s.b_max <= 10));
 
 // Realistische Produktions-Bedingung: aufgabe-ui.js übergibt für Mal IMMER erlaubteReihen aus
 // der Freischaltung (nie null) — der Rückfall auf b_min/b_max ist im echten Biom-Pfad tot.

@@ -18,7 +18,7 @@
       { "nr": 1, "label": "Kleines 1x1 (bis 5)",      "a_min": 1, "a_max": 5,  "b_min": 1, "b_max": 5  },
       { "nr": 2, "label": "Volles 1x1 (bis 10)",      "a_min": 1, "a_max": 10, "b_min": 1, "b_max": 10 },
       { "nr": 3, "label": "Schwere Reihen (6-9)",     "a_min": 6, "a_max": 9,  "b_min": 2, "b_max": 10 },
-      { "nr": 4, "label": "Gemischt, ohne Einser (kleines 1x1)", "a_min": 2, "a_max": 10, "b_min": 2, "b_max": 12 }
+      { "nr": 4, "label": "Gemischt, ohne Einser (kleines 1x1)", "a_min": 2, "a_max": 10, "b_min": 2, "b_max": 10 }
     ],
     "distraktoren": {
       "anzahl": 4

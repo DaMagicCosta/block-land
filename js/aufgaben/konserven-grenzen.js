@@ -2,9 +2,10 @@
 // Check: node tools/check-konserven-grenzen.mjs
 //
 // Warum es das gibt (Befund 15.09.2026, erste Meldung der Fehler-Raupe): Eine seit Juli offene
-// Mal-Reihe trug 12 · 11 aus der alten Stufe „großes 1x1". Die höchste Mal-Stufe geht seit dem
-// 22.07.2026 nur noch bis 10 · 12 — der Erzeuger kann so eine Aufgabe nicht mehr bauen, die
-// Konserve aber hat die Änderung überlebt. normalisiereAufgabe() prüft nur, ob eine Konserve
+// Mal-Reihe trug 12 · 11 aus der alten Stufe „großes 1x1" (bis 22.07.2026). Der Erzeuger kann so
+// eine Aufgabe nicht mehr bauen, die Konserve aber hat die Änderung überlebt. Kurz darauf kam
+// 3 · 11 aus der Fehler-Box: Stufe 4 trug noch b_max 12 — seither enden alle Mal-Stufen bei 10,
+// und diese Prüfung misst damit das kleine 1x1. normalisiereAufgabe() prüft nur, ob eine Konserve
 // technisch lesbar ist, nicht ob sie noch zum Stoff passt. Das hier ist die zweite Prüfung.
 //
 // Maßstab ist die Vereinigung ALLER heutigen Stufen eines Typs, nicht die eigene Stufe der
