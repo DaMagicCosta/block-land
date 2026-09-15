@@ -1,7 +1,7 @@
 // Service Worker für Block-Land — NETWORK-FIRST.
 // Online wird IMMER die neueste Version geladen (kein manuelles Cache-Leeren / App-Neustart mehr);
 // der Cache dient nur als Offline-Fallback. Der neue Worker übernimmt sofort (skipWaiting + claim).
-const CACHE_VERSION = "block-land-v94";
+const CACHE_VERSION = "block-land-v95";
 const DATEIEN = [
   "BlockLand.html",
   "manifest.webmanifest",
@@ -33,12 +33,25 @@ self.addEventListener("activate", (e) => {
 
 // Network-first: erst Netz versuchen (frische Version), dabei in den Cache spiegeln;
 // nur bei Netz-Fehler (offline) aus dem Cache bedienen, für Navigationen die Hülle.
+//
+// cache: "no-cache" (Befund 15.09.2026): GitHub Pages schickt max-age=600. Ein normales fetch()
+// nahm deshalb bis zu 10 Minuten nach einem Update noch die alte Kopie aus dem HTTP-Cache des
+// Browsers — die App meldete schon die neue Fassung (sw.js lädt immer frisch), rechnete aber mit
+// dem alten Aufgaben-Pool. So entstehen Mischstände, die sich später nicht nachstellen lassen.
+// "no-cache" fragt jedes Mal beim Server nach (If-Modified-Since/ETag); unverändert = kleine
+// 304-Antwort. Navigationen lassen sich nicht mit RequestInit neu bauen, daher über die URL.
+function frischHolen(req) {
+  return req.mode === "navigate"
+    ? fetch(req.url, { cache: "no-cache", credentials: "same-origin" })
+    : fetch(req, { cache: "no-cache" });
+}
+
 self.addEventListener("fetch", (e) => {
   const req = e.request;
   if (req.method !== "GET") return;
   if (new URL(req.url).origin !== self.location.origin) return;
   e.respondWith(
-    fetch(req)
+    frischHolen(req)
       .then((antwort) => {
         if (antwort && antwort.ok) {
           const kopie = antwort.clone();
