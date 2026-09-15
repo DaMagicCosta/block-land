@@ -16,6 +16,7 @@ import { getCurrentProfile, getAktivesBiom, schalteNaechstesBiomFrei, getAktiveR
 import { offeneReihen, ohneEinserreihe, nurEineReiheOffen, beuteFaktor } from './freischaltung-logik.js';
 import { aufgabeSchluessel, neuerEintrag, planeWieder, verschiebeAufMorgen, naechsteFaellige, hilfeStufeFuer } from './fehlerbox-logik.js';
 import { normalisiereAufgabe } from './aufgaben/normalisiere.js';
+import { passtZumPool } from './aufgaben/konserven-grenzen.js';
 import { neueKlickSperre } from './klick-sperre.js';
 import { reihenLaenge, istReiheFertig, fortschrittPunkte } from './reihe-logik.js';
 import { beuteNiveau } from './biome-logik.js';
@@ -142,6 +143,14 @@ export async function oeffneAufgabe(reward, { onClose, festeStufe = null } = {})
       setzeFehlerboxEintrag(profile.id, eintrag.schluessel, null);
       return null;
     }
+    // Lesbar, aber kein heutiger Stoff mehr (z. B. 12 · 11 aus dem alten „großen 1x1", Befund
+    // 15.09.2026) → ebenfalls raus. Die Box soll Gekonntes festigen, nicht Abgeschafftes
+    // dauerhaft wiedervorlegen; eine nicht gekonnte Aufgabe fiele sonst immer auf Fach 1 zurück.
+    if (!passtZumPool(sauber, pool)) {
+      console.warn('[aufgabe-ui] Fehlerbox-Konserve außerhalb des heutigen Pools verworfen:', eintrag.schluessel);
+      setzeFehlerboxEintrag(profile.id, eintrag.schluessel, null);
+      return null;
+    }
     // Uhr-Konserve: zeigeDigital NICHT aus der Box übernehmen (Live-Befund 28.07.2026).
     // Die Konserve wurde ggf. beim ursprünglichen Fehlversuch mit einer gewürfelten Form
     // gespeichert (rendereFrageInModal schreibt zeigeDigital auf dasselbe Aufgabe-Objekt,
@@ -184,10 +193,13 @@ export async function oeffneAufgabe(reward, { onClose, festeStufe = null } = {})
   if (reihe) {
     aktiveFesteStufe = reihe.festeStufe ?? null;
     const sauber = normalisiereAufgabe(reihe.aufgabe);
-    if (sauber) {
+    // Zweite Bedingung (Befund 15.09.2026): eine seit Juli offene Mal-Reihe trug 12 · 11 aus dem
+    // abgeschafften „großen 1x1". Unpassende Aufgabe → frisch an gleicher Position, die Reihe
+    // selbst (Position, Belohnung) bleibt dem Kind erhalten.
+    if (sauber && passtZumPool(sauber, pool)) {
       reihe.aufgabe = sauber;
     } else {
-      console.warn('[aufgabe-ui] Kaputte Reihen-Konserve — Aufgabe wird frisch erzeugt.');
+      console.warn('[aufgabe-ui] Reihen-Konserve kaputt oder außerhalb des heutigen Pools — Aufgabe wird frisch erzeugt.');
       reihe.aufgabe = generiere();
       reihe.fehlversuche = 0;
       setzeAktiveReihe(profile.id, reihe.biom, reihe);

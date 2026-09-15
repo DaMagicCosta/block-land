@@ -608,9 +608,13 @@ export function stelleGutscheinAnfrage(profileId, stapelEintrag, anzahl) {
 // kam per Sync auf jedes Gerät, jedes Gerät feiert genau einmal und räumt selbst auf.
 export function quittiereGutscheinAnfrage(profileId, anfrageId) {
   const p = state.profiles[profileId];
-  if (!p?.gutscheinAnfragen) return;
+  if (!p?.gutscheinAnfragen?.some(a => a.anfrageId === anfrageId)) return;
   p.gutscheinAnfragen = entferneAnfrage(p.gutscheinAnfragen, anfrageId);
   save(state);
+  // Gemeldet seit 15.09.2026: Bis dahin blieb das Quittieren lokal, und jedes Gerät, das das
+  // Familien-Log neu abspielt, feierte jede alte Freigabe noch einmal (elfmal „Juhu!" am Stück).
+  // Mit dem Ereignis feiert das Kind eine Freigabe genau einmal, egal auf welchem Gerät.
+  melde('gutscheinAnfrageQuittiert', { profilId: profileId, anfrageId });
 }
 
 // Werkstatt geschlossen → 🌙-Hinweise abräumen (Spec, Beschluss 4: „beim nächsten Besuch normal").
@@ -806,6 +810,14 @@ export function wendeZustandsEreignisAn(ereignis) {
         if (!p || !args?.anfrageId) return false;
         const status = args.entscheidung === 'freigegeben' ? 'freigegeben' : 'abgelehnt';
         p.gutscheinAnfragen = setzeAnfrageStatus(p.gutscheinAnfragen, args.anfrageId, status);
+        save(state);
+        return true;
+      }
+      case 'gutscheinAnfrageQuittiert': {
+        // Feier wurde auf einem Gerät gezeigt → hier nicht noch einmal feiern.
+        const p = state.profiles[args?.profilId];
+        if (!p || !args?.anfrageId) return false;
+        p.gutscheinAnfragen = entferneAnfrage(p.gutscheinAnfragen, args.anfrageId);
         save(state);
         return true;
       }

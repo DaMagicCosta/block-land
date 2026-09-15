@@ -10,6 +10,7 @@ import { oeffneTrainer } from './trainer.js';
 import { oeffneRezeptbuch } from './werkstatt.js';
 import { oeffneElternBereich } from './eltern.js';
 import { truhenZiehung } from './tagesauftrag-logik.js';
+import { istFeierVeraltet } from './gutschein-anfrage-logik.js';
 
 const TRUHEN_ITEM_INFO = {
   holz: { e: '🪵', l: 'Holz' },
@@ -285,7 +286,12 @@ export async function renderWelt(container) {
   }
 
   // Freigegebene Gutschein-Anfrage? Feier zeigen (eine pro Render; onClose re-rendert → nächste).
-  const freigegeben = getGutscheinAnfragen(profile.id).find(a => a.status === 'freigegeben');
+  // Freigaben älter als eine Woche werden still quittiert statt gefeiert (Befund 15.09.2026: ein
+  // neu eingerichtetes Gerät spielte elf alte Freigaben ab, siehe istFeierVeraltet).
+  const anfragen = getGutscheinAnfragen(profile.id);
+  anfragen.filter(a => a.status === 'freigegeben' && istFeierVeraltet(a))
+    .forEach(a => quittiereGutscheinAnfrage(profile.id, a.anfrageId));
+  const freigegeben = anfragen.find(a => a.status === 'freigegeben' && !istFeierVeraltet(a));
   if (freigegeben) {
     zeigeAnfrageFeierModal(profile.id, freigegeben, container);
     return;

@@ -33,6 +33,18 @@ export function entferneAnfrage(anfragen, anfrageId) {
   return (anfragen ?? []).filter(a => a.anfrageId !== anfrageId);
 }
 
+// Freigabe-Feier nur für frische Anfragen (Befund 15.09.2026): Ein neu eingerichtetes Gerät spielt
+// das Familien-Log von vorn ab und bekam jede Freigabe seit Juli noch einmal als Feier — elfmal
+// hintereinander „Juhu!". Das Quittieren wird seither gemeldet, für die Altbestände OHNE
+// Quittier-Ereignis greift diese Altersgrenze. Ohne lesbaren Zeitstempel wird gefeiert (im
+// Zweifel für das Kind).
+export const FEIER_MAX_TAGE = 7;
+export function istFeierVeraltet(anfrage, jetzt = new Date(), maxTage = FEIER_MAX_TAGE) {
+  const t = Date.parse(anfrage?.ts ?? '');
+  if (!Number.isFinite(t)) return false;
+  return jetzt.getTime() - t > maxTage * 86400000;
+}
+
 export function entferneNachStatus(anfragen, status) {
   return (anfragen ?? []).filter(a => a.status !== status);
 }

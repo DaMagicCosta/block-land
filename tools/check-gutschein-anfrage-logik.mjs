@@ -48,5 +48,17 @@ pruefe('entferne: unbekannte Id → alles bleibt', entferneAnfrage([a1], 'a_x').
 pruefe('entferne nach Status', entferneNachStatus([a1, a2], 'abgelehnt').length === 1
   && entferneNachStatus([a1, a2], 'abgelehnt')[0].anfrageId === 'a_1');
 
+// Feier-Altersgrenze (Befund 15.09.2026: elf alte Freigaben auf einem neu eingerichteten Gerät)
+{
+  const { istFeierVeraltet, FEIER_MAX_TAGE } = await import('../js/gutschein-anfrage-logik.js');
+  const jetzt = new Date('2026-09-15T09:00:00Z');
+  pruefe('feier: Grenze ist 7 Tage', FEIER_MAX_TAGE === 7);
+  pruefe('feier: heute angefragt → feiern', !istFeierVeraltet({ ts: '2026-09-15T07:00:00Z' }, jetzt));
+  pruefe('feier: vor 6 Tagen → feiern', !istFeierVeraltet({ ts: '2026-09-09T09:00:00Z' }, jetzt));
+  pruefe('feier: vor 8 Tagen → still quittieren', istFeierVeraltet({ ts: '2026-09-07T09:00:00Z' }, jetzt));
+  pruefe('feier: Juli → still quittieren', istFeierVeraltet({ ts: '2026-07-20T18:00:00Z' }, jetzt));
+  pruefe('feier: ohne Zeitstempel → feiern', !istFeierVeraltet({}, jetzt) && !istFeierVeraltet({ ts: 't' }, jetzt));
+}
+
 if (fehler) { console.error(`\n${fehler} Check(s) fehlgeschlagen.`); process.exit(1); }
 console.log('\nAlle gutschein-anfrage-logik-Checks grün.');
