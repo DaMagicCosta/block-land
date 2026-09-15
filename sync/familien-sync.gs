@@ -119,9 +119,19 @@ function doPost(e) {
         lock.releaseLock();
       }
     }
+    // Fehler-Raupe (Spec 2026-09-15): eigener Block NACH dem zustandEvents-Lock — nimmMeldungenAn
+    // nimmt denselben ScriptLock selbst, und GAS-Locks sind nicht reentrant. Scheitert die Ablage,
+    // wird meldungenAngenommen 0: Der Client behält die Meldungen und schickt sie erneut
+    // (Dedup per Id verhindert Doppelzeilen und doppelte Nachrichten).
+    const meldungen = (daten.meldungen || []).slice(0, 20);
+    let meldungenAngenommen = 0;
+    if (meldungen.length) {
+      try { nimmMeldungenAn(meldungen); meldungenAngenommen = meldungen.length; }
+      catch (err) { Logger.log('Meldungen-Ablage fehlgeschlagen: ' + err); }
+    }
     // angenommen zählt weiterhin zustandEvents.length (nicht zustandNeu): der Client muss
     // auch Duplikate als „angenommen" quittiert bekommen, damit er seine Queue leert.
-    return antwortJson({ ok: true, angenommen: events.length + zustandEvents.length });
+    return antwortJson({ ok: true, angenommen: events.length + zustandEvents.length, meldungenAngenommen: meldungenAngenommen });
   } catch (err) {
     return antwortJson({ ok: false, fehler: String(err) });
   }
@@ -305,6 +315,59 @@ function testDigest() {
 // Digest des heutigen Tages wirklich senden (Ende-zu-Ende-Test).
 function testSenden() {
   taeglicherDigest();
+}
+
+// --- Fehler-Raupe (Spec docs/superpowers/specs/2026-09-15-fehler-raupe-design.md) ---
+
+const MELDUNG_SPALTEN = ['id', 'ts', 'kind', 'grund', 'kurztext', 'meldungJson'];
+
+function meldungBlatt() {
+  const doc = SpreadsheetApp.openById(prop('SHEET_ID'));
+  let blatt = doc.getSheetByName('Meldungen');
+  if (!blatt) { blatt = doc.insertSheet('Meldungen'); blatt.appendRow(MELDUNG_SPALTEN); }
+  return blatt;
+}
+
+// Meldungen ablegen (Dedup per Id) und je NEUER Meldung den Kurztext per Telegram schicken.
+// Nimmt den ScriptLock selbst — deshalb in doPost NICHT innerhalb des zustandEvents-Locks
+// aufrufen (GAS-Locks sind nicht reentrant). Telegram erst NACH dem Schreiben: Scheitert der
+// Versand, ist die Meldung trotzdem im Blatt; eine erneute Zustellung erzeugt keine Doppelnachricht.
+function nimmMeldungenAn(meldungen) {
+  const lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+  let neue = [];
+  try {
+    const blatt = meldungBlatt();
+    const vorhandene = {};
+    if (blatt.getLastRow() > 1) {
+      blatt.getRange(2, 1, blatt.getLastRow() - 1, 1).getValues().forEach(function (z) { vorhandene[String(z[0])] = true; });
+    }
+    neue = meldungen.filter(function (m) { return m && m.id && !vorhandene[String(m.id)]; });
+    if (neue.length) {
+      const zeilen = neue.map(function (m) { return [
+        String(m.id), String(m.ts || ''), String(m.kind || ''), String(m.grund || ''),
+        String(m.kurztext || '').slice(0, 4000), JSON.stringify(m).slice(0, 49000),
+      ]; });
+      blatt.getRange(blatt.getLastRow() + 1, 1, zeilen.length, MELDUNG_SPALTEN.length).setValues(zeilen);
+    }
+  } finally {
+    lock.releaseLock();
+  }
+  neue.forEach(function (m) {
+    try { sendeTelegram(String(m.kurztext || ('🐛 Neue Meldung von ' + (m.kind || '?'))).slice(0, 4000)); }
+    catch (err) { Logger.log('Meldung-Telegram fehlgeschlagen: ' + err); }
+  });
+  return neue.length;
+}
+
+// Ende-zu-Ende-Test im Editor: legt eine Test-Meldung an und schickt sie per Telegram.
+// Die Zeile im Blatt „Meldungen" danach von Hand löschen (sie wird nirgends eingespielt).
+function testMeldung() {
+  const n = nimmMeldungenAn([{
+    id: 'm_test_' + Date.now(), ts: new Date().toISOString(), kind: 'Test', grund: 'anderes',
+    kurztext: '🐛 Test meldet: Etwas anderes\nSendepfad der Fehler-Raupe funktioniert.',
+  }]);
+  Logger.log('Neue Meldungen: ' + n);
 }
 
 // --- Gutschein-Anfragen (Spec docs/superpowers/specs/2026-07-11-gutschein-anfrage-design.md) ---

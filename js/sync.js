@@ -58,6 +58,35 @@ export function anzahlWartendZustand() {
   return leseZustandQueue().length;
 }
 
+// --- Fehler-Raupe (Spec docs/superpowers/specs/2026-09-15-fehler-raupe-design.md) ---
+// Eine Meldung ist KEIN Spielstand: eigene Queue, eigenes Blatt „Meldungen", wird nie auf
+// andere Geräte eingespielt (im Zustands-Log würde jedes Gerät sie beim Abgleich abspielen).
+const MELDUNG_QUEUE_KEY = 'block-land-meldungen-v1';
+const MELDUNG_QUEUE_MAX = 20;
+
+function leseMeldungen() {
+  try { return JSON.parse(localStorage.getItem(MELDUNG_QUEUE_KEY)) ?? []; }
+  catch { return []; }
+}
+
+function schreibeMeldungen(queue) {
+  try { localStorage.setItem(MELDUNG_QUEUE_KEY, JSON.stringify(queue)); }
+  catch (err) { console.warn('[sync] Meldungen speichern fehlgeschlagen.', err); }
+}
+
+// Sofort senden (nicht entprellt) — die Eltern sollen es mitbekommen, solange das Kind noch
+// am Gerät sitzt. Lief gerade ein Flush, hat der die neue Meldung nicht gesehen: dann nachlegen.
+export function meldeFehler(meldung) {
+  schreibeMeldungen(fuegeInQueue(leseMeldungen(), meldung, MELDUNG_QUEUE_MAX));
+  flushSync().finally(() => {
+    if (leseMeldungen().some(m => m.id === meldung.id)) planeFlush();
+  });
+}
+
+export function anzahlWartendMeldungen() {
+  return leseMeldungen().length;
+}
+
 function melde(bauFn, profileId, daten) {
   const p = getProfile(profileId);
   if (!p) return;
@@ -110,11 +139,12 @@ async function fuehreFlushAus() {
   if (!cfg.aktiv || !cfg.url || !cfg.schluessel) return { ok: false, grund: 'nicht konfiguriert' };
   const queue = leseQueue();
   const zustandQueue = leseZustandQueue();
-  if (!queue.length && !zustandQueue.length) return { ok: true, gesendet: 0 };
+  const meldungen = leseMeldungen();
+  if (!queue.length && !zustandQueue.length && !meldungen.length) return { ok: true, gesendet: 0 };
   try {
     const res = await fetch(cfg.url, {
       method: 'POST',
-      body: JSON.stringify({ schluessel: cfg.schluessel, events: queue, zustandEvents: zustandQueue }),
+      body: JSON.stringify({ schluessel: cfg.schluessel, events: queue, zustandEvents: zustandQueue, meldungen }),
     });
     const json = await res.json();
     if (!json.ok) return { ok: false, grund: json.fehler ?? 'abgelehnt' };
@@ -122,6 +152,13 @@ async function fuehreFlushAus() {
     schreibeQueue(leseQueue().filter(e => !gesendeteIds.has(e.id)));
     const gesendeteZustandIds = new Set(zustandQueue.map(e => e.id));
     schreibeZustandQueue(leseZustandQueue().filter(e => !gesendeteZustandIds.has(e.id)));
+    // Meldungen nur löschen, wenn der Server sie AUSDRÜCKLICH quittiert. Ein Apps Script ohne
+    // Raupen-Stand antwortet ebenfalls ok:true, kennt das Feld aber nicht — ohne diese Prüfung
+    // gingen die Meldungen bis zur Neubereitstellung stillschweigend verloren.
+    if (meldungen.length && Number(json.meldungenAngenommen) >= meldungen.length) {
+      const gesendeteMeldungIds = new Set(meldungen.map(m => m.id));
+      schreibeMeldungen(leseMeldungen().filter(m => !gesendeteMeldungIds.has(m.id)));
+    }
     return { ok: true, gesendet: queue.length + zustandQueue.length };
   } catch {
     return { ok: false, grund: 'netzwerk' };

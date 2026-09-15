@@ -6,6 +6,8 @@ import { renderInfo } from './info.js';
 import { initSync } from './sync.js';
 import { istModalOffen } from './modal.js';
 import { starteTimerLaufzeit } from './uebungs-timer.js';
+import { starteDebugProtokoll } from './debug-protokoll.js';
+import { starteRaupe } from './debug-meldung-ui.js';
 
 const root = document.getElementById('app');
 
@@ -38,5 +40,7 @@ window.addEventListener('hashchange', route);
 
 initSync();
 starteTimerLaufzeit();
+starteDebugProtokoll();
+starteRaupe();
 route();
 console.log('[Block-Land] Routing aktiv.');

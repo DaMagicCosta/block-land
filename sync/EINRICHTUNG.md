@@ -105,7 +105,26 @@ sendet nichts). `testCallbackSimulation()` geht dagegen den kompletten Pfad durc
 eine Test-Anfrage an, entscheidet sie und **schickt dabei echte Telegram-Nachrichten an
 beide Eltern**.
 
-⚠️ **Wichtig:** Nach `testCallbackSimulation()` die Test-Zeilen in den Blättern „Anfragen"
+⚠️ **Wichtig (Gutschein-Test):** Nach `testCallbackSimulation()` die Test-Zeilen in den Blättern „Anfragen"
 und „Zustand" **von Hand löschen, BEVOR die Kinder-Geräte das nächste Mal synchronisieren**.
 Sonst wenden die Geräte die `p_test`-Ereignisse an — die laufen ins Leere, weil das
 zugehörige Profil nicht existiert, hinterlassen aber Log-Müll in der Browser-Konsole.
+
+## 10. Fehler-Raupe (Kinder melden Auffälligkeiten)
+
+Ab SW v92 können Kinder mit eingeschaltetem Debug über die 🐛-Raupe melden, wenn ihnen etwas
+komisch vorkommt. Die Meldung landet im Blatt „Meldungen" (legt sich selbst an), die Eltern
+bekommen eine Telegram-Nachricht. Spec: `docs/superpowers/specs/2026-09-15-fehler-raupe-design.md`.
+
+**Einmalig einrichten:**
+1. Apps Script im Editor durch die neue Version von `sync/familien-sync.gs` ersetzen →
+   „Bereitstellen → Bereitstellung verwalten → Bearbeiten → Neue Version" (URL bleibt gleich).
+   Keine neuen Skript-Eigenschaften nötig, benutzt werden `BOT_TOKEN` und `CHAT_IDS`.
+2. Im Editor `testMeldung()` ausführen → Telegram-Nachricht „🐛 Test meldet …" kommt bei beiden
+   Eltern an. Die Test-Zeile im Blatt „Meldungen" danach löschen (sie wird nirgends eingespielt).
+3. In der App: Eltern-Bereich → 🧒 Kinder → „🐛 Fehler melden" → „Raupe in der App zeigen" je Kind.
+   Die Einstellung wandert über den Abgleich auf die Kind-Geräte.
+
+**Reihenfolge beachten:** Solange das Apps Script nicht neu bereitgestellt ist, bleiben Meldungen
+auf dem Gerät liegen (der alte Stand quittiert sie nicht) und gehen nach der Bereitstellung beim
+nächsten Abgleich raus — es geht nichts verloren, es kommt nur später an.

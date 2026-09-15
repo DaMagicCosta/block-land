@@ -440,6 +440,8 @@ function tabGutscheine(container, neuRendern) {
 
 function tabKinder(container, neuRendern) {
   const profile = getProfiles();
+  const syncCfg = getSyncConfig();
+  const syncAktiv = !!(syncCfg.aktiv && syncCfg.url && syncCfg.schluessel);
   container.innerHTML = `
     <button class="eltern__mini eltern__kind-neu-toggle">➕ Kind anlegen</button>
     <div class="eltern__kind-neu-form" hidden></div>
@@ -531,6 +533,16 @@ function tabKinder(container, neuRendern) {
             sie ist dann die Hauptform, damit das Kind kein zweites System lernen muss. Ab den Viertelstunden
             zeigt etwa jede zweite Frage die andere Form, damit klar wird: beide meinen dieselbe Uhrzeit.</p>
         </div>
+        <div class="eltern__kind-block">
+          <div class="eltern__kind-label">🐛 Fehler melden</div>
+          <label class="eltern__zeile">
+            <span>Raupe in der App zeigen</span>
+            <input type="checkbox" data-debug="${p.id}"${p.debugMeldung ? ' checked' : ''} />
+          </label>
+          <p class="eltern__hinweis">Mit der Raupe meldet das Kind, wenn ihm etwas komisch vorkommt. Mitgeschickt
+            werden die letzten Schritte in der App und der Bildschirm in dem Moment; ihr bekommt eine
+            Telegram-Nachricht, alles Weitere steht im Familien-Blatt unter „Meldungen".${syncAktiv ? '' : ' <b>Der Sync ist hier nicht eingerichtet — Meldungen warten dann auf dem Gerät.</b>'}</p>
+        </div>
         <button class="eltern__mini eltern__mini--rot eltern__kind-loeschen" data-delkind="${p.id}">🗑️ Kind löschen</button>
       </div>
     `;
@@ -550,6 +562,12 @@ function tabKinder(container, neuRendern) {
       const pid = btn.dataset.savekpin;
       const val = kinder.querySelector(`[data-kpinp="${pid}"]`).value.trim();
       setzeKindPin(pid, val || null);
+      neuRendern();
+    });
+  });
+  kinder.querySelectorAll('[data-debug]').forEach(box => {
+    box.addEventListener('change', () => {
+      updateProfile(box.dataset.debug, { debugMeldung: box.checked });   // synct auf die Kind-Geräte
       neuRendern();
     });
   });

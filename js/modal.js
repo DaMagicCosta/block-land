@@ -1,5 +1,14 @@
 let aktivesBackdrop = null;
 
+// Öffnen/Schließen als Ereignis melden — für das Protokoll der Fehler-Raupe
+// (js/debug-protokoll.js) und ihre Sichtbarkeit. Name = erste Klasse des Fensterinhalts
+// nach „modal", z.B. „modal--aufgabe".
+function meldeFenster(typ, backdrop) {
+  const klassen = [...(backdrop.firstElementChild?.classList ?? [])];
+  const name = klassen.find(k => k.startsWith('modal--')) ?? klassen[0] ?? backdrop.className;
+  window.dispatchEvent(new CustomEvent(typ, { detail: { name } }));
+}
+
 // Für Auffrisch-Entscheidungen von außen (Sync-Pull): rendert nicht mitten in eine Aufgabe.
 export function istModalOffen() { return aktivesBackdrop !== null; }
 
@@ -17,6 +26,7 @@ export function oeffneModal({ inhaltHtml, onClose, klassen = '', backdropSchlies
     backdrop.remove();
     document.removeEventListener('keydown', escHandler);
     aktivesBackdrop = null;
+    meldeFenster('blockland:fensterZu', backdrop);
     if (onClose) onClose();
   }
 
@@ -31,6 +41,7 @@ export function oeffneModal({ inhaltHtml, onClose, klassen = '', backdropSchlies
 
   document.body.appendChild(backdrop);
   aktivesBackdrop = backdrop;
+  meldeFenster('blockland:fensterAuf', backdrop);
 
   return {
     backdrop,
