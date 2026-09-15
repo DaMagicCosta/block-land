@@ -146,6 +146,9 @@ function doGet(e) {
     if (e.parameter.zustandSeit !== undefined) {
       return antwortJson(zustandSeit(Number(e.parameter.zustandSeit) || 0));
     }
+    if (e.parameter.meldungen !== undefined) {
+      return antwortJson(letzteMeldungen(Number(e.parameter.meldungen) || 5));
+    }
     return antwortJson({ ok: true, kinder: aggregiere(leseEreignisse(30)) });
   } catch (err) {
     return antwortJson({ ok: false, fehler: String(err) });
@@ -358,6 +361,23 @@ function nimmMeldungenAn(meldungen) {
     catch (err) { Logger.log('Meldung-Telegram fehlgeschlagen: ' + err); }
   });
   return neue.length;
+}
+
+// Die letzten n Meldungen (neueste zuerst, höchstens 20) als JSON — für die Auswertung am
+// Rechner (tools/hole-meldungen.mjs). Liest nur das Blatt „Meldungen", nie das große Familien-Log.
+function letzteMeldungen(n) {
+  n = Math.min(20, Math.max(1, Number(n) || 5));
+  const blatt = meldungBlatt();
+  const gesamt = Math.max(0, blatt.getLastRow() - 1);
+  if (!gesamt) return { ok: true, meldungen: [] };
+  const anzahl = Math.min(n, gesamt);
+  const zeilen = blatt.getRange(blatt.getLastRow() - anzahl + 1, 1, anzahl, MELDUNG_SPALTEN.length).getValues();
+  const meldungen = zeilen.reverse().map(function (z) {
+    let voll = null;
+    try { voll = JSON.parse(String(z[5] || 'null')); } catch (err) { voll = { kaputt: String(z[5]).slice(0, 200) }; }
+    return { id: String(z[0]), ts: String(z[1]), kind: String(z[2]), grund: String(z[3]), meldung: voll };
+  });
+  return { ok: true, gesamt: gesamt, meldungen: meldungen };
 }
 
 // Ende-zu-Ende-Test im Editor: legt eine Test-Meldung an und schickt sie per Telegram.

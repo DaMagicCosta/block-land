@@ -125,6 +125,13 @@ bekommen eine Telegram-Nachricht. Spec: `docs/superpowers/specs/2026-09-15-fehle
 3. In der App: Eltern-Bereich → 🧒 Kinder → „🐛 Fehler melden" → „Raupe in der App zeigen" je Kind.
    Die Einstellung wandert über den Abgleich auf die Kind-Geräte.
 
+**Meldungen am Rechner abrufen** (ab Script-Stand vom 15.09.2026, 2. Bereitstellung):
+Datei `~/.blockland-sync.json` im Benutzerordner anlegen, **nicht** im Repo (öffentlich):
+`{ "url": "<Web-App-URL …/exec>", "schluessel": "<FAMILIEN_SCHLUESSEL>" }`. Danach
+`node tools/hole-meldungen.mjs` (letzte 5, kompakt) oder `node tools/hole-meldungen.mjs 10 --roh`.
+Die Abfrage liest nur das Blatt „Meldungen" — über die Google-Drive-Anbindung ist das ganze
+Familien-Blatt zu groß zum Einlesen.
+
 **Reihenfolge beachten:** Solange das Apps Script nicht neu bereitgestellt ist, bleiben Meldungen
 auf dem Gerät liegen (der alte Stand quittiert sie nicht) und gehen nach der Bereitstellung beim
 nächsten Abgleich raus — es geht nichts verloren, es kommt nur später an.
