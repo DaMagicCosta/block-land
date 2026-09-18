@@ -124,3 +124,91 @@ export function boxStatistik(box, heute = tagesSchluessel(new Date())) {
     proTyp: alle.reduce((acc, e) => { acc[e.typ] = (acc[e.typ] ?? 0) + 1; return acc; }, {}),
   };
 }
+
+// ---------------------------------------------------------------------------
+// Bestandsgrenze und Verfall (18.09.2026)
+//
+// Warum es das gibt: Ohne Obergrenze wächst die Box monoton. Der Ausstieg verlangt drei
+// Treffer auf Anhieb in wachsenden Abständen — wer eine Aufgabe schlicht noch nicht kann,
+// schafft das selten, während unten laufend neue Fehler nachkommen. Je länger die
+// Warteschlange, desto seltener kommt die einzelne Aufgabe wieder: zu selten, um etwas zu
+// lernen, und oft genug, um zu nerven. Damit verliert die Wiedervorlage genau die
+// Eigenschaft, für die es sie gibt. (Im Betrieb bestätigt, Auswertung 18.09.2026 — Zahlen
+// in der Projektdoku, nicht hier: dieses Repo ist öffentlich.)
+//
+// Zwei Grenzen halten den Bestand übbar:
+// 1. Je Aufgabentyp nur MAX_AKTIV Einträge. Kommt ein neuer Fehler dazu, während die Box
+//    voll ist, weicht der am längsten nicht berührte Eintrag. Der frische Fehler ist der
+//    aktuellere Lernstand — ein sechs Wochen alter hat seine Chance gehabt.
+// 2. Was VERFALL_TAGE nicht mehr angefasst wurde, fällt heraus. Ohne das entsteht statt
+//    einer Warteschlange eine Halde. Die Box wird nach Aufgabentyp gezogen und der Typ
+//    hängt am aktiven Biom: Wer das Biom wechselt, lässt seine Fehler dort liegen, und sie
+//    warten ewig.
+//
+// Beides ist bewusst kein „gekonnt" — siehe grund-Feld in state.js, damit eine spätere
+// Auswertung Gemeistertes nicht mit Ausgeräumtem verwechselt.
+
+export const MAX_AKTIV = 20;        // je Aufgabentyp
+export const VERFALL_TAGE = 42;     // sechs Wochen ohne Berührung
+
+function tageZwischen(vonSchluessel, bisSchluessel) {
+  if (!vonSchluessel || !bisSchluessel) return 0;
+  const [j1, m1, t1] = vonSchluessel.split('-').map(Number);
+  const [j2, m2, t2] = bisSchluessel.split('-').map(Number);
+  return Math.round((new Date(j2, m2 - 1, t2) - new Date(j1, m1 - 1, t1)) / 86400000);
+}
+
+// Wie kalt ist ein Eintrag? Maßstab ist die letzte Berührung, nicht das Fälligkeitsdatum:
+// Ein Eintrag, der nie drankam, ist überfällig — aber deshalb noch lange nicht bearbeitet.
+export function tageUnberuehrt(eintrag, heute = tagesSchluessel(new Date())) {
+  return tageZwischen(eintrag?.zuletzt, heute);
+}
+
+// Schlüssel aller Einträge, die zu lange unberührt liegen.
+export function verfallene(box, heute = tagesSchluessel(new Date())) {
+  return Object.values(box ?? {})
+    .filter(e => e && tageUnberuehrt(e, heute) >= VERFALL_TAGE)
+    .map(e => e.schluessel);
+}
+
+// Der Eintrag, der weichen muss, wenn ein neuer aufgenommen wird: der am längsten
+// unberührte. Bei Gleichstand das niedrigere Fach — wer schon zweimal geliefert hat,
+// ist näher dran und bleibt lieber drin.
+export function verdraengungsKandidat(box, typ, heute = tagesSchluessel(new Date())) {
+  const kandidaten = Object.values(box ?? {})
+    .filter(e => e && e.typ === typ)
+    .sort((x, y) => tageUnberuehrt(y, heute) - tageUnberuehrt(x, heute) || (x.fach ?? 1) - (y.fach ?? 1));
+  return kandidaten.length >= MAX_AKTIV ? (kandidaten[0]?.schluessel ?? null) : null;
+}
+
+// Je Typ die Einträge über der Bestandsgrenze, kälteste zuerst. Das ist die Grenze für den
+// BESTAND; verdraengungsKandidat() ist dieselbe Regel für den laufenden Betrieb (ein Abgang je
+// Zugang). Beides braucht es: Ohne den Bestandsschnitt bliebe eine volle Box wochenlang voll
+// und baute sich nur im Takt neuer Fehler ab — die Wiedervorlage-Abstände blieben genau so
+// lang, wie sie nicht sein sollen. Eine Grenze, die den Altbestand ausnimmt, ist keine.
+export function ueberzaehlige(box, heute = tagesSchluessel(new Date())) {
+  const proTyp = {};
+  for (const e of Object.values(box ?? {})) {
+    if (!e?.typ) continue;
+    (proTyp[e.typ] = proTyp[e.typ] ?? []).push(e);
+  }
+  const raus = [];
+  for (const liste of Object.values(proTyp)) {
+    if (liste.length <= MAX_AKTIV) continue;
+    liste.sort((x, y) => tageUnberuehrt(y, heute) - tageUnberuehrt(x, heute) || (x.fach ?? 1) - (y.fach ?? 1));
+    raus.push(...liste.slice(0, liste.length - MAX_AKTIV).map(e => e.schluessel));
+  }
+  return raus;
+}
+
+// Liegt diese Aufgabe in der Box, ohne fällig zu sein? Dann darf der Zufallsgenerator sie
+// nicht erneut würfeln: Sie käme außerhalb ihres Takts, würde als neuer Fehler eingetragen
+// (der Weg über neuerEintrag) und setzte den Leitner-Stand zurück. Im Betrieb traf das einen
+// nennenswerten Teil aller Wiedervorlagen; im Extremfall kam dieselbe Aufgabe dreimal
+// innerhalb weniger Sekunden.
+export function istGesperrt(box, aufgabe, heute = tagesSchluessel(new Date())) {
+  const schluessel = aufgabeSchluessel(aufgabe);
+  if (!schluessel) return false;
+  const eintrag = box?.[schluessel];
+  return !!eintrag && !istFaellig(eintrag, heute);
+}

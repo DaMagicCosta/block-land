@@ -1,6 +1,6 @@
 // Statistik-Tab: Übersicht aller Kinder + Detailansicht pro Kind mit Tages-/Wochen-Verlauf.
 // Render-Modul (DOM). Aggregation/Reihen kommen aus statistik-logik.js.
-import { getProfiles, getSchwierigkeit, getVerlauf, getBiomFreigabe, getAufsagenProtokoll, getEintragenProtokoll, getSyncConfig } from './state.js';
+import { getProfiles, getSchwierigkeit, getVerlauf, getBiomFreigabe, getAufsagenProtokoll, getEintragenProtokoll, getSyncConfig, getFehlerbox } from './state.js';
 import { stufeLabel, formatDauer } from './aufsage-protokoll-logik.js';
 import { freieBiome } from './biome-logik.js';
 import { summen, quoteFarbe, verlaufTage, verlaufWochen } from './statistik-logik.js';
@@ -8,6 +8,7 @@ import { escapeHtml } from './utils.js';
 import { holeFamilienStatistik } from './sync.js';
 import { erzeugeBefunde } from './befund-logik.js';
 import { clustereTag, sitzungsKennzahlen, minutenVon } from './sitzungs-logik.js';
+import { boxStatistik, tageUnberuehrt, MAX_AKTIV } from './fehlerbox-logik.js';
 
 const AVATAR_EMOJI = {
   krieger: '🗡️', bergmann: '⛏️', magier: '🧙', ninja: '🥷',
@@ -91,6 +92,40 @@ function eintragenProtokollHtml(profileId) {
     </li>`;
   }).join('');
   return `<ul class="stat-aufsagen">${zeilen}</ul>`;
+}
+
+// Fehler-Box: was liegt je Rechenart offen, wie weit ist es gediehen, was staut sich.
+// Warum im Eltern-Bereich: Der Bestand lief bis September 2026 unbemerkt voll, weil ihn
+// nichts anzeigte — sichtbar wurde es erst beim Auswerten der Aufzeichnungen. Was man nicht
+// sieht, fällt eben auch nicht auf.
+function fehlerboxHtml(profileId) {
+  const box = getFehlerbox(profileId);
+  const stat = boxStatistik(box);
+  if (!stat.gesamt) {
+    return '<div class="eltern__leer">Nichts offen — die Fehler-Box ist leer.</div>';
+  }
+  const alle = Object.values(box).filter(Boolean);
+  const zeilen = Object.entries(stat.proTyp)
+    .sort((a, b) => b[1] - a[1])
+    .map(([typ, anzahl]) => {
+      const dieses = alle.filter(e => e.typ === typ);
+      const faellig = dieses.filter(e => e.faelligAm <= heuteSchluessel()).length;
+      const fach = [1, 2, 3].map(f => dieses.filter(e => e.fach === f).length);
+      const aeltester = Math.max(...dieses.map(e => tageUnberuehrt(e)));
+      return `<li class="stat-aufsagen__zeile">
+        <span class="stat-aufsagen__reihe">${escapeHtml(SYNC_TYP_LABEL[typ] ?? typ)}</span>
+        <span>${anzahl}/${MAX_AKTIV}</span>
+        <span>fällig ${faellig}</span>
+        <span>①${fach[0]} ②${fach[1]} ③${fach[2]}</span>
+        <span class="stat-aufsagen__datum">${aeltester > 0 ? `älteste ${aeltester} T` : ''}</span>
+      </li>`;
+    }).join('');
+  return `<ul class="stat-aufsagen">${zeilen}</ul>`;
+}
+
+function heuteSchluessel() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
 // „🕒 Sitzungen": 7-Tage-Zeitleiste (wann hingesetzt, wie lange, Pausen) aus Server-Rohzeiten.
@@ -343,7 +378,10 @@ export function tabStatistik(container, neuRendern) {
         ${aufsagenProtokollHtml(p.id)}
 
         <div class="stat-detail__abschnitt">✏️ Eintragen-Protokoll</div>
-        ${eintragenProtokollHtml(p.id)}` : '';
+        ${eintragenProtokollHtml(p.id)}
+
+        <div class="stat-detail__abschnitt">🗂️ Fehler-Box</div>
+        ${fehlerboxHtml(p.id)}` : '';
 
     const kindDaten = k ?? null;
     container.innerHTML = `

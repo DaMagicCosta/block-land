@@ -267,14 +267,23 @@ export function getFehlerbox(profileId) {
 // Eintrag setzen (neu oder aktualisiert) — oder entfernen, wenn `eintrag` null ist.
 // Ein Aufruf für beides, damit der Aufrufer das Ergebnis von planeWieder() direkt durchreichen
 // kann: null heißt dort „die Aufgabe sitzt jetzt" und hier „raus aus der Box".
-export function setzeFehlerboxEintrag(profileId, schluessel, eintrag) {
+//
+// `grund` sagt, WARUM ein Eintrag verschwindet: 'gekonnt' (dreimal selbst geliefert),
+// 'verfallen' (zu lange unberührt) oder 'verdraengt' (Bestandsgrenze). Rein für die
+// Nachvollziehbarkeit im Familien-Sheet — ohne ihn sähe jede Räumung wie ein Lernerfolg aus.
+// Genau daran ist die Auswertung vom 18.09.2026 fast gescheitert.
+export function setzeFehlerboxEintrag(profileId, schluessel, eintrag, grund = null) {
   const p = state.profiles[profileId];
   if (!p || !schluessel) return;
   p.fehlerbox = p.fehlerbox ?? {};
   if (eintrag) p.fehlerbox[schluessel] = structuredClone(eintrag);
   else delete p.fehlerbox[schluessel];
   save(state);
-  melde('fehlerboxGesetzt', { profilId: profileId, schluessel, eintrag: eintrag ? structuredClone(eintrag) : null });
+  melde('fehlerboxGesetzt', {
+    profilId: profileId, schluessel,
+    eintrag: eintrag ? structuredClone(eintrag) : null,
+    ...(grund ? { grund } : {}),
+  });
 }
 
 // --- Reihen-Freischaltung ---

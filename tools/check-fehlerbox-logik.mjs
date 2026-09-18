@@ -2,6 +2,7 @@
 import {
   aufgabeSchluessel, neuerEintrag, planeWieder, istFaellig, verschiebeAufMorgen,
   faellige, naechsteFaellige, hilfeStufeFuer, boxStatistik, MAX_FACH,
+  MAX_AKTIV, VERFALL_TAGE, tageUnberuehrt, verfallene, verdraengungsKandidat, ueberzaehlige, istGesperrt,
 } from '../js/fehlerbox-logik.js';
 
 let fehler = 0;
@@ -85,6 +86,99 @@ const s = boxStatistik(box, '2026-07-13');
 pruefe('gesamt stimmt', s.gesamt === 4);
 pruefe('fällig stimmt', s.faellig === 3);
 pruefe('proTyp stimmt', s.proTyp.mal === 3 && s.proTyp.plus === 1);
+
+console.log('Sperre gegen den Zufallsgenerator');
+{
+  const heute = '2026-07-20';
+  const drin = neuerEintrag(mal78, '2026-07-19');            // fällig erst am 20.07.
+  const box2 = { [drin.schluessel]: drin };
+  pruefe('frisch eingetragene Aufgabe ist am selben Tag gesperrt',
+    istGesperrt(box2, mal78, '2026-07-19') === true);
+  pruefe('sobald sie fällig ist, greift die Sperre nicht mehr',
+    istGesperrt(box2, mal78, heute) === false);
+  pruefe('Aufgabe ausserhalb der Box ist nie gesperrt', istGesperrt(box2, plus, '2026-07-19') === false);
+  pruefe('leere Box sperrt nichts', istGesperrt({}, mal78, heute) === false);
+  pruefe('Muell sperrt nichts', istGesperrt(box2, {}, heute) === false);
+  // Gegenprobe: Wäre die Sperre an den Fachstand statt an die Fälligkeit geknüpft, bliebe
+  // ein Eintrag in Fach 3 dauerhaft gesperrt — auch wenn er längst wieder drankommen soll.
+  const fach3 = { ...drin, fach: 3, faelligAm: '2026-07-20' };
+  pruefe('Fach 3, aber fällig → nicht gesperrt',
+    istGesperrt({ [fach3.schluessel]: fach3 }, mal78, heute) === false);
+}
+
+console.log('Verfall');
+{
+  const alt  = { ...neuerEintrag(mal78, '2026-06-01'), zuletzt: '2026-06-01' };
+  const jung = { ...neuerEintrag(plus,  '2026-07-10'), zuletzt: '2026-07-10' };
+  const box2 = { [alt.schluessel]: alt, [jung.schluessel]: jung };
+  pruefe('Alter zählt ab der letzten Berührung',
+    tageUnberuehrt(alt, '2026-07-13') === 42 && tageUnberuehrt(jung, '2026-07-13') === 3);
+  const raus = verfallene(box2, '2026-07-13');
+  pruefe('was VERFALL_TAGE unberührt lag, verfällt', raus.length === 1 && raus[0] === alt.schluessel);
+  pruefe('einen Tag früher verfällt noch nichts', verfallene(box2, '2026-07-12').length === 0);
+  pruefe('leere Box verfällt nicht', verfallene({}, '2026-07-13').length === 0);
+}
+
+console.log('Bestandsgrenze je Typ');
+{
+  // Genau MAX_AKTIV Einträge: der nächste Fehler muss einen verdrängen, vorher keinen.
+  const voll = {};
+  for (let i = 0; i < MAX_AKTIV; i++) {
+    const a = { aufgabentyp: 'mal', a: 2, b: i, ergebnis: 2 * i, text: `2 · ${i}` };
+    const e = neuerEintrag(a, '2026-07-01');
+    e.zuletzt = i === 0 ? '2026-06-20' : '2026-07-01';   // der erste ist der kälteste
+    voll[e.schluessel] = e;
+  }
+  const kandidat = verdraengungsKandidat(voll, 'mal', '2026-07-13');
+  pruefe('bei voller Box weicht der am längsten unberührte', kandidat === 'mal|2|0|0');
+  const eineWeniger = { ...voll };
+  delete eineWeniger[kandidat];
+  pruefe('solange Platz ist, weicht niemand',
+    verdraengungsKandidat(eineWeniger, 'mal', '2026-07-13') === null);
+  pruefe('ein anderer Typ zählt nicht mit',
+    verdraengungsKandidat(voll, 'plus', '2026-07-13') === null);
+  // Gegenprobe zum Gleichstand: Bei gleichem Alter muss das niedrigere Fach weichen,
+  // nicht irgendeins — sonst verlöre man den, der schon zweimal geliefert hat.
+  const gleichAlt = {};
+  for (let i = 0; i < MAX_AKTIV; i++) {
+    const e = neuerEintrag({ aufgabentyp: 'uhr', a: i, b: 0, ergebnis: i * 60 }, '2026-07-01');
+    e.zuletzt = '2026-07-01';
+    e.fach = i === 7 ? 1 : 3;
+    gleichAlt[e.schluessel] = e;
+  }
+  pruefe('bei gleichem Alter weicht das niedrigere Fach',
+    verdraengungsKandidat(gleichAlt, 'uhr', '2026-07-13') === 'uhr|7|0|420');
+}
+
+console.log('Bestandsschnitt (Altbestand)');
+{
+  // 25 Mal-Einträge, unterschiedlich kalt; 5 müssen weichen, und zwar die kältesten.
+  const voll = {};
+  for (let i = 0; i < 25; i++) {
+    const e = neuerEintrag({ aufgabentyp: 'mal', a: 3, b: i, ergebnis: 3 * i }, '2026-07-01');
+    e.zuletzt = `2026-07-${String(1 + i).padStart(2, '0')}`;   // i=0 ist am längsten her
+    voll[e.schluessel] = e;
+  }
+  const raus = ueberzaehlige(voll, '2026-08-01');
+  pruefe('schneidet genau auf MAX_AKTIV', raus.length === 25 - MAX_AKTIV);
+  pruefe('die kältesten weichen', raus.includes('mal|3|0|0') && raus.includes('mal|3|4|12'));
+  pruefe('die jüngsten bleiben', !raus.includes('mal|3|24|72') && !raus.includes('mal|3|20|60'));
+  // Gegenprobe: unter der Grenze darf nichts weichen, auch nicht ein sehr kalter Eintrag.
+  const knapp = {};
+  for (let i = 0; i < MAX_AKTIV; i++) {
+    const e = neuerEintrag({ aufgabentyp: 'plus', a: 1, b: i, ergebnis: 1 + i }, '2026-06-01');
+    e.zuletzt = '2026-06-01';
+    knapp[e.schluessel] = e;
+  }
+  pruefe('genau MAX_AKTIV → niemand weicht', ueberzaehlige(knapp, '2026-08-01').length === 0);
+  pruefe('Typen werden getrennt gezählt',
+    ueberzaehlige({ ...voll, ...knapp }, '2026-08-01').every(k => k.startsWith('mal|')));
+  pruefe('leere Box → nichts zu schneiden', ueberzaehlige({}, '2026-08-01').length === 0);
+}
+
+console.log('Grenzwerte');
+pruefe('MAX_AKTIV ist 20', MAX_AKTIV === 20);
+pruefe('VERFALL_TAGE ist 42', VERFALL_TAGE === 42);
 
 console.log('Robustheit');
 pruefe('planeWieder(null) → null', planeWieder(null, true) === null);

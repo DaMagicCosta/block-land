@@ -14,7 +14,8 @@ import { loadAufgabenPool, loadBiomManifest } from './data.js';
 import { waehleMechanik, aktuelleStufe, rapportiereErgebnis } from './adaptiv.js';
 import { getCurrentProfile, getAktivesBiom, schalteNaechstesBiomFrei, getAktiveReihe, setzeAktiveReihe, getFehlerbox, setzeFehlerboxEintrag, getFreischaltung, getSprechweise } from './state.js';
 import { offeneReihen, ohneEinserreihe, nurEineReiheOffen, beuteFaktor } from './freischaltung-logik.js';
-import { aufgabeSchluessel, neuerEintrag, planeWieder, verschiebeAufMorgen, naechsteFaellige, hilfeStufeFuer } from './fehlerbox-logik.js';
+import { aufgabeSchluessel, neuerEintrag, planeWieder, verschiebeAufMorgen, naechsteFaellige, hilfeStufeFuer,
+         istGesperrt, verfallene, ueberzaehlige, verdraengungsKandidat } from './fehlerbox-logik.js';
 import { normalisiereAufgabe } from './aufgaben/normalisiere.js';
 import { passtZumPool } from './aufgaben/konserven-grenzen.js';
 import { neueKlickSperre } from './klick-sperre.js';
@@ -94,6 +95,19 @@ export async function oeffneAufgabe(reward, { onClose, festeStufe = null } = {})
   const aktivBiom = getAktivesBiom(profile.id);
   const typ = manifest[aktivBiom]?.aufgabentyp ?? 'plus';
   const maxStufe = pool[typ].stufen.length;
+
+  // Verfall, einmal je Runde: Was sechs Wochen nicht drankam, fliegt raus. Ohne das wird aus
+  // der Warteschlange eine Halde — Fehler eines Bioms, in dem längst nicht mehr geübt wird,
+  // warten dort ewig, und der Stoff ist inzwischen ohnehin ein anderer.
+  for (const schluessel of verfallene(getFehlerbox(profile.id))) {
+    setzeFehlerboxEintrag(profile.id, schluessel, null, 'verfallen');
+  }
+  // Und der Bestandsschnitt: Was über der Grenze liegt, geht kältestes zuerst. Sonst bliebe
+  // ein voller Altbestand voll und baute sich nur im Takt neuer Fehler ab.
+  for (const schluessel of ueberzaehlige(getFehlerbox(profile.id))) {
+    setzeFehlerboxEintrag(profile.id, schluessel, null, 'verdraengt');
+  }
+
   let aktiveFesteStufe = festeStufe;
 
   function einmalGenerieren() {
@@ -179,9 +193,17 @@ export async function oeffneAufgabe(reward, { onClose, festeStufe = null } = {})
       return wieder;
     }
     letzteWarAusBox = false;
+    // Zwei Gründe, neu zu würfeln:
+    // - dieselbe Aufgabe zweimal hintereinander wirkt monoton;
+    // - eine Aufgabe, die in der Box liegt und noch nicht fällig ist, gehört der Box. Käme sie
+    //   hier heraus, liefe sie am Leitner-Takt vorbei und als frischer Fehler wieder hinein
+    //   (Befund 18.09.2026). Gelingt es nicht — kleiner Aufgabenraum —, fängt pflegeFehlerbox()
+    //   den Fall ab und schreibt den bestehenden Eintrag fort, statt ihn zu überschreiben.
+    const box = getFehlerbox(profile.id);
+    const untauglich = (kandidat) =>
+      aufgabeKey(kandidat) === letzteAufgabeKey || istGesperrt(box, kandidat);
     let a = einmalGenerieren();
-    // Nicht zweimal hintereinander dieselbe Aufgabe (wirkt sonst monoton).
-    for (let v = 0; v < 6 && aufgabeKey(a) === letzteAufgabeKey; v++) a = einmalGenerieren();
+    for (let v = 0; v < 10 && untauglich(a); v++) a = einmalGenerieren();
     letzteAufgabeKey = aufgabeKey(a);
     return a;
   }
@@ -580,7 +602,22 @@ function starteAufgabe(reihe, mechanik, profile, modal, inhalt, maxStufe, onWeit
       // Neue Aufgabe endgültig danebengegangen → sie kommt ab morgen wieder.
       if (!warRichtig) {
         const eintrag = neuerEintrag(aufgabe);
-        if (eintrag) setzeFehlerboxEintrag(profile.id, eintrag.schluessel, eintrag);
+        if (!eintrag) return;
+        const box = getFehlerbox(profile.id);
+        const bestand = box[eintrag.schluessel];
+        if (bestand) {
+          // Die Aufgabe liegt schon in der Box, ist aber nicht über sie gekommen (der
+          // Generator hat sie trotz Sperre erwischt). Fortschreiben statt neu anlegen —
+          // sonst fielen Fach und Fehlerzähler auf Anfang zurück und der Leitner-Takt
+          // begänne bei jeder zufälligen Begegnung von vorn.
+          setzeFehlerboxEintrag(profile.id, eintrag.schluessel, planeWieder(bestand, false));
+          return;
+        }
+        // Bestandsgrenze: Ist die Box für diesen Typ voll, weicht der am längsten
+        // unberührte Eintrag. Der frische Fehler ist der aktuellere Lernstand.
+        const weicht = verdraengungsKandidat(box, eintrag.typ);
+        if (weicht) setzeFehlerboxEintrag(profile.id, weicht, null, 'verdraengt');
+        setzeFehlerboxEintrag(profile.id, eintrag.schluessel, eintrag);
       }
       return;
     }
@@ -591,7 +628,7 @@ function starteAufgabe(reihe, mechanik, profile, modal, inhalt, maxStufe, onWeit
     const neu = warRichtig
       ? (aufAnhieb ? planeWieder(alt, true) : verschiebeAufMorgen(alt))
       : planeWieder(alt, false);
-    setzeFehlerboxEintrag(profile.id, marker.schluessel, neu);   // neu === null → verlässt die Box
+    setzeFehlerboxEintrag(profile.id, marker.schluessel, neu, neu ? null : 'gekonnt');   // neu === null → verlässt die Box
   }
 
   // Bei Mal und Geteilt wandert die Reihe mit ins Protokoll. Grund: Sobald die Reihen
