@@ -9,6 +9,7 @@ import { holeFamilienStatistik } from './sync.js';
 import { erzeugeBefunde } from './befund-logik.js';
 import { clustereTag, sitzungsKennzahlen, minutenVon } from './sitzungs-logik.js';
 import { boxStatistik, tageUnberuehrt, MAX_AKTIV } from './fehlerbox-logik.js';
+import { raeumeFehlerboxAuf } from './fehlerbox-pflege.js';
 
 const AVATAR_EMOJI = {
   krieger: '🗡️', bergmann: '⛏️', magier: '🧙', ninja: '🥷',
@@ -99,6 +100,10 @@ function eintragenProtokollHtml(profileId) {
 // nichts anzeigte — sichtbar wurde es erst beim Auswerten der Aufzeichnungen. Was man nicht
 // sieht, fällt eben auch nicht auf.
 function fehlerboxHtml(profileId) {
+  // Vor dem Anzeigen aufräumen (Verfall + Bestandsschnitt), sonst steht hier ein Stand, der
+  // beim nächsten Spielen ohnehin verfällt — und ein Bestand über der Grenze sieht aus wie
+  // ein Fehler statt wie Altbestand.
+  raeumeFehlerboxAuf(profileId);
   const box = getFehlerbox(profileId);
   const stat = boxStatistik(box);
   if (!stat.gesamt) {
@@ -112,15 +117,15 @@ function fehlerboxHtml(profileId) {
       const faellig = dieses.filter(e => e.faelligAm <= heuteSchluessel()).length;
       const fach = [1, 2, 3].map(f => dieses.filter(e => e.fach === f).length);
       const aeltester = Math.max(...dieses.map(e => tageUnberuehrt(e)));
-      return `<li class="stat-aufsagen__zeile">
-        <span class="stat-aufsagen__reihe">${escapeHtml(SYNC_TYP_LABEL[typ] ?? typ)}</span>
-        <span>${anzahl}/${MAX_AKTIV}</span>
-        <span>fällig ${faellig}</span>
-        <span>①${fach[0]} ②${fach[1]} ③${fach[2]}</span>
-        <span class="stat-aufsagen__datum">${aeltester > 0 ? `älteste ${aeltester} T` : ''}</span>
+      return `<li class="stat-box__zeile">
+        <span class="stat-box__name">${escapeHtml(SYNC_TYP_LABEL[typ] ?? typ)}</span>
+        <span class="stat-box__bestand">${anzahl} von ${MAX_AKTIV}</span>
+        <span class="stat-box__detail">
+          fällig ${faellig} · ①${fach[0]} ②${fach[1]} ③${fach[2]}${aeltester > 0 ? ` · älteste ${aeltester} Tage` : ''}
+        </span>
       </li>`;
     }).join('');
-  return `<ul class="stat-aufsagen">${zeilen}</ul>`;
+  return `<ul class="stat-box">${zeilen}</ul>`;
 }
 
 function heuteSchluessel() {

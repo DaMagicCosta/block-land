@@ -154,3 +154,23 @@
   .stat-sitzung__tag { width: 42px; }
   .stat-sitzung__caption { margin-left: calc(42px + var(--space-sm)); }
 }
+
+/* Fehler-Box-Übersicht: Name und Bestand oben, Einzelheiten darunter. Bewusst zweizeilig
+   statt einer Flex-Zeile mit margin-left:auto — dort rutschte auf Telefonbreite bei langen
+   Namen ("Mal-Reihen", "Rechnen bis 10") nur das Alter in die zweite Zeile und stand allein
+   rechts (Befund am Gerät, 18.09.2026). */
+.stat-box { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-xs); }
+.stat-box__zeile {
+  display: grid; grid-template-columns: 1fr auto; gap: 2px var(--space-sm);
+  background: var(--color-surface); border-radius: var(--radius-sm);
+  padding: var(--space-xs) var(--space-sm);
+  font-size: 13px; color: var(--color-text-dim);
+}
+.stat-box__name { color: var(--color-text); font-weight: 600; min-width: 0; }
+.stat-box__bestand { color: var(--color-text); text-align: right; white-space: nowrap; }
+.stat-box__detail { grid-column: 1 / -1; color: var(--color-text-faint); font-size: 12px; }
+
+@media (max-width: 480px) {
+  .stat-box__zeile { font-size: 12px; }
+  .stat-box__detail { font-size: 11px; }
+}

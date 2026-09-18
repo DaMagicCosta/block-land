@@ -15,7 +15,8 @@ import { waehleMechanik, aktuelleStufe, rapportiereErgebnis } from './adaptiv.js
 import { getCurrentProfile, getAktivesBiom, schalteNaechstesBiomFrei, getAktiveReihe, setzeAktiveReihe, getFehlerbox, setzeFehlerboxEintrag, getFreischaltung, getSprechweise } from './state.js';
 import { offeneReihen, ohneEinserreihe, nurEineReiheOffen, beuteFaktor } from './freischaltung-logik.js';
 import { aufgabeSchluessel, neuerEintrag, planeWieder, verschiebeAufMorgen, naechsteFaellige, hilfeStufeFuer,
-         istGesperrt, verfallene, ueberzaehlige, verdraengungsKandidat } from './fehlerbox-logik.js';
+         istGesperrt, verdraengungsKandidat } from './fehlerbox-logik.js';
+import { raeumeFehlerboxAuf } from './fehlerbox-pflege.js';
 import { normalisiereAufgabe } from './aufgaben/normalisiere.js';
 import { passtZumPool } from './aufgaben/konserven-grenzen.js';
 import { neueKlickSperre } from './klick-sperre.js';
@@ -96,17 +97,8 @@ export async function oeffneAufgabe(reward, { onClose, festeStufe = null } = {})
   const typ = manifest[aktivBiom]?.aufgabentyp ?? 'plus';
   const maxStufe = pool[typ].stufen.length;
 
-  // Verfall, einmal je Runde: Was sechs Wochen nicht drankam, fliegt raus. Ohne das wird aus
-  // der Warteschlange eine Halde — Fehler eines Bioms, in dem längst nicht mehr geübt wird,
-  // warten dort ewig, und der Stoff ist inzwischen ohnehin ein anderer.
-  for (const schluessel of verfallene(getFehlerbox(profile.id))) {
-    setzeFehlerboxEintrag(profile.id, schluessel, null, 'verfallen');
-  }
-  // Und der Bestandsschnitt: Was über der Grenze liegt, geht kältestes zuerst. Sonst bliebe
-  // ein voller Altbestand voll und baute sich nur im Takt neuer Fehler ab.
-  for (const schluessel of ueberzaehlige(getFehlerbox(profile.id))) {
-    setzeFehlerboxEintrag(profile.id, schluessel, null, 'verdraengt');
-  }
+  // Box aufräumen, einmal je Runde: Verfall und Bestandsschnitt (fehlerbox-pflege.js).
+  raeumeFehlerboxAuf(profile.id);
 
   let aktiveFesteStufe = festeStufe;
 
