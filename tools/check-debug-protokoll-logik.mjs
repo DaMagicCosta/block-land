@@ -64,5 +64,28 @@ check('nach 60 s frei', darfMelden(1000, 61000));
   check('Kappen: kleine Meldung unverändert', !kappeMeldung(klein).gekappt);
 }
 
+// --- Knopf-Beschreibung (19.09.2026) ---
+{
+  const { beschreibeKnoepfe } = await import('../js/debug-protokoll-logik.js');
+  const k = (o) => beschreibeKnoepfe(o);
+  check('nennt Anzahl und Werte',
+    k({ werte: ['30', '33', '40'] }) === '3 Knöpfe: 30, 33, 40');
+  check('meldet die richtige Antwort als vorhanden',
+    k({ werte: ['30', '33'], ergebnis: 30 }).endsWith('richtige dabei'));
+  check('meldet ihr Fehlen deutlich',
+    k({ werte: ['33', '40'], ergebnis: 30 }).includes('RICHTIGE FEHLT'));
+  // Der Fall vom 16.07.2026: ergebnis als Zeichenkette darf nicht als Fehlen gelten.
+  check('Zahl und Zeichenkette gelten als gleich',
+    k({ werte: ['30'], ergebnis: '30' }).endsWith('richtige dabei') &&
+    k({ werte: ['30'], ergebnis: 30 }).endsWith('richtige dabei'));
+  check('zaehlt Knoepfe ausserhalb des Bildes',
+    k({ werte: ['1', '2'], ergebnis: 1, ausserhalb: 2 }).includes('2 nicht im Bild'));
+  check('ohne Knoepfe bleibt die Aussage lesbar',
+    k({ werte: [], ergebnis: 30 }) === '0 Knöpfe · RICHTIGE FEHLT');
+  check('ohne Ergebnis keine Aussage darueber',
+    !k({ werte: ['1'] }).includes('richtige') && !k({ werte: ['1'] }).includes('FEHLT'));
+  check('leerer Aufruf wirft nicht', typeof k() === 'string');
+}
+
 if (fehler) { console.error(`\n${fehler} Check(s) fehlgeschlagen.`); process.exit(1); }
 console.log('\nAlle debug-protokoll-Checks grün.');

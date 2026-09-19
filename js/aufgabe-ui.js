@@ -18,6 +18,7 @@ import { aufgabeSchluessel, neuerEintrag, planeWieder, verschiebeAufMorgen, naec
          istGesperrt, verdraengungsKandidat } from './fehlerbox-logik.js';
 import { raeumeFehlerboxAuf } from './fehlerbox-pflege.js';
 import { normalisiereAufgabe } from './aufgaben/normalisiere.js';
+import { notiereKnoepfe } from './debug-protokoll.js';
 import { passtZumPool } from './aufgaben/konserven-grenzen.js';
 import { neueKlickSperre } from './klick-sperre.js';
 import { reihenLaenge, istReiheFertig, fortschrittPunkte } from './reihe-logik.js';
@@ -353,6 +354,7 @@ function rendereFrageInModal(modal, reihe, profile, maxStufe, onWeiter) {
   function starteInhalt() {
     inhalt.innerHTML = baueAufgabeInhalt(aufgabe, mechanik);
     schleifeHilfeAus(inhalt, aufgabe);
+    notiereKnoepfe(inhalt, aufgabe);   // fürs Protokoll: was stand wirklich zur Auswahl?
     if (istKlein) {
       const hoeren = document.createElement('button');
       hoeren.className = 'aufgabe__hoeren';

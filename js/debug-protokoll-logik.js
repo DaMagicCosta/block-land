@@ -74,3 +74,26 @@ export function kappeMeldung(m, max = MELDUNG_MAX_ZEICHEN) {
   if (zuLang()) k.browser = '';
   return k;
 }
+
+// Beschreibung der Antwortknöpfe fürs Protokoll (19.09.2026).
+//
+// Warum es das gibt: Am 19.09. meldete ein Kind „Die richtige Antwort fehlt". Die
+// Momentaufnahme war leer — gemeldet wurde erst, nachdem die Aufgabe verlassen war, und
+// danach gibt es kein Fenster mehr zu fotografieren. Im Protokoll stand nur „✓ Gelesen",
+// dann zwanzig Sekunden nichts. Ob Knöpfe da waren, welche Werte sie trugen und ob die
+// richtige dabei war, ließ sich nicht mehr feststellen; die Frage blieb an einem
+// Achtjährigen hängen. Ein Eintrag beim Aufbau beantwortet sie im Nachhinein, unabhängig
+// davon, WANN gemeldet wird.
+//
+// Der Vergleich läuft bewusst über Zeichenketten: Der data-wert eines Knopfes ist immer
+// ein String, und genau diese Gleichheit prüft auch antwortPruefen (Befund 16.07.2026:
+// ergebnis als String „10" liess die richtige Antwort durchfallen).
+export function beschreibeKnoepfe({ werte = [], ergebnis = null, ausserhalb = 0 } = {}) {
+  const teile = [`${werte.length} Knöpfe`];
+  if (werte.length) teile[0] += `: ${werte.join(', ')}`;
+  if (ergebnis !== null && ergebnis !== undefined) {
+    teile.push(werte.map(String).includes(String(ergebnis)) ? 'richtige dabei' : 'RICHTIGE FEHLT');
+  }
+  if (ausserhalb > 0) teile.push(`${ausserhalb} nicht im Bild`);
+  return teile.join(' · ');
+}

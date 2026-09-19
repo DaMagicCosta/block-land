@@ -6,7 +6,7 @@
 // Grundsatz: Das Protokoll darf den Kind-Flow nie stören — jeder Fehler hier wird verschluckt.
 import { getCurrentProfile, getAktivesBiom, getAktiveReihe, getTimer } from './state.js';
 import { wirksameKonfig, istNacht, istAbend } from './timer-logik.js';
-import { fuegeEintrag, beschreibeZiel, kuerze, FENSTERTEXT_MAX } from './debug-protokoll-logik.js';
+import { fuegeEintrag, beschreibeZiel, kuerze, beschreibeKnoepfe, FENSTERTEXT_MAX } from './debug-protokoll-logik.js';
 
 let eintraege = [];
 const startMs = Date.now();
@@ -49,6 +49,31 @@ export function starteDebugProtokoll() {
     notiere('fehler', `${e.message} (${datei}:${e.lineno ?? '?'})`);
   });
   window.addEventListener('unhandledrejection', (e) => notiere('fehler', `Promise: ${e.reason?.message ?? e.reason}`));
+}
+
+// Antwortknöpfe festhalten, sobald sie stehen. Gerufen aus aufgabe-ui.js, wenn der
+// Aufgabeninhalt aufgebaut ist.
+//
+// Die Sichtbarkeit wird erst im nächsten Bild gemessen, nicht sofort: Direkt nach dem
+// Einsetzen ins DOM steht das Layout noch nicht, und ein Knopf, der gleich an seinem Platz
+// sitzt, würde als „nicht im Bild" gemeldet. Dieselbe Lehre wie bei der Samsung-Fehlersuche
+// — verzögert messen, sonst misst man den Zwischenzustand.
+export function notiereKnoepfe(container, aufgabe) {
+  try {
+    if (!istDebugAktiv() || imElternBereich()) return;
+    const messen = () => {
+      try {
+        const knoepfe = [...(container?.querySelectorAll?.('[data-wert]') ?? [])];
+        notiere('knoepfe', beschreibeKnoepfe({
+          werte: knoepfe.map(b => b.dataset.wert),
+          ergebnis: aufgabe?.ergebnis ?? null,
+          ausserhalb: knoepfe.filter(b => !imBild(b)).length,
+        }));
+      } catch { /* Protokoll darf nie stören */ }
+    };
+    if (typeof requestAnimationFrame === 'function') requestAnimationFrame(messen);
+    else messen();
+  } catch { /* Protokoll darf nie stören */ }
 }
 
 // Liegt das Element vollständig im sichtbaren Bildschirm? (Befund Mal-Würfel 14.09.2026:
