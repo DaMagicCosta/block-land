@@ -1,6 +1,6 @@
 // Ad-hoc-Checks für js/sync-logik.js (kein Test-Runner im Projekt).
 // Lauf: node tools/check-sync-logik.mjs  (aus dem Block-Land-Root)
-import { ereignisAufgabe, ereignisEintragen, ereignisAufsagen, fuegeInQueue, QUEUE_MAX } from '../js/sync-logik.js';
+import { ereignisAufgabe, ereignisEintragen, ereignisAufsagen, fuegeInQueue, QUEUE_MAX, ergaenzeDetail, MESS_STICHTAG } from '../js/sync-logik.js';
 
 let fehler = 0;
 function pruefe(name, bedingung) {
@@ -22,6 +22,14 @@ pruefe('eintragen: gesamt = richtig+fehler+verraten', e.art === 'eintragen' && e
 
 const s = ereignisAufsagen({ kind: 'Arthur', alter: 'klasse-2', zeitMs: 80000, ts });
 pruefe('aufsagen: zeit zählt, kein richtig/gesamt', s.art === 'aufsagen' && s.richtig === 0 && s.gesamt === 0 && s.zeit_ms === 80000);
+
+// Kennzeichen an der Übungssituation (Fassung, Hilfe, Lege-Form) — Messverfahren trennbar halten.
+pruefe('detail: Kennzeichen hinten angehängt', ergaenzeDetail('stufe 3 · reihe 7', ['legen', 'v102']) === 'stufe 3 · reihe 7 · legen · v102');
+pruefe('detail: Anfang bleibt lesbar wie bisher', ergaenzeDetail('stufe 3', ['v102']).startsWith('stufe 3') && ergaenzeDetail('T1 haendler', ['v102']).startsWith('T1 '));
+pruefe('detail: fehlende Fassung lässt das Detail unverändert', ergaenzeDetail('reihe 4', [null]) === 'reihe 4' && ergaenzeDetail('reihe 4', [undefined, '']) === 'reihe 4');
+pruefe('detail: leeres Detail + Fassung', ergaenzeDetail('', ['v102']) === 'v102' && ergaenzeDetail(undefined, ['v102']) === 'v102');
+pruefe('detail: kein doppeltes Kennzeichen', ergaenzeDetail('stufe 2 · v102', ['v102']) === 'stufe 2 · v102');
+pruefe('Stichtag der Zeitmessung ist ein Tagesdatum', /^\d{4}-\d{2}-\d{2}$/.test(MESS_STICHTAG) && !Number.isNaN(new Date(MESS_STICHTAG).getTime()));
 
 const q1 = fuegeInQueue([], a);
 pruefe('queue: anfügen, neues Array', q1.length === 1 && q1[0] === a);

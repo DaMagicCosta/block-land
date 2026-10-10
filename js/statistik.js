@@ -6,6 +6,7 @@ import { freieBiome } from './biome-logik.js';
 import { summen, quoteFarbe, verlaufTage, verlaufWochen } from './statistik-logik.js';
 import { escapeHtml } from './utils.js';
 import { holeFamilienStatistik } from './sync.js';
+import { MESS_STICHTAG } from './sync-logik.js';
 import { erzeugeBefunde } from './befund-logik.js';
 import { clustereTag, sitzungsKennzahlen, minutenVon } from './sitzungs-logik.js';
 import { boxStatistik, tageUnberuehrt, MAX_AKTIV } from './fehlerbox-logik.js';
@@ -25,6 +26,16 @@ const BIOM_LABEL = {
 };
 
 function prozent(quote) { return `${Math.round(quote * 100)}%`; }
+
+// Hinweis in der Zeit-Ansicht, solange der Stichtag der Zeitmessung noch im Monatsfenster
+// liegen kann (35 Tage): Balken davor und danach messen nicht dasselbe.
+function messHinweisHtml(heute = new Date()) {
+  const stichtag = new Date(`${MESS_STICHTAG}T00:00:00`);
+  const tage = (heute - stichtag) / 86400000;
+  if (!(tage >= 0 && tage <= 35)) return '';
+  const datum = stichtag.toLocaleDateString('de-AT', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  return `<p class="stat-messhinweis">Seit ${datum} wird die Antwortzeit anders gemessen (kein Vorlese-Knopf mehr, Erklärschritte nur auf Wunsch). Zeiten davor und danach bitte nicht vergleichen.</p>`;
+}
 
 // Balkendiagramm aus einer Reihe ({ label, gesamt, quote, zeitSchnittMs }[]).
 // metrik 'aufgaben': Balkenhöhe = Aufgabenzahl. metrik 'zeit': Balkenhöhe = ⌀ Zeit pro
@@ -409,6 +420,7 @@ export function tabStatistik(container, neuRendern) {
           <button class="stat-chip ${view.metrik === 'zeit' ? 'aktiv' : ''}" data-metrik="zeit">⏱️ ⌀ Zeit</button>
         </div>
         <div class="stat-chips">${chips}</div>
+        ${view.metrik === 'zeit' ? messHinweisHtml() : ''}
         ${diagrammHtml(reihe, view.metrik)}
         ${LEGENDE}
         ${server.kinder && k ? sitzungenHtml(k.zeiten) : ''}

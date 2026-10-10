@@ -7,6 +7,26 @@
 
 export const QUEUE_MAX = 500;
 
+// Stichtag der Zeitmessung. Mit Fassung 100 (veröffentlicht am 10.10.2026) hat sich geändert,
+// was die Antwortzeit enthält: Die Erklärschritte bei Plus/Minus laufen nicht mehr vor jeder
+// Antwort mit (Zeiten fallen stark), und die Uhr startet nicht mehr erst nach „Gelesen"
+// (Zeiten steigen leicht, bei allen Aufgaben der Großen). Festlegung: Antwortzeiten werden
+// nur INNERHALB der Abschnitte vor und ab diesem Tag verglichen, nie darüber hinweg.
+// Im Familien-Blatt erkennbar: Zeilen ohne Fassungsangabe im Detail stammen aus der Zeit davor.
+export const MESS_STICHTAG = '2026-10-10';
+
+// Hängt Kennzeichen an die Übungssituation an („stufe 3" + ['legen', 'v102'] → „stufe 3 ·
+// legen · v102"). Immer HINTEN: Auswertungen lesen den Anfang („stufe N", „reihe N", „T1 …").
+// Leere Kennzeichen fallen weg; ein Kennzeichen, das schon dasteht, wird nicht verdoppelt.
+export function ergaenzeDetail(detail, zusaetze = []) {
+  const teile = String(detail ?? '').split(' · ').map(t => t.trim()).filter(Boolean);
+  for (const z of zusaetze) {
+    const s = String(z ?? '').trim();
+    if (s && !teile.includes(s)) teile.push(s);
+  }
+  return teile.join(' · ');
+}
+
 function zahl(n) {
   const x = Number(n);
   return Number.isFinite(x) && x > 0 ? Math.round(x) : 0;

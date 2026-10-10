@@ -6,7 +6,8 @@ import {
   getProfile, getSyncConfig, registriereZustandsMelder, wendeZustandsEreignisAn,
   getState, getRezepte, getDropChancen, istPinGesetzt, ersetzeProfileFuerUebernahme,
 } from './state.js';
-import { ereignisAufgabe, ereignisAufsagen, ereignisEintragen, fuegeInQueue } from './sync-logik.js';
+import { ereignisAufgabe, ereignisAufsagen, ereignisEintragen, fuegeInQueue, ergaenzeDetail } from './sync-logik.js';
+import { holeAppVersion } from './app-version.js';
 import { baueZustandsEreignis, fremdeEreignisse, ZUSTAND_QUEUE_MAX } from './zustand-sync-logik.js';
 
 const QUEUE_KEY = 'block-land-sync-queue-v1';
@@ -87,12 +88,19 @@ export function anzahlWartendMeldungen() {
   return leseMeldungen().length;
 }
 
+// Fassung dieses Geräts („v102"), einmal beim Start erfragt (initSync). Sie wandert in jedes
+// Übungs-Ereignis, damit eine spätere Auswertung Zeilen nach Messverfahren trennen kann —
+// siehe MESS_STICHTAG in sync-logik.js. Solange sie nicht feststeht (erster Start ohne
+// Service Worker), fehlt das Kennzeichen einfach; der Kind-Flow wartet nie darauf.
+let fassung = null;
+
 function melde(bauFn, profileId, daten) {
   const p = getProfile(profileId);
   if (!p) return;
   const ereignis = {
     id: `e_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
-    ...bauFn({ kind: p.name, alter: p.alter, ts: new Date().toISOString(), ...daten }),
+    ...bauFn({ kind: p.name, alter: p.alter, ts: new Date().toISOString(), ...daten,
+      detail: ergaenzeDetail(daten.detail, [fassung]) }),
   };
   schreibeQueue(fuegeInQueue(leseQueue(), ereignis));
   planeFlush();
@@ -233,6 +241,7 @@ async function fuehrePullAus() {
 // Danach: Pull periodisch und bei Rückkehr in den Tab (Spec §4).
 export function initSync() {
   registriereZustandsMelder(meldeZustand);
+  holeAppVersion().then(v => { fassung = v; }).catch(() => {});
   setTimeout(() => { flushSync(); pullZustand(); }, 2000);
   setInterval(() => { pullZustand(); }, 60000);
   document.addEventListener('visibilitychange', () => { if (!document.hidden) pullZustand(); });

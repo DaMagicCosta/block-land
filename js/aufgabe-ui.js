@@ -647,12 +647,20 @@ function starteAufgabe(reihe, mechanik, profile, modal, inhalt, maxStufe, onWeit
   // später 7er). Ein späterer Fortschritts-Vergleich über alle Mal-Aufgaben würde dem Kind
   // deshalb anzeigen, es werde langsamer, während es besser wird. Rückwirkend ist das nicht
   // zu retten — deshalb ab jetzt mitschreiben.
+  // Dazu zwei Kennzeichen, die sagen, WAS die gemessene Zeit enthält (siehe MESS_STICHTAG in
+  // sync-logik.js): „legen"/„stellen" für die B-Mechanik — dort steckt das Legen bzw. Ziehen
+  // in der Zeit — und „hilfe", wenn die Stellenwert-Schritte aufgeschlagen wurden. Ohne sie
+  // sähe eine Aufgabe mit Hilfe im Blatt aus wie langsames Rechnen. Zugleich die einzige
+  // Stelle, an der sichtbar wird, ob die Hilfe auf Wunsch überhaupt gegriffen wird.
   function detailFuer(aufgabe, maxStufe) {
     const stufe = aufgabe?.stufe ?? maxStufe;
+    const teile = [`stufe ${stufe}`];
     if ((aufgabe?.aufgabentyp === 'mal' || aufgabe?.aufgabentyp === 'geteilt') && aufgabe?.b) {
-      return `stufe ${stufe} · reihe ${aufgabe.b}`;
+      teile.push(`reihe ${aufgabe.b}`);
     }
-    return `stufe ${stufe}`;
+    if (mechanik === 'B') teile.push(aufgabe?.aufgabentyp === 'uhr' ? 'stellen' : 'legen');
+    if (hilfeGenutzt) teile.push('hilfe');
+    return teile.join(' · ');
   }
 
   // War das die letzte Frage der Reihe, wird die Reihe JETZT geschlossen und das Ergebnis-

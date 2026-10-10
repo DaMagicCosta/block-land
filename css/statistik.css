@@ -46,6 +46,7 @@
 .stat-tabelle__typ { color: var(--color-text); font-weight: 600; }
 .stat-biome { margin-top: var(--space-sm); color: var(--color-text-dim); font-size: 13px; }
 
+.stat-messhinweis { color: var(--color-text-dim); font-size: var(--font-size-xs); margin-bottom: var(--space-sm); }
 .stat-fenster, .stat-chips { display: flex; flex-wrap: wrap; gap: var(--space-xs); margin-bottom: var(--space-sm); }
 .stat-fenster__trenner { flex: 1; }
 
