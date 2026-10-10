@@ -116,6 +116,12 @@
    Zehnerhäuser in einer Zeile, weit breiter als der Bildschirm. */
 .wuerfelhaus--lege .wuerfelhaus__haeuser { flex-wrap: wrap; justify-content: center; }
 
+/* Uhr richtig gestellt: kurzer grüner Schein, bevor das Ergebnis-Fenster kommt. */
+.aufgabe__stelluhr--richtig .zifferblatt__svg { filter: drop-shadow(0 0 10px var(--color-success)); }
+
+/* Mehrere Legefelder nebeneinander (Plus: a und b, Mal: a Gruppen à b), umbrechend. */
+.legefelder { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--space-md); }
+
 /* Malfeld für größere Mal-Aufgaben (a Reihen à b Punkte, Lücke nach fünf — Kraft der Fünf).
    Ersetzt dort die Würfelgruppen, die ab etwa 9 · 7 höher als der Bildschirm wurden. */
 .malfeld { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: var(--space-sm); background: var(--color-surface-2); border-radius: var(--radius-sm); }
@@ -257,6 +263,10 @@
   cursor: pointer;
 }
 .aufgabe__hilfe-knopf:hover { border-color: var(--color-action); color: var(--color-text); }
+/* Nach dem ersten Fehlversuch: die Schritte werden angeboten, nicht aufgeklappt. */
+.aufgabe__hilfe-knopf--angeboten { border-style: solid; border-color: var(--color-action); color: var(--color-text); }
+
+.feier__reihe { color: var(--color-text); font-family: var(--font-mono); font-weight: bold; font-size: var(--font-size-base); margin: var(--space-sm) 0; }
 
 .feier__unlock { color: var(--color-success); font-family: var(--font-mono); font-size: var(--font-size-sm); margin: var(--space-sm) 0; }
 

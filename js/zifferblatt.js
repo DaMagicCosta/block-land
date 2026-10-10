@@ -200,7 +200,13 @@ export function rendereStelluhr(startMinuten, container, onChange, options = {})
     ausZeigerPosition(ev);
   });
   container.addEventListener('pointermove', (ev) => { if (zieht) ausZeigerPosition(ev); });
-  container.addEventListener('pointerup', () => { zieht = false; });
+  // Loslassen melden: Die Stell-Aufgabe wertet erst, wenn der Finger die Uhr freigibt — beim
+  // Ziehen streicht der Zeiger an der richtigen Zeit vorbei, das darf kein Treffer sein.
+  container.addEventListener('pointerup', () => {
+    const hatGezogen = zieht;
+    zieht = false;
+    if (hatGezogen && typeof options.onLoslassen === 'function') options.onLoslassen(minuten);
+  });
   container.addEventListener('pointercancel', () => { zieht = false; });
 
   zeichne();

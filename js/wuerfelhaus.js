@@ -76,7 +76,8 @@ export function rendereMalfeld(reihen, spalten) {
 
 // B-Mechanik: leeres Zähl-Raster, Punkte werden durch Klick gefüllt.
 // `startGefuellt` = bereits gesetzte (bekannte) Punkte, die nicht zurückgenommen werden können.
-export function rendereLegehaus(soll_zahl, container, onChange, { startGefuellt = 0 } = {}) {
+export function rendereLegehaus(soll_zahl, container, onChange, { startGefuellt = 0, farbe = 'action' } = {}) {
+  const legeFarbe = farbe === 'success' ? 'var(--color-success)' : 'var(--color-action)';
   const gesamt_punkte = soll_zahl;
   let aktuell = startGefuellt;
 
@@ -88,7 +89,7 @@ export function rendereLegehaus(soll_zahl, container, onChange, { startGefuellt 
         el.style.background = 'var(--color-success)';
         el.style.border = 'none';
       } else if (istGefuellt) {
-        el.style.background = 'var(--color-action)';
+        el.style.background = legeFarbe;
         el.style.border = 'none';
       } else {
         el.style.background = 'transparent';
@@ -131,6 +132,64 @@ export function rendereLegehaus(soll_zahl, container, onChange, { startGefuellt 
     getStand: () => aktuell,
     istKomplett: () => aktuell === gesamt_punkte,
   };
+}
+
+// B-Mechanik für Plus und Mal: je Zahl der Aufgabe ein eigenes Legefeld (Plus: a und b, Mal:
+// a Felder mit je b Plätzen). Vorher gab es EIN Feld mit so vielen Plätzen wie das Ergebnis und
+// der Beschriftung „0 / 19" — die Lösung stand also da, bevor das Kind einen Punkt gelegt
+// hatte (Befund 10.10.2026). Jetzt stehen nur Zahlen da, die auch in der Aufgabe stehen; das
+// Ergebnis entsteht erst durch Zusammenzählen. onFertig läuft einmal, sobald alle Felder voll sind.
+export function rendereLegefelder(groessen, container, onFertig) {
+  const felder = groessen.filter(n => Number.isInteger(n) && n > 0);
+  if (!felder.length) { container.innerHTML = ''; onFertig(); return; }
+  const voll = felder.map(() => false);
+  let gemeldet = false;
+  container.innerHTML = `<div class="legefelder">${felder.map(() => '<div class="legefelder__feld"></div>').join('')}</div>`;
+  container.querySelectorAll('.legefelder__feld').forEach((feld, i) => {
+    rendereLegehaus(felder[i], feld, (aktuell, gesamt) => {
+      voll[i] = aktuell === gesamt;
+      if (!gemeldet && voll.every(Boolean)) { gemeldet = true; onFertig(); }
+    }, { farbe: i % 2 === 0 ? 'success' : 'action' });
+  });
+}
+
+// B-Mechanik für Minus: a Punkte liegen da, das Kind nimmt b davon weg (antippen, nochmal
+// antippen legt zurück). Was übrig bleibt, ist das Ergebnis — und muss gezählt werden.
+// Vorher legte das Kind bei Minus das Ergebnis selbst, mit der Lösung als Zielzahl.
+// onFertig läuft einmal, sobald genau b Punkte weggenommen sind.
+export function rendereWegnehmfeld(a, b, container, onFertig) {
+  const weg = new Set();
+  let gemeldet = false;
+  const punkte = [];
+  for (let i = 0; i < a; i++) punkte.push(`<div class="wuerfelhaus__punkt" data-punkt-idx="${i}"></div>`);
+  const haeuser = [];
+  for (let h = 0; h < Math.ceil(a / 10); h++) {
+    haeuser.push(`<div class="wuerfelhaus__haus">${punkte.slice(h * 10, h * 10 + 10).join('')}</div>`);
+  }
+  container.innerHTML = `
+    <div class="wuerfelhaus wuerfelhaus--lege wuerfelhaus--wegnehmen">
+      <div class="wuerfelhaus__zahl">Nimm weg: <span class="wuerfelhaus__counter">0</span> / ${b}</div>
+      <div class="wuerfelhaus__haeuser">${haeuser.join('')}</div>
+    </div>
+  `;
+  function zeichne() {
+    container.querySelectorAll('.wuerfelhaus__punkt').forEach((el, idx) => {
+      const istWeg = weg.has(idx);
+      el.classList.toggle('wuerfelhaus__punkt--weg', istWeg);
+      el.style.background = istWeg ? 'transparent' : 'var(--color-success)';
+      el.style.border = istWeg ? '1px dashed var(--color-border)' : 'none';
+    });
+    container.querySelector('.wuerfelhaus__counter').textContent = String(weg.size);
+    if (!gemeldet && weg.size === b) { gemeldet = true; onFertig(); }
+  }
+  container.querySelectorAll('.wuerfelhaus__punkt').forEach((el) => {
+    el.addEventListener('click', () => {
+      const idx = parseInt(el.dataset.punktIdx, 10);
+      if (weg.has(idx)) weg.delete(idx); else weg.add(idx);
+      zeichne();
+    });
+  });
+  zeichne();
 }
 
 // Statisches Punktefeld (in 10er-Häuser gruppiert): erste `gefuellt` Punkte farbig,

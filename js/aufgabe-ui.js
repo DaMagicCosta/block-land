@@ -1,5 +1,5 @@
 import { oeffneModal, schliesseAlleModals } from './modal.js';
-import { rendereZehnerhaus, rendereLegehaus, rendereStatischesFeld, rendereMalfeld } from './wuerfelhaus.js';
+import { rendereZehnerhaus, rendereLegehaus, rendereLegefelder, rendereWegnehmfeld, rendereStatischesFeld, rendereMalfeld } from './wuerfelhaus.js';
 import { generierePlusAufgabe } from './aufgaben/plus.js';
 import { generiereMalAufgabe } from './aufgaben/mal.js';
 import { generiereMengenAufgabe } from './aufgaben/mengen.js';
@@ -44,9 +44,9 @@ function sollHuettenHinweisZeigen(profile, typ) {
   return huettenHinweisZaehler % 2 === 1;
 }
 
-// Würfel-Teich: Auswahl beim Betreten — Querbeet (adaptiv) oder gezielt eine Art.
-// Der Tile-Tap zeigt IMMER die Auswahl; eine Wahl startet eine frische Reihe der Art
-// (eine offene Reihe fortsetzen läuft separat über den „▶ Weitermachen"-Knopf in der Welt).
+// Würfel-Teich: Auswahl über die Ente (🦆 im Wasser) — Querbeet (adaptiv) oder gezielt eine Art.
+// Jedes andere Feld startet sofort Querbeet bzw. setzt die offene Reihe fort (welt.js); eine
+// Wahl hier startet eine frische Reihe der Art.
 const RECHNEN10_ARTEN = [
   { label: '🎲 Querbeet', festeStufe: null },
   { label: '① Zerlegen', festeStufe: 1 },
@@ -70,6 +70,7 @@ export function oeffneRechnen10Auswahl(reward, { onClose } = {}) {
     onClose: () => { if (!gewaehlt && onClose) onClose(); },
   });
   if (!modal) return;
+  if (istKleinkind(profile)) sprich('Was möchtest du üben?');
   modal.inhalt.querySelectorAll('[data-idx]').forEach(btn => {
     btn.addEventListener('click', () => {
       const wahl = RECHNEN10_ARTEN[parseInt(btn.dataset.idx, 10)];
@@ -336,46 +337,29 @@ function rendereFrageInModal(modal, reihe, profile, maxStufe, onWeiter) {
     ? 'A'
     : waehleMechanik(profile.id, aufgabe.aufgabentyp);
 
+  // Die Aufgabe steht sofort da. Bis v99 lag davor die Vorlese-Box mit „✓ Gelesen" — bei
+  // Rechenaufgaben war das ein Tipp je Aufgabe ohne Gegenwert: „79 plus 4" stand als Text und
+  // gleich danach noch einmal als „79 + 4 = ?" da, und prüfen ließ sich das Vorlesen nie
+  // (Befund und Entscheidung 10.10.2026). Vorgelesen wird weiter im Geschichten-Dorf
+  // (textaufgabe-ui.js), dort ist das Lesen die Aufgabe.
   modal.inhalt.innerHTML = `
     ${fortschrittHtml(reihe.position, reihe.laenge)}
-    <div class="aufgabe__vorlesen"${istKlein ? ' hidden' : ''}>
-      <div class="aufgabe__mikro">🎤</div>
-      <div class="aufgabe__vorlesen-text">
-        <div class="aufgabe__vorlesen-label">Lies laut vor:</div>
-        <div class="aufgabe__vorlesen-aufgabe">${escapeHtml(aufgabe.vorlese_text)}</div>
-      </div>
-      <button class="aufgabe__gelesen">✓ Gelesen</button>
-    </div>
-    <div class="aufgabe__inhalt"${istKlein ? '' : ' hidden'}></div>
+    <div class="aufgabe__inhalt"></div>
   `;
 
   const inhalt = modal.inhalt.querySelector('.aufgabe__inhalt');
-
-  function starteInhalt() {
-    inhalt.innerHTML = baueAufgabeInhalt(aufgabe, mechanik);
-    schleifeHilfeAus(inhalt, aufgabe);
-    notiereKnoepfe(inhalt, aufgabe);   // fürs Protokoll: was stand wirklich zur Auswahl?
-    if (istKlein) {
-      const hoeren = document.createElement('button');
-      hoeren.className = 'aufgabe__hoeren';
-      hoeren.textContent = '🔊 Nochmal hören';
-      hoeren.addEventListener('click', () => sprich(aufgabe.vorlese_text));
-      inhalt.prepend(hoeren);
-    }
-    starteAufgabe(reihe, mechanik, profile, modal, inhalt, maxStufe, onWeiter);
-  }
-
+  inhalt.innerHTML = baueAufgabeInhalt(aufgabe, mechanik);
+  schleifeHilfeAus(inhalt, aufgabe);
+  notiereKnoepfe(inhalt, aufgabe);   // fürs Protokoll: was stand wirklich zur Auswahl?
   if (istKlein) {
     sprich(aufgabe.vorlese_text);
-    starteInhalt();
-    return;
+    const hoeren = document.createElement('button');
+    hoeren.className = 'aufgabe__hoeren';
+    hoeren.textContent = '🔊 Nochmal hören';
+    hoeren.addEventListener('click', () => sprich(aufgabe.vorlese_text));
+    inhalt.prepend(hoeren);
   }
-
-  modal.inhalt.querySelector('.aufgabe__gelesen').addEventListener('click', () => {
-    modal.inhalt.querySelector('.aufgabe__vorlesen').hidden = true;
-    inhalt.hidden = false;
-    starteInhalt();
-  });
+  starteAufgabe(reihe, mechanik, profile, modal, inhalt, maxStufe, onWeiter);
 }
 
 // Visualisierung für die A-Mechanik (Würfelaugen).
@@ -427,7 +411,7 @@ function baueRechnen10Inhalt(aufgabe, mechanik) {
   if (mechanik === 'B' && (aufgabe.form === 'zerlegung' || aufgabe.form === 'verliebte')) {
     return `
       ${aufgabenText}
-      <div class="aufgabe__legebereich" data-soll="${aufgabe.ganze}" data-start="${aufgabe.teil_a}"></div>
+      <div class="aufgabe__legebereich"></div>
       <div class="aufgabe__optionen" hidden></div>
       <div class="aufgabe__feedback" hidden></div>
     `;
@@ -435,7 +419,7 @@ function baueRechnen10Inhalt(aufgabe, mechanik) {
   if (mechanik === 'B' && aufgabe.form === 'rechnen') {
     return `
       ${aufgabenText}
-      <div class="aufgabe__legebereich" data-soll="${aufgabe.ergebnis}"></div>
+      <div class="aufgabe__legebereich"></div>
       <div class="aufgabe__optionen" hidden></div>
       <div class="aufgabe__feedback" hidden></div>
     `;
@@ -495,7 +479,8 @@ function baueAufgabeInhalt(aufgabe, mechanik) {
   // 'subitizing' wird nicht mehr erzeugt, aber alte (persistierte) Reihen sollen noch
   // korrekt rendern + abschließbar bleiben (Rückwärts-Kompatibilität).
   if (aufgabe.aufgabentyp === 'mengen' || aufgabe.form === 'subitizing') {
-    const wuerfel = rendereZehnerhaus(aufgabe.ziel, { farbe: 'success' });
+    // Ohne Zahl-Beschriftung: Sie stand über dem Würfel und war die Lösung (Befund 10.10.2026).
+    const wuerfel = rendereZehnerhaus(aufgabe.ziel, { farbe: 'success', anzahl_anzeigen: false });
     const knoepfe = aufgabe.antwort_optionen.map(opt =>
       `<button class="aufgabe__option" data-wert="${opt}">${opt}</button>`
     ).join('');
@@ -546,11 +531,17 @@ function baueAufgabeInhalt(aufgabe, mechanik) {
   if (mechanik === 'A') {
     const profile = getCurrentProfile();
     if (istStellenwertFall(aufgabe)) {
-      // Optionen zunächst verborgen — werden nach den Schritten (oder per Skip) gezeigt.
+      // Antwortknöpfe stehen sofort da; die geführten Schritte sind Hilfe auf Wunsch hinter
+      // dem 💡-Knopf (Befund 10.10.2026: als Pflicht vor jeder Antwort waren es fünf bis
+      // sechs Tipps je Aufgabe, auch wenn das Kind die Aufgabe konnte). Fehler-Box Fach 3
+      // ('keine'): der Knopf ist zunächst verborgen — es soll aus dem Kopf kommen. Nach dem
+      // ersten Fehlversuch erscheint er in JEDEM Fach (siehe antwortPruefen), kein Frust-Loop.
+      const ohneHilfe = aufgabe.box?.hilfe === 'keine';
       return `
         ${aufgabenText}
-        <div class="aufgabe__stellenwert"></div>
-        <div class="aufgabe__optionen" hidden>${baueOptionenHtml(aufgabe, profile)}</div>
+        <button class="aufgabe__hilfe-knopf" data-sw-hilfe${ohneHilfe ? ' hidden' : ''}>💡 Zeig mir, wie es geht</button>
+        <div class="aufgabe__stellenwert" hidden></div>
+        <div class="aufgabe__optionen">${baueOptionenHtml(aufgabe, profile)}</div>
         <div class="aufgabe__feedback" hidden></div>
       `;
     }
@@ -565,10 +556,30 @@ function baueAufgabeInhalt(aufgabe, mechanik) {
   // B-Mechanik: Lege-Bereich + Antwort kommt nach Komplettierung
   return `
     ${aufgabenText}
-    <div class="aufgabe__legebereich" data-soll="${aufgabe.ergebnis}"></div>
+    <div class="aufgabe__legebereich"></div>
     <div class="aufgabe__optionen" hidden></div>
     <div class="aufgabe__feedback" hidden></div>
   `;
+}
+
+// Was in der B-Mechanik gelegt wird — abgeleitet aus der Aufgabe, nicht aus dem Ergebnis.
+//   felder:    Plus legt a und b in zwei Felder, Mal legt a Gruppen mit je b.
+//   wegnehmen: Minus zeigt a Punkte, b davon werden weggenommen.
+//   auffuellen: Zerlegen/Verliebte — das bisherige Feld mit vorgelegtem Teil.
+// Unbekanntes (alte Konserve ohne brauchbare Zahlen) fällt auf „auffuellen" mit dem Ergebnis
+// zurück, damit die Aufgabe in jedem Fall abschließbar bleibt.
+function legeForm(aufgabe) {
+  const a = Number(aufgabe.a), b = Number(aufgabe.b);
+  const zahlenDa = Number.isInteger(a) && Number.isInteger(b) && a >= 1 && b >= 1;
+  if (aufgabe.aufgabentyp === 'rechnen10' && aufgabe.form !== 'rechnen') {
+    return { art: 'auffuellen', soll: aufgabe.ganze, start: aufgabe.teil_a ?? 0 };
+  }
+  const istMinus = aufgabe.aufgabentyp === 'minus' || (aufgabe.aufgabentyp === 'rechnen10' && aufgabe.operator === '−');
+  const istPlus = aufgabe.aufgabentyp === 'plus' || (aufgabe.aufgabentyp === 'rechnen10' && aufgabe.operator === '+');
+  if (zahlenDa && istMinus && b <= a) return { art: 'wegnehmen', a, b };
+  if (zahlenDa && istPlus) return { art: 'felder', groessen: [a, b] };
+  if (zahlenDa && aufgabe.aufgabentyp === 'mal') return { art: 'felder', groessen: Array(a).fill(b) };
+  return { art: 'auffuellen', soll: aufgabe.ergebnis, start: 0 };
 }
 
 function starteAufgabe(reihe, mechanik, profile, modal, inhalt, maxStufe, onWeiter) {
@@ -579,6 +590,12 @@ function starteAufgabe(reihe, mechanik, profile, modal, inhalt, maxStufe, onWeit
   // nicht auf frisch erschienenen Knöpfen landet.
   const sperre = neueKlickSperre();
   sperre.verriegeln(startZeit);
+  // Stellenwert-Schritte (Hilfe auf Wunsch): Knopf wird in baueAufgabeInhalt erzeugt. Wer
+  // die Schritte aufgeschlagen hat, hat die Aufgabe hergeleitet bekommen, nicht abgerufen —
+  // der letzte Schritt nennt Zehner und Einer des Ergebnisses. Ein Treffer danach zählt für
+  // die Fehler-Box deshalb nicht als „auf Anhieb" (gleiche Behandlung wie die Stell-Form).
+  const swHilfeKnopf = inhalt.querySelector('[data-sw-hilfe]');
+  let hilfeGenutzt = false;
 
   function feedbackZeigen(text, klasse) {
     const fb = inhalt.querySelector('.aufgabe__feedback');
@@ -638,6 +655,18 @@ function starteAufgabe(reihe, mechanik, profile, modal, inhalt, maxStufe, onWeit
     return `stufe ${stufe}`;
   }
 
+  // War das die letzte Frage der Reihe, wird die Reihe JETZT geschlossen und das Ergebnis-
+  // Fenster ist zugleich der Abschluss (Befund 10.10.2026: vorher folgten „Richtig!", „Reihe
+  // geschafft!" und ggf. die Schatztruhe als drei Bestätigungen nacheinander). Schließen
+  // schon beim Zeigen, nicht erst beim Knopf: Verlässt das Kind das Fenster über den Rand,
+  // bliebe sonst eine beantwortete Reihe offen stehen.
+  // Rückgabe: null (Reihe läuft weiter) oder { huettenHinweis } für das Abschluss-Fenster.
+  function reiheAbschliessen() {
+    if (!istReiheFertig(reihe)) return null;
+    setzeAktiveReihe(profile.id, reihe.biom, null);
+    return { huettenHinweis: sollHuettenHinweisZeigen(profile, aufgabe.aufgabentyp) };
+  }
+
   function antwortPruefen(wert) {
     const jetzt = performance.now();
     if (sperre.istGesperrt(jetzt)) return;   // Nachzittern eines Doppeltipps — keine Wertung
@@ -655,7 +684,7 @@ function starteAufgabe(reihe, mechanik, profile, modal, inhalt, maxStufe, onWeit
       // wurde. Deshalb wie ein Treffer im zweiten Anlauf behandelt: Fach bleibt, die Aufgabe
       // kommt wieder, ein Fehler wird nicht angerechnet (verschiebeAufMorgen in pflegeFehlerbox).
       const istStellForm = aufgabe.aufgabentyp === 'uhr' && mechanik === 'B';
-      pflegeFehlerbox(true, reihe.fehlversuche === 0 && !istStellForm);
+      pflegeFehlerbox(true, reihe.fehlversuche === 0 && !istStellForm && !hilfeGenutzt);
       rapportiereErgebnis(profile.id, aufgabe.aufgabentyp, true, zeit_ms,
         { maxStufe, adaptStufe: !reihe.festeStufe, detail: detailFuer(aufgabe, maxStufe) });
       // Niveau-Abstufung: in Biomen UNTER der Schulstufe weniger Basis-Drops + kein Premium.
@@ -674,7 +703,7 @@ function starteAufgabe(reihe, mechanik, profile, modal, inhalt, maxStufe, onWeit
       if (aufgabe.stufe === maxStufe) {
         neuesBiom = schalteNaechstesBiomFrei(profile.id, biomId);
       }
-      zeigeErfolg(modal, gegeben, istKleinkind(profile), neuesBiom, onWeiter);
+      zeigeErfolg(modal, gegeben, istKleinkind(profile), neuesBiom, onWeiter, reiheAbschliessen());
       return;
     }
     reihe.fehlversuche++;
@@ -684,10 +713,17 @@ function starteAufgabe(reihe, mechanik, profile, modal, inhalt, maxStufe, onWeit
       pflegeFehlerbox(false, false);
       rapportiereErgebnis(profile.id, aufgabe.aufgabentyp, false, zeit_ms,
         { maxStufe, adaptStufe: !reihe.festeStufe, detail: detailFuer(aufgabe, maxStufe) });
-      zeigeLoesung(aufgabe, profile, modal, istKleinkind(profile), onWeiter);
+      zeigeLoesung(aufgabe, profile, modal, istKleinkind(profile), onWeiter, reiheAbschliessen());
       return;
     }
     feedbackZeigen('Versuch es nochmal!', 'fehler');
+    // Nach dem ersten Fehlversuch die Schritte anbieten — auch dort, wo die Fehler-Box den
+    // Knopf zunächst verborgen hat (Fach 3). Nur anbieten, nicht aufklappen: Greifen muss
+    // das Kind selbst.
+    if (swHilfeKnopf?.isConnected) {
+      swHilfeKnopf.hidden = false;
+      swHilfeKnopf.classList.add('aufgabe__hilfe-knopf--angeboten');
+    }
     if (istKleinkind(profile)) sprich('Versuch es nochmal!');
     inhalt.classList.add('aufgabe--puls-fehler');
     setTimeout(() => inhalt.classList.remove('aufgabe--puls-fehler'), 600);
@@ -707,13 +743,12 @@ function starteAufgabe(reihe, mechanik, profile, modal, inhalt, maxStufe, onWeit
       });
     }
     const swContainer = inhalt.querySelector('.aufgabe__stellenwert');
-    if (swContainer) {
-      rendereStellenwert(aufgabe, swContainer, {
-        onFertig: () => {
-          const optionen = inhalt.querySelector('.aufgabe__optionen');
-          if (optionen) optionen.hidden = false;
-          sperre.verriegeln(performance.now());   // Reveal: Doppeltipp vom Weiter-Knopf abfangen
-        },
+    if (swContainer && swHilfeKnopf) {
+      swHilfeKnopf.addEventListener('click', () => {
+        hilfeGenutzt = true;
+        swContainer.hidden = false;
+        rendereStellenwert(aufgabe, swContainer);
+        swHilfeKnopf.remove();
       });
     }
     inhalt.querySelectorAll('.aufgabe__option').forEach(btn => {
@@ -732,23 +767,23 @@ function starteAufgabe(reihe, mechanik, profile, modal, inhalt, maxStufe, onWeit
       // es auf Stufe 1 bis zu drei Stunden Unterschied. Sichtbar daneben reicht, keine
       // Weltreise.
       const start = Math.max(0, Math.min(1439, soll - ziehRastung * 3));
-      const steuerung = rendereStelluhr(start, stelluhr, (minuten) => {
-        const optionen = inhalt.querySelector('.aufgabe__optionen');
-        if (minuten !== soll) {
-          // Uhr wieder verstellt: Antwortknöpfe verschwinden erneut (Befund 29.07.2026).
-          // Sonst blieben sie nach einem Treffer stehen, und das Kind könnte antworten,
-          // während das Zifferblatt längst eine andere Zeit zeigt.
-          if (!optionen.hidden) { optionen.hidden = true; optionen.innerHTML = ''; }
-          return;
-        }
-        if (!optionen.hidden) return;
-        optionen.hidden = false;
-        optionen.innerHTML = baueOptionenHtml(aufgabe, profile);
-        optionen.querySelectorAll('.aufgabe__option').forEach(btn => {
-          btn.addEventListener('click', () => antwortPruefen(parseInt(btn.dataset.wert, 10)));
-        });
-        sperre.verriegeln(performance.now());   // Reveal: der letzte Zieh-Tipp darf nicht gleich antworten
-      }, { rastung: ziehRastung, minutenBeschriftung: uhrHilfeStufe(aufgabe) === 'voll' });
+      // Steht die Uhr beim Loslassen richtig, ist die Aufgabe gelöst. Bis v100 erschienen dann
+      // erst die Antwortknöpfe, und der richtige trug wörtlich den Text der Aufgabe — ein Tipp
+      // ohne Entscheidung (Befund 10.10.2026). Gewertet wird beim Loslassen, nicht beim
+      // Ziehen: Unterwegs streicht der Zeiger an der richtigen Zeit vorbei. Die kurze Pause
+      // lässt das Kind die fertig gestellte Uhr noch sehen, bevor das Ergebnis-Fenster kommt.
+      let geloest = false;
+      const steuerung = rendereStelluhr(start, stelluhr, () => {}, {
+        rastung: ziehRastung,
+        minutenBeschriftung: uhrHilfeStufe(aufgabe) === 'voll',
+        onLoslassen: (minuten) => {
+          if (geloest || minuten !== soll) return;
+          geloest = true;
+          stelluhr.classList.add('aufgabe__stelluhr--richtig');
+          // Die Pause liegt über dem Fenster der Klick-Sperre, die Wertung kommt also durch.
+          setTimeout(() => antwortPruefen(aufgabe.ergebnis), 500);
+        },
+      });
       if (uhrHilfeKnopf) {
         uhrHilfeKnopf.addEventListener('click', () => {
           steuerung.setzeMinutenBeschriftung(true);   // überlebt jede weitere Zeigerbewegung
@@ -759,21 +794,30 @@ function starteAufgabe(reihe, mechanik, profile, modal, inhalt, maxStufe, onWeit
     }
 
     const legeBereich = inhalt.querySelector('.aufgabe__legebereich');
-    const sollZahl = parseInt(legeBereich.dataset.soll, 10);
-    const startGefuellt = parseInt(legeBereich.dataset.start ?? '0', 10) || 0;
-    rendereLegehaus(sollZahl, legeBereich, (aktuell, gesamt) => {
-      if (aktuell === gesamt) {
-        const optionen = inhalt.querySelector('.aufgabe__optionen');
-        if (optionen.hidden) {
-          optionen.hidden = false;
-          optionen.innerHTML = baueOptionenHtml(aufgabe, profile);
-          optionen.querySelectorAll('.aufgabe__option').forEach(btn => {
-            btn.addEventListener('click', () => antwortPruefen(parseInt(btn.dataset.wert, 10)));
-          });
-          sperre.verriegeln(performance.now());   // Reveal: der letzte Lege-Tipp darf nicht gleich antworten
-        }
-      }
-    }, { startGefuellt });
+    function zeigeOptionen() {
+      const optionen = inhalt.querySelector('.aufgabe__optionen');
+      if (!optionen.hidden) return;
+      optionen.hidden = false;
+      optionen.innerHTML = baueOptionenHtml(aufgabe, profile);
+      optionen.querySelectorAll('.aufgabe__option').forEach(btn => {
+        btn.addEventListener('click', () => antwortPruefen(parseInt(btn.dataset.wert, 10)));
+      });
+      sperre.verriegeln(performance.now());   // Reveal: der letzte Lege-Tipp darf nicht gleich antworten
+    }
+    // Gelegt werden die Zahlen DER AUFGABE, nie das Ergebnis (Befund 10.10.2026: ein Feld mit
+    // so vielen Plätzen wie das Ergebnis und „0 / 19" darüber verriet die Lösung vorab).
+    const form = legeForm(aufgabe);
+    if (form.art === 'wegnehmen') {
+      rendereWegnehmfeld(form.a, form.b, legeBereich, zeigeOptionen);
+    } else if (form.art === 'felder') {
+      rendereLegefelder(form.groessen, legeBereich, zeigeOptionen);
+    } else {
+      // Zerlegen / Verliebte Zahlen: Das Ganze steht in der Aufgabe („3 + ⬚ = 7"), ein Teil
+      // liegt schon — gesucht ist, wie viele das Kind dazulegt. Hier verrät das Feld nichts.
+      rendereLegehaus(form.soll, legeBereich, (aktuell, gesamt) => {
+        if (aktuell === gesamt) zeigeOptionen();
+      }, { startGefuellt: form.start });
+    }
   }
 }
 
@@ -786,10 +830,24 @@ const ITEM_INFO = {
   sanduhr: { e: '⌛', l: 'Sanduhr' },
 };
 
-function zeigeErfolg(modal, gegeben = [], istKlein = false, neuesBiom = null, onWeiter = null) {
+// abschluss: null, solange die Reihe weiterläuft. Bei der letzten Frage { huettenHinweis } —
+// dann ist dieses Fenster zugleich der Reihen-Abschluss (ein Fenster statt zwei, siehe
+// reiheAbschliessen in starteAufgabe) und der Knopf schließt, statt weiterzuschalten.
+function abschlussHtml(abschluss) {
+  if (!abschluss) return '';
+  // Hütten-Hinweis: Ziel, kein Vorwurf — kein „gesperrt", kein „musst du", nur wo die
+  // nächste Reihe herkommt. Gedrosselt über sollHuettenHinweisZeigen.
+  const huette = abschluss.huettenHinweis
+    ? `<p class="feier__unlock">🛖 In der Hütte kannst du die nächste Reihe aufmachen.</p>`
+    : '';
+  return `<p class="feier__reihe">🏆 Reihe geschafft!</p>${huette}`;
+}
+
+function zeigeErfolg(modal, gegeben = [], istKlein = false, neuesBiom = null, onWeiter = null, abschluss = null) {
   const unlockHtml = neuesBiom
     ? `<div class="feier__unlock">🗺️ Neues Land freigeschaltet! Schau auf der Karte (🗺️).</div>`
     : '';
+  const knopf = `<button class="modal__close">${abschluss ? 'Fertig' : 'Weiter'}</button>`;
   let inner;
   if (!gegeben.length) {
     inner = `
@@ -799,7 +857,8 @@ function zeigeErfolg(modal, gegeben = [], istKlein = false, neuesBiom = null, on
         <div class="modal__titel">RICHTIG!</div>
         <p class="modal__text">Super gemacht!</p>
         ${unlockHtml}
-        <button class="modal__close">Weiter</button>
+        ${abschlussHtml(abschluss)}
+        ${knopf}
       </div>
     `;
   } else {
@@ -809,20 +868,22 @@ function zeigeErfolg(modal, gegeben = [], istKlein = false, neuesBiom = null, on
     inner = `
       <div class="modal modal--erfolg">
         <div class="modal__emoji">${emojis}</div>
+        ${abschluss ? '<div class="feier__konfetti">✨🎊⭐🎉✨</div>' : ''}
         <div class="modal__titel">RICHTIG!</div>
         <p class="modal__text">Du hast <strong>${escapeHtml(labels)}</strong> gefunden!</p>
         ${unlockHtml}
-        <button class="modal__close">Weiter</button>
+        ${abschlussHtml(abschluss)}
+        ${knopf}
       </div>
     `;
   }
   modal.inhalt.innerHTML = inner;
   const weiter = modal.inhalt.querySelector('.modal__close');
   if (istKlein) {
-    sprich('Richtig! Super gemacht!');
+    sprich(abschluss ? 'Richtig! Reihe geschafft!' : 'Richtig! Super gemacht!');
     weiter.classList.add('modal__close--puls');
   }
-  weiter.addEventListener('click', onWeiter ?? (() => modal.schliessen()));
+  weiter.addEventListener('click', abschluss ? (() => modal.schliessen()) : (onWeiter ?? (() => modal.schliessen())));
 }
 
 // Lösungs-Anzeige nach 2 Fehlversuchen. Bei der Uhr ist aufgabe.ergebnis die Minutenzahl
@@ -830,29 +891,31 @@ function zeigeErfolg(modal, gegeben = [], istKlein = false, neuesBiom = null, on
 // Antwort-Knöpfe DIESER Frage (knopfBeschriftung, gesteuert über aufgabe.zeigeDigital),
 // sonst stünde hier „Die Lösung ist 450." statt einer lesbaren Uhrzeit. Für alle anderen
 // Aufgabentypen liefert knopfBeschriftung unverändert String(wert) — keine Änderung.
-function zeigeLoesung(aufgabe, profile, modal, istKlein = false, onWeiter = null) {
+function zeigeLoesung(aufgabe, profile, modal, istKlein = false, onWeiter = null, abschluss = null) {
   const loesungsText = escapeHtml(knopfBeschriftung(aufgabe.ergebnis, aufgabe, profile));
   modal.inhalt.querySelector('.aufgabe__inhalt').innerHTML = `
     <div class="aufgabe__loesung">
       <div class="aufgabe__text">${aufgabe.text}</div>
       <div class="aufgabe__loesung-text">Die Lösung ist <strong>${loesungsText}</strong>.</div>
       <p class="aufgabe__loesung-hinweis">Macht nichts — beim nächsten Mal klappt es!</p>
-      <button class="modal__close">Weiter</button>
+      ${abschlussHtml(abschluss)}
+      <button class="modal__close">${abschluss ? 'Fertig' : 'Weiter'}</button>
     </div>
   `;
   const weiter = modal.inhalt.querySelector('.modal__close');
   if (istKlein) {
-    sprich(`Die Lösung ist ${loesungsText}. Tippe auf Weiter.`);
+    sprich(abschluss
+      ? `Die Lösung ist ${loesungsText}. Reihe geschafft!`
+      : `Die Lösung ist ${loesungsText}. Tippe auf Weiter.`);
     weiter.classList.add('modal__close--puls');
   }
-  weiter.addEventListener('click', onWeiter ?? (() => modal.schliessen()));
+  weiter.addEventListener('click', abschluss ? (() => modal.schliessen()) : (onWeiter ?? (() => modal.schliessen())));
 }
 
 // Abschluss-Feier am Ende einer Reihe (kein Extra-Material — Belohnungs-Neutralität).
-// huettenHinweis: beiläufiger Hinweis auf den Reihen-Trainer (siehe sollHuettenHinweisZeigen
-// oben, das auch das „nur jede zweite Reihe" drosselt) — bewusst hier statt bei jeder
-// einzelnen Aufgabe, damit er nicht zur Nörgelei wird. Ziel, kein Vorwurf: kein „gesperrt",
-// kein „musst du" — nur wo die nächste Reihe herkommt.
+// Seit v100 nur noch Sicherheitsnetz: Im Normalfall ist das Ergebnis-Fenster der letzten Frage
+// selbst der Abschluss (reiheAbschliessen/abschlussHtml). Hierher kommt nur noch eine
+// gespeicherte Reihe, die ihre letzte Frage schon vor v100 beantwortet hatte.
 function zeigeReiheGeschafft(modal, istKlein = false, huettenHinweis = false) {
   const huetteHtml = huettenHinweis
     ? `<p class="feier__unlock">🛖 In der Hütte kannst du die nächste Reihe aufmachen.</p>`

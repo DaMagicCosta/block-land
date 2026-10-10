@@ -78,9 +78,6 @@ function zeigeAnfrageFeierModal(profileId, anfrage, container) {
   modal.inhalt.querySelector('.modal__close').addEventListener('click', () => modal.schliessen());
 }
 
-// Würfel-Teich: Arten-Auswahl einmal pro Besuch beim Betreten zeigen (Reset beim Biom-Wechsel).
-let teichAuswahlGezeigtFuer = null;
-
 export async function renderWelt(container) {
   schliesseAlleModals();
 
@@ -265,9 +262,17 @@ export async function renderWelt(container) {
         oeffneTrainer(typ.reward, { rechenart: aktivId === 'geteilt' ? 'geteilt' : 'mal' });
         return;
       }
+      // Würfel-Teich: Die Ente öffnet die Arten-Auswahl (gezielt üben). Jedes andere Feld startet
+      // sofort Querbeet — bis v100 kam die Auswahl bei JEDEM Antippen und beim Betreten, als
+      // reine Schrift vor Kindern, die noch nicht lesen (Befund 10.10.2026).
+      if (typ.aktion === 'auswahl') {
+        const teichReward = Object.values(biom.tile_typen).find(t => t.reward)?.reward
+          ?? { item: 'blume', emoji: '🌸', label: 'Blume' };
+        oeffneRechnen10Auswahl(teichReward, { onClose: () => renderWelt(container) });
+        return;
+      }
       if (!typ.reward) return;  // Sicherheitsnetz: interaktive Tiles ohne Reward ignorieren
-      if (aktivId === 'rechnen10') oeffneRechnen10Auswahl(typ.reward, { onClose: () => renderWelt(container) });
-      else if (aktivId === 'text') oeffneTextaufgabe(typ.reward, { onClose: () => renderWelt(container) });
+      if (aktivId === 'text') oeffneTextaufgabe(typ.reward, { onClose: () => renderWelt(container) });
       else oeffneAufgabe(typ.reward, { onClose: () => renderWelt(container) });
     });
   });
@@ -295,27 +300,6 @@ export async function renderWelt(container) {
   if (freigegeben) {
     zeigeAnfrageFeierModal(profile.id, freigegeben, container);
     return;
-  }
-
-  // Würfel-Teich: beim Betreten zuerst die Arten-Auswahl (einmal pro Besuch, kein Loop;
-  // bei offener Reihe übernimmt der „▶ Weitermachen"-Knopf das Fortsetzen).
-  if (aktivId === 'rechnen10') {
-    const ersterBesuch = teichAuswahlGezeigtFuer !== 'rechnen10';
-    if (ersterBesuch && !hatReihe) {
-      // Nachts KEIN Auto-Start (still übersprungen, kein Schlaf-Modal — das Kind hat nichts
-      // geklickt, die Karte ist bewusst offen und die Welt sichtbar dunkel). Flag bleibt
-      // UNGESETZT, damit die Auswahl beim nächsten Betreten nach Nachtende noch kommt.
-      if (!nachtAktiv) {
-        teichAuswahlGezeigtFuer = 'rechnen10';
-        const teichReward = Object.values(biom.tile_typen).find(t => t.reward)?.reward
-          ?? { item: 'blume', emoji: '🌸', label: 'Blume' };
-        oeffneRechnen10Auswahl(teichReward, { onClose: () => renderWelt(container) });
-      }
-    } else {
-      teichAuswahlGezeigtFuer = 'rechnen10';
-    }
-  } else {
-    teichAuswahlGezeigtFuer = null;
   }
 
   // Himmel alle 5 s prüfen (Live-Befund 14.09.2026: „Block-Land schläft", obwohl die

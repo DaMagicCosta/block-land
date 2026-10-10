@@ -1,10 +1,12 @@
 // Pure Logik der Übungsreihe: Länge nach Alter, Fertig-Check, Fortschrittspunkte.
 // KEINE DOM-/State-Abhängigkeit (node-testbar).
+import { zielFuer } from './tagesauftrag-logik.js';
 
-// Reihenlänge nach Schulstufe: Kleine kürzer, Große länger.
+// Reihenlänge = Tagesziel (Kleine 3, Große 5). Vorher 4 und 6: Der Tagesauftrag war dann eine
+// Frage vor dem Ende der Reihe erfüllt — zwei verschiedene Enden für dieselbe Einheit
+// (Befund 10.10.2026). Eine Reihe am frischen Tag ist jetzt genau der Tagesauftrag.
 export function reihenLaenge(alter) {
-  if (alter === 'klasse-2' || alter === 'klasse-3') return 6;
-  return 4;   // kindergarten, klasse-1, Default
+  return zielFuer(alter);
 }
 
 // Reihe ist fertig, sobald die aktuelle Position die Länge erreicht/überschritten hat.

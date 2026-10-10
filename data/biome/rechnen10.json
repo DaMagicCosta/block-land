@@ -6,6 +6,7 @@
     ".": { "label": "Steg", "emoji": "", "interaktiv": false, "klasse": "tile--teich-ufer" },
     "r": { "label": "Schilf", "emoji": "🌾", "interaktiv": true, "klasse": "tile--teich-schilf", "reward": { "item": "holz", "emoji": "🪵", "label": "Holz" } },
     "s": { "label": "Kiesel", "emoji": "🪨", "interaktiv": true, "klasse": "tile--teich-kiesel", "reward": { "item": "stein", "emoji": "🪨", "label": "Stein" } },
+    "e": { "label": "Ente", "emoji": "🦆", "interaktiv": true, "klasse": "tile--teich-wasser tile--teich-ente", "aktion": "auswahl" },
     "l": { "label": "Seerose", "emoji": "🪷", "interaktiv": true, "klasse": "tile--teich-seerose", "reward": { "item": "blume", "emoji": "🌸", "label": "Blume" } }
   },
   "spielfigur_start": { "spalte": 6, "zeile": 4 },
@@ -13,7 +14,7 @@
     "grgggslgggsg",
     "gwwgggggrwwg",
     "gwwgglgggwwg",
-    "ggggg.gggwsg",
+    "ggggg.eggwsg",
     "grgggggrgggg",
     "ggwwgglggwwg",
     "gswwgggggwlg",

@@ -40,17 +40,13 @@ function visualHtml(v) {
   }
 }
 
-// Rendert die geführten Schritte in `container`. Ruft opts.onFertig beim letzten Schritt.
-export function rendereStellenwert(aufgabe, container, { onFertig } = {}) {
+// Rendert die geführten Schritte in `container`. Die Schritte sind Hilfe auf Wunsch
+// (Befund 10.10.2026: vor JEDER Antwort gezeigt, kosteten sie fünf bis sechs Tipps je Aufgabe,
+// und gerechnet hat die App). Die Antwortknöpfe stehen deshalb die ganze Zeit darunter —
+// hier gibt es weder „Antworten" noch „Ich weiß die Antwort", nur vor und zurück.
+export function rendereStellenwert(aufgabe, container) {
   const schritte = berechneSchritte(aufgabe);
   let idx = 0;
-  let fertigGemeldet = false;
-
-  function fertig() {
-    if (fertigGemeldet) return;
-    fertigGemeldet = true;
-    if (typeof onFertig === 'function') onFertig();
-  }
 
   function render() {
     const s = schritte[idx];
@@ -64,19 +60,15 @@ export function rendereStellenwert(aufgabe, container, { onFertig } = {}) {
         <div class="sw-visual">${visualHtml(s.visual)}</div>
         <div class="sw-text">${s.erklaerung}</div>
         <div class="sw-aktionen">
-          ${letzter
-            ? '<button class="sw-weiter" data-fertig>Antworten ▶</button>'
-            : '<button class="sw-weiter" data-weiter>Weiter ▶</button>'}
-          ${!letzter ? '<button class="sw-skip" data-skip>Ich weiß die Antwort</button>' : ''}
+          ${idx > 0 ? '<button class="sw-zurueck" data-zurueck aria-label="Schritt zurück">◀</button>' : ''}
+          ${letzter ? '' : '<button class="sw-weiter" data-weiter>Weiter ▶</button>'}
         </div>
       </div>
     `;
     const weiter = container.querySelector('[data-weiter]');
     if (weiter) weiter.addEventListener('click', () => { idx++; render(); });
-    const fertigBtn = container.querySelector('[data-fertig]');
-    if (fertigBtn) fertigBtn.addEventListener('click', fertig);
-    const skip = container.querySelector('[data-skip]');
-    if (skip) skip.addEventListener('click', fertig);
+    const zurueck = container.querySelector('[data-zurueck]');
+    if (zurueck) zurueck.addEventListener('click', () => { idx--; render(); });
   }
 
   render();

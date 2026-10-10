@@ -86,6 +86,7 @@
 .tile--teich-schilf  { background: #2e4d52; cursor: pointer; }
 .tile--teich-kiesel  { background: #2e4d52; cursor: pointer; }
 .tile--teich-seerose { background: #2e4d52; cursor: pointer; }
+.tile--teich-ente    { cursor: pointer; }
 .tile--schlucht-fels     { background: #3a2f2a; }
 .tile--schlucht-tief     { background: #241c18; }
 .tile--schlucht-wasser   { background: #25424a; }
