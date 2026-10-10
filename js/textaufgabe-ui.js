@@ -1,6 +1,7 @@
-// Geschichten-Dorf: Quest-UI für Textaufgaben — ein Modal, 4 Phasen nacheinander:
-// 1. Lesen (Vorlese-Pflicht)  2. Zahlen markieren  3. Frage antippen  4. Rechnen.
-// In JEDER interaktiven Phase (2/3/4) gilt die 2-Fehlversuche-Regel: nach 2 Fehlversuchen
+// Geschichten-Dorf: Quest-UI für Textaufgaben — ein Modal, zwei Bildschirme:
+// 1. Lesen (Vorlese-Pflicht)  2. Arbeitsphase mit drei Schritten, die auf demselben
+//    Bildschirm ineinander übergehen: Zahlen markieren → Frage antippen → Rechnen.
+// In JEDEM Schritt der Arbeitsphase gilt die 2-Fehlversuche-Regel: nach 2 Fehlversuchen
 // wird die Lösung für diese Phase gezeigt (verraten) und es geht automatisch weiter.
 // Die Quest zählt am Ende nur dann als "richtig" (Tracking + Reward), wenn KEINE
 // Phase verraten wurde UND die Rechnen-Antwort im ersten oder zweiten Versuch stimmt.
@@ -28,43 +29,6 @@ function relevanteZahlenSet(aufgabe) {
     });
   });
   return set;
-}
-
-function gleicheSets(a, b) {
-  if (a.size !== b.size) return false;
-  for (const k of a) if (!b.has(k)) return false;
-  return true;
-}
-
-function tokenSpanHtml(t, markiert) {
-  return `<span class="text-token${markiert ? ' text-token--zahl-markiert' : ''}">${escapeHtml(t.text)}</span>`;
-}
-
-// Phase 2: jedes Token ein eigener Button (antippbar, toggelt Markierung).
-function saetzeTokenButtonsHtml(aufgabe) {
-  return aufgabe.saetze.map((satz, si) => {
-    const tokensHtml = satz.tokens.map((t, ti) =>
-      `<button type="button" class="text-token" data-satz="${si}" data-idx="${ti}">${escapeHtml(t.text)}</button>`
-    ).join(' ');
-    return `<div class="text-satz" data-satz="${si}">${tokensHtml}</div>`;
-  }).join('');
-}
-
-// Phase 3: ganze Sätze antippbar (Zahlen-Markierung aus Phase 2 bleibt sichtbar).
-function saetzeKlickbarHtml(aufgabe, markierteKeys) {
-  return aufgabe.saetze.map((satz, si) => {
-    const tokensHtml = satz.tokens.map((t, ti) => tokenSpanHtml(t, markierteKeys.has(tokenKey(si, ti)))).join(' ');
-    return `<button type="button" class="text-satz text-satz--klickbar" data-satz="${si}">${tokensHtml}</button>`;
-  }).join('');
-}
-
-// Phase 4: nur noch Lesetext mit beiden Markierungen (Zahlen + Frage), nicht mehr antippbar.
-function saetzeReadonlyHtml(aufgabe, markierteKeys, frageIndex) {
-  return aufgabe.saetze.map((satz, si) => {
-    const tokensHtml = satz.tokens.map((t, ti) => tokenSpanHtml(t, markierteKeys.has(tokenKey(si, ti)))).join(' ');
-    const frageKlasse = frageIndex === si ? ' text-satz--frage-markiert' : '';
-    return `<div class="text-satz${frageKlasse}" data-satz="${si}">${tokensHtml}</div>`;
-  }).join('');
 }
 
 function npcKopfHtml(aufgabe, prompt) {
@@ -130,11 +94,10 @@ export async function oeffneTextaufgabe(reward, { onClose } = {}) {
 // --- Phase 1: Lesen (Vorlese-Pflicht) ---
 function rendereLesenPhase(modal, aufgabe, profile, questStart, ctx, reward) {
   modal.inhalt.innerHTML = `
-    ${npcKopfHtml(aufgabe, '📖 Höre gut zu!')}
+    ${npcKopfHtml(aufgabe, '📖 Lies die Geschichte laut vor!')}
     <div class="aufgabe__vorlesen">
       <div class="aufgabe__mikro">🎤</div>
       <div class="aufgabe__vorlesen-text">
-        <div class="aufgabe__vorlesen-label">Lies laut vor:</div>
         <div class="aufgabe__vorlesen-aufgabe">${escapeHtml(aufgabe.vorlese_text)}</div>
       </div>
       <button class="aufgabe__hoeren" title="Vorlesen">🔊</button>
@@ -143,120 +106,143 @@ function rendereLesenPhase(modal, aufgabe, profile, questStart, ctx, reward) {
   `;
   modal.inhalt.querySelector('.aufgabe__hoeren').addEventListener('click', () => sprich(aufgabe.vorlese_text));
   modal.inhalt.querySelector('.aufgabe__gelesen').addEventListener('click', () => {
-    rendereZahlenPhase(modal, aufgabe, profile, questStart, ctx, reward);
+    rendereArbeitsPhase(modal, aufgabe, profile, questStart, ctx, reward);
   });
 }
 
-// --- Phase 2: Zahlen markieren ---
-function rendereZahlenPhase(modal, aufgabe, profile, questStart, ctx, reward) {
-  let fehlversuche = 0;
+// --- Arbeitsphase: Zahlen markieren → Frage antippen → Rechnen, alles auf EINEM Bildschirm ---
+// Bis v100 waren das drei Bildschirme mit je eigener Anweisung, dazu ein „Weiter"-Knopf nach
+// dem Markieren (Befund 10.10.2026: acht Tipps und vier Anweisungen für eine Antwort). Jetzt
+// bleibt die Geschichte stehen, und es geht von selbst weiter, sobald ein Schritt stimmt:
+//   zahlen  — nur Zahlen sind antippbar. Wichtige Zahl → rot markiert. Unwichtige Zahl
+//             (irrelevante_slots der Vorlage) → Fehlversuch. Alle wichtigen gefunden → weiter.
+//   frage   — ganze Sätze sind antippbar. Richtiger Satz → blau markiert → weiter.
+//   rechnen — Antwortknöpfe erscheinen unter der markierten Geschichte.
+// Die Schritte laufen nacheinander und nicht gleichzeitig: Sonst würde ein Tipp knapp neben
+// eine Zahl als falsche Wahl des Fragesatzes gewertet.
+// Die 2-Fehlversuche-Regel gilt je Schritt wie bisher: Danach wird der Schritt verraten
+// (Markierung erscheint von selbst), die Quest zählt als falsch und läuft weiter.
+function rendereArbeitsPhase(modal, aufgabe, profile, questStart, ctx, reward) {
   const erwartet = relevanteZahlenSet(aufgabe);
   const sperre = neueKlickSperre();   // Doppeltipp-Schutz (siehe klick-sperre.js)
+  const gefunden = new Set();
+  let schritt = 'zahlen';             // 'zahlen' | 'frage' | 'rechnen'
+  let fehlversuche = 0;               // je Schritt, wird beim Schrittwechsel zurückgesetzt
 
-  function render() {
-    modal.inhalt.innerHTML = `
-      ${npcKopfHtml(aufgabe, '🔢 Tippe auf die wichtigen Zahlen!')}
-      <div class="text-saetze">${saetzeTokenButtonsHtml(aufgabe)}</div>
-      <button class="text-weiter">Weiter</button>
-      <div class="aufgabe__feedback" hidden></div>
-    `;
-    modal.inhalt.querySelectorAll('.text-token').forEach(btn => {
-      btn.addEventListener('click', () => btn.classList.toggle('text-token--zahl-markiert'));
-    });
-    modal.inhalt.querySelector('.text-weiter').addEventListener('click', pruefen);
-  }
+  const PROMPT = {
+    zahlen: '🔢 Tippe auf die wichtigen Zahlen!',
+    frage: '❓ Tippe auf die Frage!',
+    rechnen: '🧮 Jetzt rechne aus!',
+  };
 
-  function markierteAusDom() {
-    const set = new Set();
-    modal.inhalt.querySelectorAll('.text-token--zahl-markiert').forEach(btn => {
-      set.add(tokenKey(btn.dataset.satz, btn.dataset.idx));
-    });
-    return set;
-  }
+  const saetzeHtml = aufgabe.saetze.map((satz, si) => {
+    const tokensHtml = satz.tokens.map((t, ti) => t.istZahl
+      ? `<button type="button" class="text-token" data-satz="${si}" data-idx="${ti}">${escapeHtml(t.text)}</button>`
+      : `<span class="text-token">${escapeHtml(t.text)}</span>`
+    ).join(' ');
+    return `<div class="text-satz" data-satz="${si}">${tokensHtml}</div>`;
+  }).join('');
 
-  function pruefen() {
-    const jetzt = performance.now();
-    if (sperre.istGesperrt(jetzt)) return;
-    sperre.verriegeln(jetzt);
-    const markiert = markierteAusDom();
-    if (gleicheSets(markiert, erwartet)) {
-      rendereFragePhase(modal, aufgabe, profile, questStart, ctx, erwartet, reward);
-      return;
-    }
-    fehlversuche++;
-    if (fehlversuche >= MAX_FEHLVERSUCHE) {
-      ctx.verraten = true;
-      rapportiereWennFaellig(profile, questStart, ctx, aufgabe, false);
-      // Lösung zeigen: die korrekten Zahlen bekommen die Markierung automatisch.
-      rendereFragePhase(modal, aufgabe, profile, questStart, ctx, erwartet, reward);
-      return;
-    }
-    const fb = modal.inhalt.querySelector('.aufgabe__feedback');
+  modal.inhalt.innerHTML = `
+    <div class="text-npc-kopf"><span class="text-npc-emoji">${escapeHtml(aufgabe.npc)}</span></div>
+    <div class="text-schritte" aria-hidden="true">
+      <span data-schritt="zahlen">🔢</span><span data-schritt="frage">❓</span><span data-schritt="rechnen">🧮</span>
+    </div>
+    <div class="text-schritt-prompt"></div>
+    <div class="text-saetze">${saetzeHtml}</div>
+    <div class="aufgabe__optionen" hidden></div>
+    <div class="aufgabe__feedback" hidden></div>
+  `;
+  const saetzeEl = modal.inhalt.querySelector('.text-saetze');
+  const fb = modal.inhalt.querySelector('.aufgabe__feedback');
+
+  function zeigeFehler(text) {
     fb.hidden = false;
     fb.className = 'aufgabe__feedback aufgabe__feedback--fehler';
-    fb.textContent = 'Versuch es nochmal!';
+    fb.textContent = text;
     wackeln(modal);
   }
 
-  render();
-}
+  function betrete(neu) {
+    schritt = neu;
+    fehlversuche = 0;
+    fb.hidden = true;
+    sperre.verriegeln(performance.now());   // der letzte Tipp darf nicht gleich weiterwerten
+    modal.inhalt.querySelector('.text-schritt-prompt').textContent = PROMPT[neu];
+    modal.inhalt.querySelectorAll('.text-schritte span').forEach(el =>
+      el.classList.toggle('aktiv', el.dataset.schritt === neu));
+    saetzeEl.className = `text-saetze text-saetze--schritt-${neu}`;
+    saetzeEl.querySelectorAll('.text-satz').forEach(el =>
+      el.classList.toggle('text-satz--klickbar', neu === 'frage'));
+    if (neu === 'zahlen' && erwartet.size === 0) { betrete('frage'); return; }   // Vorlage ohne wichtige Zahl
+    if (neu === 'rechnen') zeigeOptionen();
+  }
 
-// --- Phase 3: Frage antippen ---
-function rendereFragePhase(modal, aufgabe, profile, questStart, ctx, markierteZahlen, reward) {
-  let fehlversuche = 0;
-  const sperre = neueKlickSperre();
+  function verrate() {
+    ctx.verraten = true;
+    rapportiereWennFaellig(profile, questStart, ctx, aufgabe, false);
+  }
 
-  function render() {
-    modal.inhalt.innerHTML = `
-      ${npcKopfHtml(aufgabe, '❓ Wo steht die Frage?')}
-      <div class="text-saetze">${saetzeKlickbarHtml(aufgabe, markierteZahlen)}</div>
-      <div class="aufgabe__feedback" hidden></div>
-    `;
-    modal.inhalt.querySelectorAll('.text-satz--klickbar').forEach(btn => {
-      btn.addEventListener('click', () => waehle(parseInt(btn.dataset.satz, 10)));
+  function markiereAlleZahlen() {
+    saetzeEl.querySelectorAll('button.text-token').forEach(btn => {
+      if (erwartet.has(tokenKey(btn.dataset.satz, btn.dataset.idx))) btn.classList.add('text-token--zahl-markiert');
     });
   }
 
-  function waehle(si) {
-    const jetzt = performance.now();
-    if (sperre.istGesperrt(jetzt)) return;
-    sperre.verriegeln(jetzt);
-    if (si === aufgabe.frageIndex) {
-      rendereRechnenPhase(modal, aufgabe, profile, questStart, ctx, markierteZahlen, reward);
-      return;
-    }
-    fehlversuche++;
-    if (fehlversuche >= MAX_FEHLVERSUCHE) {
-      ctx.verraten = true;
-      rapportiereWennFaellig(profile, questStart, ctx, aufgabe, false);
-      rendereRechnenPhase(modal, aufgabe, profile, questStart, ctx, markierteZahlen, reward);
-      return;
-    }
-    const fb = modal.inhalt.querySelector('.aufgabe__feedback');
-    fb.hidden = false;
-    fb.className = 'aufgabe__feedback aufgabe__feedback--fehler';
-    fb.textContent = 'Schau nochmal genau hin!';
-    wackeln(modal);
-  }
+  // Schritt 1: Zahlen
+  saetzeEl.querySelectorAll('button.text-token').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (schritt !== 'zahlen') return;
+      const key = tokenKey(btn.dataset.satz, btn.dataset.idx);
+      if (gefunden.has(key) || btn.classList.contains('text-token--unwichtig')) return;
+      const jetzt = performance.now();
+      if (sperre.istGesperrt(jetzt)) return;
+      sperre.verriegeln(jetzt);
+      if (erwartet.has(key)) {
+        gefunden.add(key);
+        btn.classList.add('text-token--zahl-markiert');
+        fb.hidden = true;
+        if (gefunden.size === erwartet.size) betrete('frage');
+        return;
+      }
+      btn.classList.add('text-token--unwichtig');
+      fehlversuche++;
+      if (fehlversuche >= MAX_FEHLVERSUCHE) {
+        verrate();
+        markiereAlleZahlen();
+        betrete('frage');
+        return;
+      }
+      zeigeFehler('Diese Zahl brauchst du nicht.');
+    });
+  });
 
-  render();
-}
+  // Schritt 2: Frage
+  saetzeEl.querySelectorAll('.text-satz').forEach(el => {
+    el.addEventListener('click', () => {
+      if (schritt !== 'frage') return;
+      const jetzt = performance.now();
+      if (sperre.istGesperrt(jetzt)) return;
+      sperre.verriegeln(jetzt);
+      const si = parseInt(el.dataset.satz, 10);
+      const richtig = si === aufgabe.frageIndex;
+      if (!richtig) {
+        fehlversuche++;
+        if (fehlversuche < MAX_FEHLVERSUCHE) { zeigeFehler('Schau nochmal genau hin!'); return; }
+        verrate();
+      }
+      saetzeEl.querySelector(`.text-satz[data-satz="${aufgabe.frageIndex}"]`)?.classList.add('text-satz--frage-markiert');
+      betrete('rechnen');
+    });
+  });
 
-// --- Phase 4: Rechnen ---
-function rendereRechnenPhase(modal, aufgabe, profile, questStart, ctx, markierteZahlen, reward) {
-  let fehlversuche = 0;
-  const sperre = neueKlickSperre();
-
-  function render() {
-    const knoepfe = aufgabe.antwort_optionen.map(opt =>
+  // Schritt 3: Rechnen
+  function zeigeOptionen() {
+    const optionen = modal.inhalt.querySelector('.aufgabe__optionen');
+    optionen.hidden = false;
+    optionen.innerHTML = aufgabe.antwort_optionen.map(opt =>
       `<button class="aufgabe__option" data-wert="${opt}">${opt}</button>`).join('');
-    modal.inhalt.innerHTML = `
-      ${npcKopfHtml(aufgabe, '🧮 Jetzt rechne aus!')}
-      <div class="text-saetze text-saetze--kompakt">${saetzeReadonlyHtml(aufgabe, markierteZahlen, aufgabe.frageIndex)}</div>
-      <div class="aufgabe__optionen">${knoepfe}</div>
-      <div class="aufgabe__feedback" hidden></div>
-    `;
-    modal.inhalt.querySelectorAll('.aufgabe__option').forEach(btn => {
+    optionen.querySelectorAll('.aufgabe__option').forEach(btn => {
       btn.addEventListener('click', () => pruefen(parseInt(btn.dataset.wert, 10)));
     });
   }
@@ -266,7 +252,7 @@ function rendereRechnenPhase(modal, aufgabe, profile, questStart, ctx, markierte
     if (sperre.istGesperrt(jetzt)) return;
     sperre.verriegeln(jetzt);
     if (wert === aufgabe.ergebnis) {
-      // Ergebnis steht fest: richtig, sofern in keiner vorherigen Phase verraten wurde
+      // Ergebnis steht fest: richtig, sofern in keinem vorherigen Schritt verraten wurde
       // (war schon verraten, ist ctx.rapportiert bereits gesetzt → Guard greift, kein Doppel-Rapport).
       rapportiereWennFaellig(profile, questStart, ctx, aufgabe, !ctx.verraten);
       abschliessen(true);
@@ -274,16 +260,11 @@ function rendereRechnenPhase(modal, aufgabe, profile, questStart, ctx, markierte
     }
     fehlversuche++;
     if (fehlversuche >= MAX_FEHLVERSUCHE) {
-      ctx.verraten = true;
-      rapportiereWennFaellig(profile, questStart, ctx, aufgabe, false);
+      verrate();
       abschliessen(false);
       return;
     }
-    const fb = modal.inhalt.querySelector('.aufgabe__feedback');
-    fb.hidden = false;
-    fb.className = 'aufgabe__feedback aufgabe__feedback--fehler';
-    fb.textContent = 'Versuch es nochmal!';
-    wackeln(modal);
+    zeigeFehler('Versuch es nochmal!');
   }
 
   function abschliessen(antwortRichtig) {
@@ -296,7 +277,7 @@ function rendereRechnenPhase(modal, aufgabe, profile, questStart, ctx, markierte
     }
   }
 
-  render();
+  betrete('zahlen');
 }
 
 function zeigeErfolg(modal, reward) {

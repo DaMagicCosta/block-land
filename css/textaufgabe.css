@@ -1,4 +1,4 @@
-/* Geschichten-Dorf: Textaufgaben-Quest (4 Phasen in einem Modal). */
+/* Geschichten-Dorf: Textaufgaben-Quest (Lesen, dann eine Arbeitsphase mit drei Schritten). */
 .modal--textaufgabe { text-align: left; }
 
 .text-npc-kopf { text-align: center; margin-bottom: var(--space-sm); }
@@ -86,6 +86,21 @@ button.text-token.text-token--zahl-markiert {
 }
 /* Markierung schlägt Hover — sonst „frisst" die Tablet-Berührung den roten Kreis. */
 button.text-token.text-token--zahl-markiert:hover { border-color: var(--color-markier-zahl); }
+
+/* Unwichtige Zahl angetippt: bleibt als „brauche ich nicht" kenntlich und ist nicht nochmal wertbar. */
+button.text-token.text-token--unwichtig { opacity: 0.45; text-decoration: line-through; cursor: default; }
+
+/* Solange Zahlen gesucht werden, sind sie als antippbar erkennbar. */
+.text-saetze--schritt-zahlen button.text-token:not(.text-token--zahl-markiert):not(.text-token--unwichtig) { border-color: var(--color-border); }
+/* Ab dem Frage-Schritt fallen Tipps auf Zahlen zum Satz durch. */
+.text-saetze--schritt-frage .text-token,
+.text-saetze--schritt-rechnen .text-token { pointer-events: none; }
+.text-saetze--schritt-rechnen { margin-bottom: var(--space-md); }
+
+/* Drei Schritte, der aktuelle hervorgehoben — zeigt, wie weit es noch ist. */
+.text-schritte { display: flex; justify-content: center; gap: var(--space-md); margin-bottom: var(--space-xs); font-size: var(--font-size-base); }
+.text-schritte span { opacity: 0.3; }
+.text-schritte span.aktiv { opacity: 1; }
 
 .text-weiter {
   align-self: center;
