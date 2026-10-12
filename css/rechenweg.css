@@ -1,0 +1,40 @@
+/* Rechenweg: Sprünge auf dem Rechenstrich (Zehner blau, Einer orange). */
+.aufgabe__stellenwert { width: 100%; }
+
+.rw { display: flex; flex-direction: column; gap: var(--space-sm); align-items: center; text-align: center; }
+.rw-kopf { display: flex; flex-direction: column; gap: 2px; }
+.rw-schritt-nr { font-family: var(--font-mono); font-size: var(--font-size-xs); color: var(--color-text-dim); letter-spacing: 1px; }
+.rw-titel { font-family: var(--font-mono); font-size: var(--font-size-base); color: var(--color-text); font-weight: bold; }
+.rw-text { font-size: var(--font-size-sm); color: var(--color-text); line-height: 1.45; }
+.rw-e { color: var(--color-einer); }
+.rw-z { color: var(--color-zehner); }
+
+.rw-svg { width: 100%; max-width: 420px; height: auto; display: block; }
+.rw-strich { stroke: var(--color-border); stroke-width: 2; }
+
+.rw-halt line { stroke: var(--color-text-dim); stroke-width: 2; }
+.rw-halt rect { fill: var(--color-surface-2); stroke: var(--color-border); stroke-width: 1.5; }
+.rw-halt text { fill: var(--color-text); font-family: var(--font-mono); font-size: 17px; font-weight: bold; }
+/* Der volle Zehner ist die Plattform, auf der man landet. */
+.rw-halt--zehner rect { stroke: var(--color-zehner); stroke-width: 2.5; }
+.rw-halt--frage rect { stroke: var(--color-success); stroke-dasharray: 4 3; }
+.rw-halt--frage text { fill: var(--color-success); }
+
+.rw-bogen path { fill: none; stroke-width: 2.5; stroke-linecap: round; }
+.rw-bogen text { font-family: var(--font-mono); font-size: 15px; font-weight: bold; }
+.rw-bogen--z path { stroke: var(--color-zehner); }
+.rw-bogen--z text { fill: var(--color-zehner); }
+.rw-bogen--e path { stroke: var(--color-einer); }
+.rw-bogen--e text { fill: var(--color-einer); }
+
+.rw-aktionen { display: flex; flex-direction: row; justify-content: center; gap: var(--space-sm); align-items: center; margin-top: var(--space-xs); }
+.rw-weiter {
+  background: var(--color-success); color: var(--color-bg); border: 0;
+  font-family: var(--font-mono); font-weight: bold; font-size: var(--font-size-base);
+  padding: var(--space-sm) var(--space-lg); border-radius: var(--radius-sm); cursor: pointer;
+}
+.rw-zurueck {
+  background: transparent; color: var(--color-text-dim); border: 2px solid var(--color-border);
+  font-family: var(--font-mono); font-size: var(--font-size-base);
+  padding: var(--space-sm) var(--space-md); border-radius: var(--radius-sm); cursor: pointer;
+}

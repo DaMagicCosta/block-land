@@ -20,6 +20,7 @@
 import { readFileSync } from 'node:fs';
 import { generiereMalAufgabe } from '../js/aufgaben/mal.js';
 import { generiereGeteiltAufgabe } from '../js/aufgaben/geteilt.js';
+import { generiereMinusAufgabe } from '../js/aufgaben/minus.js';
 
 const pool = JSON.parse(readFileSync(new URL('../data/aufgaben-pool.json', import.meta.url), 'utf8'));
 
@@ -149,6 +150,33 @@ pruefe('mal Stufe 4: a erreicht bei 500 Proben die neue Obergrenze 10 (Stichprob
   stufe4Proben.some(p => p.a === 10));
 pruefe('mal Stufe 4: a übersteigt bei 500 Proben nie 10 (alter Bereich 11/12 taucht nicht mehr auf)',
   stufe4Proben.every(p => p.a <= 10));
+
+// ---------------------------------------------------------------------------------------
+console.log('\nMinus: Zwischenstufe mit den Teilschritten der Zehnerunterschreitung');
+
+// Die Stufe steht ZWISCHEN „ohne Borgen" und „mit Borgen": Sie übt einzeln, was die nächste
+// Stufe in einer Aufgabe zusammen verlangt (zum Zehner 85 − 5, vom Zehner 80 − 2).
+{
+  const stufen = pool.minus.stufen;
+  const idx = stufen.findIndex(s => s.form === 'zehnerstopp');
+  pruefe('Konfiguration: genau eine Stufe mit form "zehnerstopp"',
+    stufen.filter(s => s.form === 'zehnerstopp').length === 1);
+  pruefe('Konfiguration: davor wird ohne Borgen gerechnet, danach mit',
+    stufen[idx - 1]?.kein_entbuendeln === true && stufen[idx + 1] && !stufen[idx + 1].kein_entbuendeln);
+  pruefe('Konfiguration: Stufen sind lückenlos ab 1 nummeriert (maxStufe = Anzahl)',
+    stufen.every((s, i) => s.nr === i + 1));
+
+  const s = stufen[idx];
+  const ps = proben(600, () => generiereMinusAufgabe(s, pool.minus.distraktoren));
+  const zum = ps.filter(p => p.a % 10 !== 0), vom = ps.filter(p => p.a % 10 === 0);
+  pruefe('Wirkung: jede Aufgabe ist „zum Zehner" oder „vom Zehner"',
+    zum.every(p => p.ergebnis % 10 === 0 && p.b === p.a % 10) && vom.every(p => p.b >= 1 && p.b <= 9));
+  pruefe('Wirkung: beide Formen kommen bei 600 Proben reichlich vor', zum.length > 200 && vom.length > 200);
+  pruefe('Wirkung: abgezogen wird nur einstellig', ps.every(p => p.b >= 1 && p.b <= 9));
+  pruefe('Wirkung: a bleibt in a_min..a_max', ps.every(p => p.a >= s.a_min && p.a <= s.a_max));
+  pruefe('Wirkung: Ergebnis stimmt und die richtige Antwort steht unter den Knöpfen',
+    ps.every(p => p.ergebnis === p.a - p.b && p.antwort_optionen.includes(p.ergebnis) && p.antwort_optionen.length === 5));
+}
 
 console.log(fehler === 0 ? '\nAlles grün.' : `\n${fehler} Fehler.`);
 process.exit(fehler === 0 ? 0 : 1);

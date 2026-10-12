@@ -8,7 +8,7 @@ import { generiereRechnen10Aufgabe } from './aufgaben/rechnen10.js';
 import { generiereGeteiltAufgabe } from './aufgaben/geteilt.js';
 import { generiereUhrAufgabe, formatiereZeit, formatiereDigital, RASTUNG, wuerfleAngezeigteSprechweise } from './aufgaben/uhr.js';
 import { rendereUhr, rendereStelluhr, ziehRastungFuer } from './zifferblatt.js';
-import { rendereStellenwert } from './stellenwert.js';
+import { rendereRechenweg } from './rechenweg.js';
 import { verteileBelohnung } from './belohnung.js';
 import { loadAufgabenPool, loadBiomManifest } from './data.js';
 import { waehleMechanik, aktuelleStufe, rapportiereErgebnis } from './adaptiv.js';
@@ -276,7 +276,7 @@ function fortschrittHtml(position, laenge) {
 //
 // WICHTIG: Angefasst wird nur die Anschauung VOR dem Fehler. Die Leitplanke „nach 2
 // Fehlversuchen wird die Lösung gezeigt" bleibt unangetastet — es entsteht kein Frust-Loop.
-// Der geführte Stellenwert-Fall (.aufgabe__stellenwert) und das Legen der B-Mechanik
+// Der Rechenweg des Stellenwert-Falls (.aufgabe__stellenwert) und das Legen der B-Mechanik
 // (.aufgabe__legebereich) sind keine Hilfe, sondern die Aufgabe selbst — Finger weg.
 function schleifeHilfeAus(inhalt, aufgabe) {
   const stufe = aufgabe.box?.hilfe;
@@ -370,7 +370,8 @@ function rendereFrageInModal(modal, reihe, profile, maxStufe, onWeiter) {
 //   Große Aufgaben (mehr als 5 Gruppen oder mehr als 10 je Gruppe) zeigen stattdessen das
 //   kompakte Malfeld — Entscheidung nach dem Live-Beurteilen (14.09.2026): Die Würfelgruppen
 //   wurden höher als der Bildschirm, die Antwortknöpfe waren nicht mehr zu sehen.
-// Stellenwert-Fall: geführte Schritte statt statischer Visualisierung.
+// Stellenwert-Fall: Rechenweg in Sprüngen (js/rechenweg.js) statt statischer Visualisierung.
+// Bis v102 standen hier die Entbündel-Schritte mit Würfeln; der Name des Falls ist geblieben.
 // Greift bei Plus/Minus, wenn zweistellig ODER mit Zehnerübergang/Borgen.
 function istStellenwertFall(aufgabe) {
   if (aufgabe.aufgabentyp !== 'plus' && aufgabe.aufgabentyp !== 'minus') return false;
@@ -394,7 +395,7 @@ function baueVisualisierung(aufgabe) {
   }
   // Plus & Minus: zwei Würfelgruppen nebeneinander, Operator dazwischen (gleiches
   // Bild für beide Rechenarten). Zweistellige/Übergangs-Fälle laufen ohnehin über die
-  // geführten Stellenwert-Schritte; hier greift das Bild nur bei kleinen Zahlen.
+  // Rechenweg hinter dem 💡-Knopf; hier greift das Bild nur bei kleinen Zahlen.
   if (aufgabe.aufgabentyp !== 'plus' && aufgabe.aufgabentyp !== 'minus') return '';
   if (aufgabe.a > 20 || aufgabe.b > 20) return '';
   const operator = aufgabe.aufgabentyp === 'minus' ? '−' : '+';
@@ -531,7 +532,7 @@ function baueAufgabeInhalt(aufgabe, mechanik) {
   if (mechanik === 'A') {
     const profile = getCurrentProfile();
     if (istStellenwertFall(aufgabe)) {
-      // Antwortknöpfe stehen sofort da; die geführten Schritte sind Hilfe auf Wunsch hinter
+      // Antwortknöpfe stehen sofort da; der Rechenweg in Sprüngen ist Hilfe auf Wunsch hinter
       // dem 💡-Knopf (Befund 10.10.2026: als Pflicht vor jeder Antwort waren es fünf bis
       // sechs Tipps je Aufgabe, auch wenn das Kind die Aufgabe konnte). Fehler-Box Fach 3
       // ('keine'): der Knopf ist zunächst verborgen — es soll aus dem Kopf kommen. Nach dem
@@ -590,9 +591,9 @@ function starteAufgabe(reihe, mechanik, profile, modal, inhalt, maxStufe, onWeit
   // nicht auf frisch erschienenen Knöpfen landet.
   const sperre = neueKlickSperre();
   sperre.verriegeln(startZeit);
-  // Stellenwert-Schritte (Hilfe auf Wunsch): Knopf wird in baueAufgabeInhalt erzeugt. Wer
-  // die Schritte aufgeschlagen hat, hat die Aufgabe hergeleitet bekommen, nicht abgerufen —
-  // der letzte Schritt nennt Zehner und Einer des Ergebnisses. Ein Treffer danach zählt für
+  // Rechenweg (Hilfe auf Wunsch): Knopf wird in baueAufgabeInhalt erzeugt. Wer die Sprünge
+  // aufgeschlagen hat, hat die Aufgabe hergeleitet bekommen, nicht abgerufen — vor dem
+  // letzten Sprung steht nur noch eine kleine Aufgabe da. Ein Treffer danach zählt für
   // die Fehler-Box deshalb nicht als „auf Anhieb" (gleiche Behandlung wie die Stell-Form).
   const swHilfeKnopf = inhalt.querySelector('[data-sw-hilfe]');
   let hilfeGenutzt = false;
@@ -649,7 +650,7 @@ function starteAufgabe(reihe, mechanik, profile, modal, inhalt, maxStufe, onWeit
   // zu retten — deshalb ab jetzt mitschreiben.
   // Dazu zwei Kennzeichen, die sagen, WAS die gemessene Zeit enthält (siehe MESS_STICHTAG in
   // sync-logik.js): „legen"/„stellen" für die B-Mechanik — dort steckt das Legen bzw. Ziehen
-  // in der Zeit — und „hilfe", wenn die Stellenwert-Schritte aufgeschlagen wurden. Ohne sie
+  // in der Zeit — und „hilfe", wenn der Rechenweg aufgeschlagen wurde. Ohne sie
   // sähe eine Aufgabe mit Hilfe im Blatt aus wie langsames Rechnen. Zugleich die einzige
   // Stelle, an der sichtbar wird, ob die Hilfe auf Wunsch überhaupt gegriffen wird.
   function detailFuer(aufgabe, maxStufe) {
@@ -755,7 +756,7 @@ function starteAufgabe(reihe, mechanik, profile, modal, inhalt, maxStufe, onWeit
       swHilfeKnopf.addEventListener('click', () => {
         hilfeGenutzt = true;
         swContainer.hidden = false;
-        rendereStellenwert(aufgabe, swContainer);
+        rendereRechenweg(aufgabe, swContainer);
         swHilfeKnopf.remove();
       });
     }

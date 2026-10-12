@@ -1,17 +1,29 @@
 // Minus-Aufgaben-Generator. Spiegelt plus.js. Bekommt Stufen-Config aus aufgaben-pool.json.
 // a >= b (kein negatives Ergebnis), ZR 100. Stufen-Flag kein_entbuendeln steuert das Borgen.
+//
+// Stufen mit form "zehnerstopp" üben die zwei Teilschritte der Zehnerunterschreitung einzeln,
+// bevor sie in einer Aufgabe zusammenkommen:
+//   zum Zehner  85 − 5 = 80   (die Einer gehen genau weg)
+//   vom Zehner  80 − 2 = 78   (dieselbe kleine Aufgabe wie 10 − 2)
+// Wer beides abrufen kann, muss bei 85 − 7 nur noch die 7 zerlegen. Wer es herleiten muss,
+// hat für die eigentliche Aufgabe keinen Kopf mehr frei.
 
 export function generiereMinusAufgabe(stufenConfig, distraktorConfig) {
   let a, b, ergebnis;
   let versuche = 0;
 
-  do {
-    a = zufallsZahl(stufenConfig.a_min, stufenConfig.a_max);
-    b = zufallsZahl(stufenConfig.b_min, stufenConfig.b_max);
+  if (stufenConfig.form === 'zehnerstopp') {
+    ({ a, b } = zehnerstopp(stufenConfig));
     ergebnis = a - b;
-    versuche++;
-    if (versuche > 50) break; // Safety
-  } while (!passtZurStufe(a, b, ergebnis, stufenConfig));
+  } else {
+    do {
+      a = zufallsZahl(stufenConfig.a_min, stufenConfig.a_max);
+      b = zufallsZahl(stufenConfig.b_min, stufenConfig.b_max);
+      ergebnis = a - b;
+      versuche++;
+      if (versuche > 50) break; // Safety
+    } while (!passtZurStufe(a, b, ergebnis, stufenConfig));
+  }
 
   const optionen = baueAntwortOptionen(ergebnis, distraktorConfig);
 
@@ -25,6 +37,15 @@ export function generiereMinusAufgabe(stufenConfig, distraktorConfig) {
     vorlese_text: `${a} minus ${b}`,
     antwort_optionen: optionen,
   };
+}
+
+// Beide Formen gleich oft. Die Zehner kommen aus a_min..a_max, die Einer aus b_min..b_max.
+function zehnerstopp(config) {
+  const zMin = Math.ceil(config.a_min / 10), zMax = Math.floor(config.a_max / 10);
+  const z = zufallsZahl(zMin, zMax);
+  const e = zufallsZahl(config.b_min, Math.min(config.b_max, 9));
+  if (Math.random() < 0.5) return { a: z * 10 + e, b: e };   // zum Zehner
+  return { a: z * 10, b: e };                                 // vom Zehner
 }
 
 function passtZurStufe(a, b, ergebnis, config) {
