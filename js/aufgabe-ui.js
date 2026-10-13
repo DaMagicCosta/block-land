@@ -523,7 +523,7 @@ function baueAufgabeInhalt(aufgabe, mechanik) {
       <div class="aufgabe__text">${escapeHtml(aufgabe.text)}</div>
       ${hilfeKnopf}
       <div class="aufgabe__visualisierung">${rendereUhr(aufgabe.ergebnis, { minutenBeschriftung: zeigeMinuten })}</div>
-      <div class="aufgabe__optionen">${baueOptionenHtml(aufgabe, profile)}</div>
+      <div class="aufgabe__optionen aufgabe__optionen--text">${baueOptionenHtml(aufgabe, profile)}</div>
       <div class="aufgabe__feedback" hidden></div>
     `;
   }

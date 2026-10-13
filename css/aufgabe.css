@@ -137,6 +137,11 @@
   gap: var(--space-sm);
 }
 
+/* Uhr: Die Antworten sind Wörter oder Uhrzeiten ("dreiviertel sieben", "16:45") und passen
+   nicht zu fünft in eine Zeile — sie liefen rechts aus dem Fenster. Hier brechen sie um. */
+.aufgabe__optionen--text { display: flex; flex-wrap: wrap; justify-content: center; }
+.aufgabe__optionen--text .aufgabe__option { flex: 1 1 auto; min-width: 30%; }
+
 .aufgabe__option {
   background: var(--color-surface-2);
   color: var(--color-text);

@@ -115,6 +115,13 @@ console.log('\nSchritte: je Sprung einer, die Frage wandert mit');
   check('78 + 17: die 95 steht nirgends', s.every(x => !/95/.test(text(x))));
 }
 {
+  // Befund beim Durchspielen 12.10.2026: „1 fehlen noch".
+  const s = berechneSchritte({ aufgabentyp: 'minus', a: 87, b: 48, ergebnis: 39 });
+  check('87 − 48: Einzahl bei der 1 („1 fehlt noch")', text(s[2]).includes('1 fehlt noch') && text(s[2]).includes('7 sind schon weg'));
+  const t = berechneSchritte({ aufgabentyp: 'minus', a: 61, b: 7, ergebnis: 54 });
+  check('61 − 7: Einzahl bei der 1 („1 ist schon weg")', text(t[1]).includes('1 ist schon weg') && text(t[1]).includes('6 fehlen noch'));
+}
+{
   const s = berechneSchritte({ aufgabentyp: 'minus', a: 12, b: 0, ergebnis: 12 });
   check('ohne Sprung (b = 0): ein Schritt, der nur fragt', s.length === 1 && s[0].sprungIdx === -1);
 }

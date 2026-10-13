@@ -85,7 +85,8 @@ export function berechneSchritte(aufgabe) {
       case 'rest':
         titel = 'Der Rest';
         text = `<b class="rw-e">${weg.zerlegung.ganze} = ${weg.zerlegung.teil1} + ${weg.zerlegung.teil2}</b>. `
-          + `${weg.zerlegung.teil1} sind schon ${dazu}, ${weg.zerlegung.teil2} fehlen noch: ${frage}`
+          + `${weg.zerlegung.teil1} ${weg.zerlegung.teil1 === 1 ? 'ist' : 'sind'} schon ${dazu}, `
+          + `${weg.zerlegung.teil2} ${weg.zerlegung.teil2 === 1 ? 'fehlt' : 'fehlen'} noch: ${frage}`
           + kleineAufgabe(s, weg);
         break;
       default:
