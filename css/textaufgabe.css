@@ -92,6 +92,13 @@ button.text-token.text-token--unwichtig { opacity: 0.45; text-decoration: line-t
 
 /* Solange Zahlen gesucht werden, sind sie als antippbar erkennbar. */
 .text-saetze--schritt-zahlen button.text-token:not(.text-token--zahl-markiert):not(.text-token--unwichtig) { border-color: var(--color-border); }
+/* Tippziel für Kinderfinger: Die Zahlen sind hier die Aufgabe. Ohne Mindestmaß war eine
+   einstellige Zahl 17 Punkte breit. Die Zeilen bekommen dafür mehr Abstand. */
+.text-saetze--schritt-zahlen { line-height: 2.9; }
+.text-saetze--schritt-zahlen button.text-token {
+  min-width: 40px; min-height: 40px; line-height: 36px;
+  box-sizing: border-box; text-align: center; margin: 0 2px;
+}
 /* Ab dem Frage-Schritt fallen Tipps auf Zahlen zum Satz durch. */
 .text-saetze--schritt-frage .text-token,
 .text-saetze--schritt-rechnen .text-token { pointer-events: none; }

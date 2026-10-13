@@ -23,6 +23,14 @@ export function aktualisiereTagesauftrag(auftrag, heuteKey) {
   return { ...basis, fortschritt: basis.fortschritt + 1 };
 }
 
+// Beschriftung der Tafel in der Welt. Der Fortschritt zählt intern weiter (jede Aufgabe des
+// Tages), die Tafel bleibt beim Ziel stehen: „35/5" liest sich wie ein Fehler. Ist die Truhe
+// abgeholt, steht ein Haken dabei.
+export function tafelText(auftrag, ziel) {
+  const stand = Math.min(Math.max(auftrag?.fortschritt ?? 0, 0), ziel);
+  return `${stand}/${ziel}${auftrag?.belohnt ? ' ✓' : ''}`;
+}
+
 // Reihenfolge von selten -> häufig; bestimmt, in welcher Reihenfolge die unabhängigen
 // Material-Chancen pro Slot geprüft werden (seltenes Material hat Vorrang, falls mehrere
 // Würfe im selben Slot treffen). 'holz' steht bewusst am Ende UND ist der Fallback, falls

@@ -247,6 +247,7 @@
   font-size: var(--font-size-sm);
   color: var(--color-text-dim);
   white-space: nowrap;
+  min-height: 40px;
   cursor: pointer;
 }
 .welt__auftrag:hover { border-color: var(--color-action); }

@@ -1,6 +1,6 @@
 // Ad-hoc-Checks für js/tagesauftrag-logik.js (kein Test-Runner im Projekt).
 // Lauf: node tools/check-tagesauftrag-logik.mjs  (aus dem Block-Land-Root)
-import { zielFuer, neuerAuftrag, aktualisiereTagesauftrag, truhenZiehung } from '../js/tagesauftrag-logik.js';
+import { zielFuer, neuerAuftrag, aktualisiereTagesauftrag, truhenZiehung, tafelText } from '../js/tagesauftrag-logik.js';
 
 let fehler = 0;
 function pruefe(name, bedingung) {
@@ -14,6 +14,13 @@ pruefe('klasse-1 -> Ziel 3', zielFuer('klasse-1') === 3);
 pruefe('klasse-2 -> Ziel 5', zielFuer('klasse-2') === 5);
 pruefe('klasse-3 -> Ziel 5', zielFuer('klasse-3') === 5);
 pruefe('unbekanntes Alter -> Ziel 3 (Fallback)', zielFuer('irgendwas') === 3);
+
+// --- tafelText: bleibt beim Ziel stehen ---
+pruefe('Tafel: unterwegs 2/5', tafelText({ fortschritt: 2, belohnt: false }, 5) === '2/5');
+pruefe('Tafel: Ziel erreicht, Truhe wartet 5/5', tafelText({ fortschritt: 5, belohnt: false }, 5) === '5/5');
+pruefe('Tafel: weit über dem Ziel bleibt 5/5', tafelText({ fortschritt: 35, belohnt: false }, 5).startsWith('5/5'));
+pruefe('Tafel: Truhe abgeholt trägt den Haken', tafelText({ fortschritt: 35, belohnt: true }, 5) === '5/5 ✓');
+pruefe('Tafel: ohne Auftrag 0/3', tafelText(undefined, 3) === '0/3');
 
 // --- neuerAuftrag: frisches Objekt ---
 const frisch = neuerAuftrag('2026-07-10');

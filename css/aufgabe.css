@@ -41,6 +41,7 @@
   color: var(--color-bg);
   border: 0;
   padding: var(--space-sm) var(--space-md);
+  min-height: 44px;
   border-radius: var(--radius-sm);
   font-family: var(--font-mono);
   font-weight: bold;
@@ -238,6 +239,7 @@
   border: 2px solid var(--color-border);
   border-radius: var(--radius-sm);
   padding: var(--space-xs) var(--space-md);
+  min-height: 44px;
   font-family: var(--font-mono);
   font-size: var(--font-size-sm);
   cursor: pointer;
@@ -262,6 +264,7 @@
   border: 2px dashed var(--color-border);
   border-radius: var(--radius-sm);
   padding: var(--space-xs) var(--space-md);
+  min-height: 44px;
   margin-bottom: var(--space-sm);
   font-family: var(--font-mono);
   font-size: var(--font-size-sm);

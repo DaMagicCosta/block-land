@@ -1,9 +1,6 @@
 import { getSchwierigkeit, setSchwierigkeit, trackeAufgabe } from './state.js';
 import { meldeAufgabe } from './sync.js';
-
-const REAKTIONSZEIT_SCHWELLE_MS = 12000;  // > 12 Sek = "langsam"
-const FEHLER_SERIE_FUER_B_WECHSEL = 3;
-const ERFOLG_SERIE_FUER_HOEHER = 4;
+import { neuerVerlauf, verbuche, mechanikFuer, passeStufeAn } from './adaptiv-logik.js';
 
 // In-Memory pro Profil + Aufgabentyp: laufender Verlauf der letzten Aufgaben.
 // Wird nicht persistiert — startet bei jeder Welt-Session frisch.
@@ -15,20 +12,12 @@ function key(profileId, aufgabentyp) {
 
 function getVerlauf(profileId, aufgabentyp) {
   const k = key(profileId, aufgabentyp);
-  if (!verlauf.has(k)) {
-    verlauf.set(k, { letzte_5: [], fehler_serie: 0, erfolg_serie: 0 });
-  }
+  if (!verlauf.has(k)) verlauf.set(k, neuerVerlauf());
   return verlauf.get(k);
 }
 
 export function waehleMechanik(profileId, aufgabentyp) {
-  // Default: A. Bei laufender Fehler-Serie → B.
-  const v = getVerlauf(profileId, aufgabentyp);
-  if (v.fehler_serie >= FEHLER_SERIE_FUER_B_WECHSEL) return 'B';
-  // Wenn die letzten 3 Aufgaben durchschnittlich > schwelle waren, auch B
-  const langsam = v.letzte_5.slice(-3).filter(e => e.zeit_ms > REAKTIONSZEIT_SCHWELLE_MS).length;
-  if (langsam >= 2) return 'B';
-  return 'A';
+  return mechanikFuer(getVerlauf(profileId, aufgabentyp));
 }
 
 export function aktuelleStufe(profileId, aufgabentyp) {
@@ -44,28 +33,14 @@ export function rapportiereErgebnis(profileId, aufgabentyp, war_richtig, zeit_ms
   meldeAufgabe(profileId, aufgabentyp, war_richtig, zeit_ms, detail ?? `stufe ${getSchwierigkeit(profileId, aufgabentyp)}`);
 
   const v = getVerlauf(profileId, aufgabentyp);
-  v.letzte_5.push({ war_richtig, zeit_ms });
-  if (v.letzte_5.length > 5) v.letzte_5.shift();
-
-  if (war_richtig) {
-    v.fehler_serie = 0;
-    v.erfolg_serie += 1;
-  } else {
-    v.fehler_serie += 1;
-    v.erfolg_serie = 0;
-  }
+  verbuche(v, war_richtig, zeit_ms);
 
   if (!adaptStufe) return;   // Gezieltes Üben: Stufe (Art) bleibt fix.
 
   // Stufe anpassen (Obergrenze = echte Stufenzahl der Rechenart).
   const aktuell = getSchwierigkeit(profileId, aufgabentyp);
-  if (v.erfolg_serie >= ERFOLG_SERIE_FUER_HOEHER && aktuell < maxStufe) {
-    setSchwierigkeit(profileId, aufgabentyp, aktuell + 1);
-    v.erfolg_serie = 0;
-  } else if (v.fehler_serie >= 2 && aktuell > 1) {
-    setSchwierigkeit(profileId, aufgabentyp, aktuell - 1);
-    v.fehler_serie = 0;
-  }
+  const neu = passeStufeAn(v, aktuell, maxStufe);
+  if (neu !== aktuell) setSchwierigkeit(profileId, aufgabentyp, neu);
 }
 
 export function reset(profileId, aufgabentyp) {
